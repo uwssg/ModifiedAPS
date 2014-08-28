@@ -197,7 +197,7 @@ void aps::assign_covariogram(covariance_function *cc){
 }
 
 void aps::assign_chisquared(chisquared *cc){
-    chisq=cc;
+    gpWrap.set_chisq(cc);
 }
 
 void aps::set_characteristic_length(int dex, double nn){
@@ -207,81 +207,6 @@ void aps::set_characteristic_length(int dex, double nn){
 void aps::initialize(int npts,array_1d<double> &min, array_1d<double> &max){
     array_2d<double> q;
     initialize(npts,min,max,q);
-}
-
-int aps::in_bounds(array_1d<double> &pt){
-    int i;
-    for(i=0;i<gg.get_dim();i++){
-        if(pt.get_data(i)>chisq->get_max(i) && chisq->get_max(i)>-1.0*chisq_exception){
-            return 0;
-        }
-        
-        if(pt.get_data(i)<chisq->get_min(i) && chisq->get_min(i)<chisq_exception){
-            return 0;
-        }
-    }
-    
-    return 1;
-    
-    
-}
-
-int aps::is_valid(array_1d<double> &pt){
-    double xx;
-    return is_valid(pt,&xx);
-}
-
-int aps::is_valid(array_1d<double> &pt, double *chiout){
-    
-    chiout[0]=-1.0;
-    
-    if(in_bounds(pt)==0){
-        chiout[0]=2.0*chisq_exception;
-        return 0;
-    }
-    
-    array_1d<int> neigh;
-    array_1d<double> ddneigh;
-    
-    gg.nn_srch(pt,1,neigh,ddneigh);
-    if(ddneigh.get_data(0)<=1.0e-8){
-        chiout[0]=gg.get_fn(neigh.get_data(0));
-        return 0;
-    }
-    
-    return 1;
-}
-
-void aps::evaluate(array_1d<double> &pt, double *chiout){
-    int i;
-    evaluate(pt,chiout,&i,-1);
-}
-
-void aps::evaluate(array_1d<double> &pt, double *chiout, int *dex){
-    evaluate(pt,chiout,dex,-1);
-}
-
-void aps::evaluate(array_1d<double> &pt, double *chiout, int *dex, int validity){
-    
-    dex[0]=-1;
-    
-    if(validity==-1){
-        validity=is_valid(pt,chiout);
-    }
-    
-    if(validity==0){
-        return;
-    }
-    else{
-        chiout[0]=(*chisq)(pt);
-        if(chiout[0]<chisq_exception){
-            /*
-            Add the point to the Gaussian Process
-            */
-            add_pt(pt,chiout[0]);
-            dex[0]=gg.get_pts()-1;
-        }
-    }
 }
 
 void aps::initialize(int npts, array_1d<double> &min, array_1d<double> &max, 
@@ -361,6 +286,7 @@ void aps::initialize(int npts, array_1d<double> &min, array_1d<double> &max,
     
     printf("calling on gg.initialize\n");
     gg.initialize(data,ff,ggmin,ggmax);
+    ggWrap.set_gg(&gg);
     
     if(gg.get_dim()!=dim){
         printf("WARNING gg.get_dim %d dim %d\n",
@@ -515,6 +441,8 @@ void aps::resume(char *filename){
     }
     
     gg.initialize(data,ff,ggmin,ggmax);
+    ggWrap.set_gg(&gg);
+    
     printf("initialized gg\n");
     set_chimin(local_min,(*gg.get_pt(i_min)),i_min);
     mindex_is_candidate=1;
@@ -528,22 +456,6 @@ void aps::resume(char *filename){
 void aps::set_target(double tt){
     target_asserted=1;
     strad.set_target(tt);
-}
-
-void aps::set_chimin(double cc,array_1d<double> &pt, int dex){
-    chimin=cc;
-    
-    int i;
-    for(i=0;i<pt.get_dim();i++){
-        minpt.set(i,pt.get_data(i));
-    }
-    
-    if(target_asserted==0){
-        strad.set_target(cc+delta_chisquared);
-    }
-    
-    global_mindex=dex;
-
 }
 
 double aps::get_chimin(){
@@ -1117,38 +1029,6 @@ void aps::find_global_minimum(array_1d<int> &neigh){
     set_where("nowhere");
 }
 
-
-int aps::add_pt(array_1d<double> &vv, double chitrue){
-    
-    int i;
-
-    
-    gg.add_pt(vv,chitrue);
-        
-        
-    if(chitrue<chimin || chimin<0.0){
-            set_chimin(chitrue,vv,gg.get_pts()-1);
-    }
-
-    if(chitrue<strad.get_target()){
-        good_pts.add(gg.get_pts()-1);
-        if(ngood==0){
-            for(i=0;i<gg.get_dim();i++){
-                good_max.set(i,vv.get_data(i));
-                good_min.set(i,vv.get_data(i));
-            }
-        }
-        else{
-            for(i=0;i<gg.get_dim();i++){
-                if(vv.get_data(i)<good_min.get_data(i))good_min.set(i,vv.get_data(i));
-                if(vv.get_data(i)>good_max.get_data(i))good_max.set(i,vv.get_data(i));
-            }
-        }
-        
-        ngood++; 
-    }
-
-}
 
 int aps::get_ct_aps(){
     return ct_aps;
@@ -2857,3 +2737,184 @@ void aps::write_pts(){
     
 }
 
+gpWrapper::gpWrapper(){
+    chimin=2.0*chisq_exception;
+}
+
+gpWrapper::~gpWrapper(){}
+
+void gpWrapper::set_gp(gp *gg_in){
+    gg=gg_in;
+    good_max.set_dim(gg->get_dim());
+    good_min.set_dim(gg->get_dim());
+    minpt.set_dim(gg->get_dim());
+    ngood=0;
+}
+
+void gpWrapper::set_chisq(chisquared *cc){
+    chisq=cc;
+}
+
+int gpWrapper::in_bounds(array_1d<double> &pt){
+    int i;
+    for(i=0;i<gg->get_dim();i++){
+        if(pt.get_data(i)>chisq->get_max(i) && chisq->get_max(i)>-1.0*chisq_exception){
+            return 0;
+        }
+        
+        if(pt.get_data(i)<chisq->get_min(i) && chisq->get_min(i)<chisq_exception){
+            return 0;
+        }
+    }
+    
+    return 1;
+    
+    
+}
+
+int gpWrapper::is_valid(array_1d<double> &pt){
+    double xx;
+    return is_valid(pt,&xx);
+}
+
+int gpWrapper::is_valid(array_1d<double> &pt, double *chiout){
+    
+    chiout[0]=-1.0;
+    
+    if(in_bounds(pt)==0){
+        chiout[0]=2.0*chisq_exception;
+        return 0;
+    }
+    
+    array_1d<int> neigh;
+    array_1d<double> ddneigh;
+    
+    gg->nn_srch(pt,1,neigh,ddneigh);
+    if(ddneigh.get_data(0)<=1.0e-8){
+        chiout[0]=gg->get_fn(neigh.get_data(0));
+        return 0;
+    }
+    
+    return 1;
+}
+
+void gpWrapper::evaluate(array_1d<double> &pt, double *chiout){
+    int i;
+    evaluate(pt,chiout,&i,-1);
+}
+
+void gpWrapper::evaluate(array_1d<double> &pt, double *chiout, int *dex){
+    evaluate(pt,chiout,dex,-1);
+}
+
+void gpWrapper::evaluate(array_1d<double> &pt, double *chiout, int *dex, int validity){
+    
+    dex[0]=-1;
+    
+    if(validity==-1){
+        validity=is_valid(pt,chiout);
+    }
+    
+    if(validity==0){
+        return;
+    }
+    else{
+        chiout[0]=(*chisq)(pt);
+        if(chiout[0]<chisq_exception){
+            /*
+            Add the point to the Gaussian Process
+            */
+            add_pt(pt,chiout[0]);
+            dex[0]=gg->get_pts()-1;
+        }
+    }
+}
+
+int gpWrapper::add_pt(array_1d<double> &vv, double chitrue){
+    
+    int i;
+
+    
+    gg->add_pt(vv,chitrue);
+        
+        
+    if(chitrue<chimin || chimin<0.0){
+            set_chimin(chitrue,vv,gg->get_pts()-1);
+    }
+
+    if(chitrue<strad.get_target()){
+        good_pts.add(gg->get_pts()-1);
+        if(ngood==0){
+            for(i=0;i<gg->get_dim();i++){
+                good_max.set(i,vv.get_data(i));
+                good_min.set(i,vv.get_data(i));
+            }
+        }
+        else{
+            for(i=0;i<gg->get_dim();i++){
+                if(vv.get_data(i)<good_min.get_data(i))good_min.set(i,vv.get_data(i));
+                if(vv.get_data(i)>good_max.get_data(i))good_max.set(i,vv.get_data(i));
+            }
+        }
+        
+        ngood++; 
+    }
+
+}
+
+
+void gpWrapper::set_chimin(double cc,array_1d<double> &pt, int dex){
+    chimin=cc;
+    
+    int i;
+    for(i=0;i<pt.get_dim();i++){
+        minpt.set(i,pt.get_data(i));
+    }
+    
+    if(target_asserted==0){
+        strad.set_target(cc+delta_chisquared);
+    }
+    
+    global_mindex=dex;
+
+}
+
+int gpWrapper::get_ngood(){
+    return ngood;
+}
+
+double gpWrapper::get_good_max(int dex){
+    return good_max.get_data(dex);
+}
+
+double gpWrapper::get_good_min(int dex){
+    return good_min.get_data(dex);
+}
+
+void gpWrapper::increment_ngood(){
+    ngood++;
+}
+
+void gpWrapper::decrement_ngood(){
+    ngood--;
+}
+
+void gpWrapper::set_ngood(int ii){
+    ngood=ii;
+}
+
+void gpWrapper::set_good_max(int dex, double nn){
+    good_max.set(dex,nn);
+}
+
+void gpWrapper::set_good_min(int dex, double nn){
+    good_min.set(dex,nn);
+}
+
+double gpWrapper::get_chimin(){
+    return chimin;
+}
+
+double gpWrapper::get_minpt(int dex){
+    return minpt.get_data(dex);
+}
