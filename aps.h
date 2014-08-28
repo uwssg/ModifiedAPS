@@ -153,19 +153,28 @@ class gpWrapper{
         double get_good_max(int);
         double get_good_min(int);
         int get_ngood();
-        void increment_ngood();
-        void decrement_ngood();
-        void set_ngood(int);
         void set_good_max(int,double);
         void set_good_min(int,double);
         
         double get_chimin();
         double get_minpt(int);
+        array_1d<double>* get_minpt();
         
         void set_delta_chisquared(double);
         double get_delta_chisquared();
         
         void assert_target();
+        
+        double call_chisq(array_1d<double>&);
+        int get_chisq_dim();
+        int get_chisq_called();
+        double get_chisq_time();
+        
+        int get_global_mindex();
+        
+        void evaluate_ngood();
+        
+        int get_good_pt(int);
         
     private:
         gp *gg;
@@ -173,7 +182,8 @@ class gpWrapper{
         straddle_parameter *strad;
         
         array_1d<double> good_max,good_min,minpt;
-        int ngood,global_mindex,target_asserted;
+        array_1d<int> good_pts;
+        int global_mindex,target_asserted;
         
         double chimin,delta_chisquared;
 
@@ -594,7 +604,7 @@ private:
     these arrays store the indexes of points found by aps_wide, aps_focus,
     and points that satisfy chisquared<=chisquared_lim, respectively
     */
-    array_1d<int> wide_pts,focus_pts,good_pts;
+    array_1d<int> wide_pts,focus_pts;
     
     /*the characteristic lengths of dimensions in parameter space*/
     array_1d<double> characteristic_length;
