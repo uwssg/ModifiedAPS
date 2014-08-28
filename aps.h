@@ -99,6 +99,7 @@ class gpWrapper{
         
         void set_gp(gp*);
         void set_chisq(chisquared*);
+        void set_strad(straddle_parameter*);
         
         /*
         determine whether or not the specified point is within the bounds allowed
@@ -161,16 +162,22 @@ class gpWrapper{
         double get_chimin();
         double get_minpt(int);
         
+        void set_delta_chisquared(double);
+        double get_delta_chisquared();
+        
+        void assert_target();
+        
     private:
         gp *gg;
         chisquared *chisq;
+        straddle_parameter *strad;
         
         array_1d<double> good_max,good_min,minpt;
-        int ngood,global_mindex;
+        int ngood,global_mindex,target_asserted;
         
-        double chimin;
+        double chimin,delta_chisquared;
 
-}
+};
 
 class aps{
 
@@ -570,12 +577,6 @@ private:
     */
     int mindex_is_candidate,do_bisection;
     
-    /*
-    target_asserted = 1 if chisquared_lim was set by hand; 0 if it is allowed to
-    change as chisquared_min changes
-    */
-    int target_asserted;
-    
     /*the names of the output files*/
     char outname[letters],timingname[letters];
     
@@ -654,12 +655,9 @@ private:
     double global_threshold,sphere_threshold;
     
     /*global variables
-    
-    delta_chisquared is used for setting chisquared_lim=chimin+delta_chisquared
-    
-    grat is the G parameter from equation (4) of the paper
+     grat is the G parameter from equation (4) of the paper
     */
-    double delta_chisquared,grat;
+    double grat;
     
     /*the object that stores the target value of chisquared and calculates the S statistic*/
     straddle_parameter strad;

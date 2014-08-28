@@ -52,8 +52,6 @@ aps::~aps(){
 void aps::set_where(char *word){
     mu_storage.set_where(word);
     sig_storage.set_where(word);
-    good_max.set_where(word);
-    good_min.set_where(word);
     wide_pts.set_where(word);
 }
 
@@ -64,8 +62,6 @@ aps::aps(int dim_in, int kk, double dd, int seed){
     
     mu_storage.set_name("aps_mu_storage");
     sig_storage.set_name("aps_sig_storage");
-    good_max.set_name("aps_good_max");
-    good_min.set_name("aps_good_min");
     wide_pts.set_name("aps_wide_pts");
     focus_pts.set_name("aps_focus_pts");
     good_pts.set_name("aps_good_pts");
@@ -83,26 +79,19 @@ aps::aps(int dim_in, int kk, double dd, int seed){
     write_every=1000;
     n_printed=0;
     do_bisection=1;
-    
-    target_asserted=0;
 
-    chimin=-1.0;
-    
     called_focus=0;
     called_wide=0;
         
     last_optimized=0;
     time_optimizing=0.0;
     time_refactoring=0.0;
-    
-    global_mindex=-1;
+
     mindex_is_candidate=0;
     
     ct_aps=0;
     ct_simplex=0;
 
-    ngood=0;
-    
     time_aps=0.0;
     time_simplex=0.0;
     time_total=0.0;
@@ -115,8 +104,7 @@ aps::aps(int dim_in, int kk, double dd, int seed){
     good_max.set_dim(dim_in);
     good_min.set_dim(dim_in);
     
-    
-    delta_chisquared=dd;
+    ggWrap.set_delta_chisquared(dd);
     
     chisq=NULL;
     
@@ -197,7 +185,7 @@ void aps::assign_covariogram(covariance_function *cc){
 }
 
 void aps::assign_chisquared(chisquared *cc){
-    gpWrap.set_chisq(cc);
+    ggWrap.set_chisq(cc);
 }
 
 void aps::set_characteristic_length(int dex, double nn){
@@ -454,7 +442,7 @@ void aps::resume(char *filename){
 }
 
 void aps::set_target(double tt){
-    target_asserted=1;
+    ggWrap.assert_target();
     strad.set_target(tt);
 }
 
@@ -1369,7 +1357,7 @@ double aps::simplex_strad(array_1d<double> &min_bound, array_1d<double> &max_bou
    S wil be evaluated by simplex_metric, which will be charged with storing the local maximum
    of S discovered and of keeping track of simplex_ct for convergence purposes
    */
-   while(sig>delta_chisquared && simplex_ct<1000){
+   while(sig>ggWrap.get_delta_chisquared() && simplex_ct<1000){
        for(i=0;i<gg.get_dim();i++){
            pbar.set(i,0.0);
            for(j=0;j<gg.get_dim()+1;j++){
@@ -1781,7 +1769,8 @@ void aps::bisection(array_1d<double> &inpt, double chi_in){
     If the point is already fairly near to chisquared_lim, or if APS has not yet found
     a low-chisquared region for which chisquared<chisquared_lim, do not do bisection
     */
-    if(chi_in<strad.get_target() && strad.get_target()-chi_in<0.1*delta_chisquared || chimin>strad.get_target()){
+    if(chi_in<strad.get_target() && 
+    strad.get_target()-chi_in<0.1*ggWrap.get_delta_chisquared() || chimin>strad.get_target()){
         return;
     }
     
@@ -1793,7 +1782,7 @@ void aps::bisection(array_1d<double> &inpt, double chi_in){
     double dd,ddmin;
     int origin_dex,i,j,k,use_it_parabola,i_center=-1;
     
-    double bisection_tolerance=0.1*delta_chisquared;
+    double bisection_tolerance=0.1*ggWrap.get_delta_chisquared();
     
     /*
     The code will work by finding one point with chisquared<chisquared_lim which will
@@ -2738,7 +2727,13 @@ void aps::write_pts(){
 }
 
 gpWrapper::gpWrapper(){
-    chimin=2.0*chisq_exception;
+    chimin=-1.0;
+    target_asserted=0;
+    global_mindex=-1;
+    
+    good_max.set_name("good_max");
+    good_min.set_name("good_min");
+    minpt.set_name("minpt");
 }
 
 gpWrapper::~gpWrapper(){}
@@ -2753,6 +2748,10 @@ void gpWrapper::set_gp(gp *gg_in){
 
 void gpWrapper::set_chisq(chisquared *cc){
     chisq=cc;
+}
+
+void gpWrapper::set_strad(straddle_parameter *strad_in){
+    strad=strad_in;
 }
 
 int gpWrapper::in_bounds(array_1d<double> &pt){
@@ -2842,7 +2841,7 @@ int gpWrapper::add_pt(array_1d<double> &vv, double chitrue){
             set_chimin(chitrue,vv,gg->get_pts()-1);
     }
 
-    if(chitrue<strad.get_target()){
+    if(chitrue<strad->get_target()){
         good_pts.add(gg->get_pts()-1);
         if(ngood==0){
             for(i=0;i<gg->get_dim();i++){
@@ -2872,7 +2871,7 @@ void gpWrapper::set_chimin(double cc,array_1d<double> &pt, int dex){
     }
     
     if(target_asserted==0){
-        strad.set_target(cc+delta_chisquared);
+        strad->set_target(cc+delta_chisquared);
     }
     
     global_mindex=dex;
@@ -2917,4 +2916,16 @@ double gpWrapper::get_chimin(){
 
 double gpWrapper::get_minpt(int dex){
     return minpt.get_data(dex);
+}
+
+double gpWrapper::get_delta_chisquared(){
+    return delta_chisquared;
+}
+
+double gpWrapper::set_delta_chisquared(double nn){
+    delta_chisquared=nn;
+}
+
+void gpWrapper::assert_target(){
+    target_asserted=1;
 }
