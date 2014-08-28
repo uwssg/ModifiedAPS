@@ -208,6 +208,7 @@ void aps::initialize(int npts, array_1d<double> &min, array_1d<double> &max,
     array_2d<double> data;
     data.set_name("aps_initializer_data");
     
+    ggWrap.set_strad(&strad);
     
     for(i=0;i<nguesses;i++){
         for(j=0;j<dim;j++)vector.set(j,guesses.get_data(i,j));
@@ -309,6 +310,7 @@ void aps::initialize(int npts, array_1d<double> &min, array_1d<double> &max,
         }
     }
     
+    printf("time to set chimin\n");
     if(nn<ggWrap.get_chimin() || ggWrap.get_chimin()<0.0){
         ggWrap.set_chimin(nn,(*gg.get_pt(j)),j);
         mindex_is_candidate=1;
