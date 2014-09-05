@@ -411,9 +411,108 @@ int node::ricochet_search(int istart, array_1d<double> &vstart, array_1d<double>
     returns the index of the point found
     */
     
+    double before=double(time(NULL));
+    
     array_1d<double> gradient,trial;
     gradient.set_name("node_ricochet_gradient");
     trial.set_name("node_ricochet_trial");
+    
+    int i,j,k;
+    double nn;
+    
+    //seed some points around istart so that the gradient is accurate
+    for(i=0;i<gg->get_dim();i++){
+        for(j=0;j<gg->get_dim();j++){
+            trial.set(j,gg->get_pt(istart,j));
+        }
+        
+        trial.add_val(i,1.0e-7*(gg->get_max(i)-gg->get_min(i)));
+        evaluateNoAssociate(trial,&nn,&j);
+        
+    }
+    
+    try{
+        gg->actual_gradient(istart,gradient);
+    }
+    catch(int iex){
+        printf("    ricochet gradient calculatio failed\n");
+        time_ricochet+=double(time(NULL))-before;
+        return -1;
+    }
+    
+    double dnorm=sqrt(vstart.get_square_norm());
+    
+    double vdotg,gnorm=gradient.normalize();
+    
+    vdotg=0.0;
+    for(i=0;i<gg->get_dim();i++){
+        vdotg+=vstart.get_data(i)*gradient.get_data(i);
+    }
+    
+    /*reflect the incoming velocity about the gradient of chisquared*/
+    array_1d<double> velocity;
+    velocity.set_name("node_ricochet_velocity");
+    for(i=0;i<gg->get_dim();i++){
+        velocity.set(i,vstart.get_data(i)-2.0*vdotg*gradient.get_data(i));
+    }
+    
+    double speed=velocity.normalize(),ss,chibest=2.0*chisq_exception;
+    double ftrial=2.0*chisq_exception,flow,fhigh;
+    int iLow,iHigh;
+    
+    /*try to find seeds for bisection along the reflected direction*/
+    flow=2.0*chisq_exception;
+    ss=0.1*speed;
+    int ct=0;
+    while(flow>=gg->get_target() && ct<20){
+        for(i=0;i<gg->get_dim();i++){
+            trial.set(i,gg->get_pt(istart,i)+ss*velocity.get_data(i));
+        }
+        
+        evaluateNoAssociate(trial,&flow,&iLow);
+        
+        if(flow>=gg->get_target()){
+            ss*=0.5;
+        }
+        
+        ct++;
+    }
+    
+    if(ct>=20){
+        time_ricochet+=double(time(NULL))-before;
+        return -1;
+    }
+    
+    ct=0;
+    ss+=speed;
+    fhigh=-2.0*chisq_exception;
+    while(fhigh<=gg->get_target() && ct<20){
+        for(i=0;i<gg->get_dim();i++){
+            trial.set(i,gg->get_pt(istart,i)+ss*velocity.get_data(i));
+        }
+        
+        evaluateNoAssociate(trial,&fhigh,&iHigh);
+        
+        if(fhigh<=gg->get_target()){
+            ss*=2.0;
+        }
+        ct++;
+    }
+    
+    if(ct>=20){
+        time_ricochet+=double(time(NULL))-before;
+        return -1;
+    }
+    
+    int iout;
+    iout=bisection(iLow,iHigh);
+    
+    for(i=0;i<gg->get_dim();i++){
+        vout.set(i,velocity.get_data(i));
+    }
+    
+    time_ricochet+=double(time(NULL))-before;
+    return iout;
 }
 
 void node::search(int *out){
