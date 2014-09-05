@@ -42,6 +42,7 @@ class node{
         int bisection(int,int);
         int coulomb_search();
         int ricochet_search(int,array_1d<double>&,array_1d<double>&);
+        void compass_search(int);
 
 };
 

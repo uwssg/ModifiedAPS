@@ -154,6 +154,20 @@ int node::bisection(int lowDex, int highDex){
     will return the best point it found
     */
     
+    if(gg->get_fn(lowDex)>gg->get_target()){
+        printf("WARNING in node bisection target %e but flow %e\n",
+        gg->get_target(),gg->get_fn(lowDex));
+        
+        exit(1);
+    }
+    
+    if(gg->get_fn(highDex)<gg->get_target()){
+        printf("WARNING in node bisection target %e but fhigh %e\n",
+        gg->get_target(),gg->get_fn(highDex));
+        
+        exit(1);
+    }
+    
     int iout;
     double flow,fhigh;
     array_1d<double> lowball,highball;
@@ -530,6 +544,52 @@ int node::ricochet_search(int istart, array_1d<double> &vstart, array_1d<double>
     time_ricochet+=double(time(NULL))-before;
     return iout;
 }
+
+void node::compass_search(int istart){
+    /*perform a compass search centered on the point designated by istart*/
+    
+    if(gg==NULL){
+        printf("WARNING cannot compass search; gg is null\n");
+        exit(1);
+    }
+    
+    if(basisVectors.get_rows()!=gg->get_dim() || basisVectors.get_cols()!=gg->get_dim()){
+        printf("WARNING in compass search dim %d but bases %d by %d\n",
+        gg->get_dim(),basisVectors.get_rows(),basisVectors.get_cols());
+        
+        exit(1);
+    }
+    
+    if(gg->get_fn(istart)>=gg->get_target()){
+        return;
+    }
+    
+    int idim,i,iHigh;
+    double ftrial,sgn,scale;
+    array_1d<double> trial;
+    trial.set_name("node_compass_trial");
+    
+    for(idim=0;idim<gg->get_dim();idim++){
+        for(sgn=-1.0;sgn<2.0;sgn+=2.0){
+            for(i=0;i<gg->get_dim();i++)trial.set(i,gg->get_pt(istart,i));
+            
+            ftrial=-2.0*chisq_exception;
+            scale=0.5;
+            while(ftrial<=gg->get_target()){
+                scale*=2.0;
+                for(i=0;i<gg->get_dim();i++){
+                    trial.add_val(i,basisVectors.get_data(idim,i)*scale*sgn);
+                }
+                
+                evaluateNoAssociate(trial,&ftrial,&iHigh);
+            }
+            
+            bisection(istart,iHigh);
+            
+        }//loop over sign (direction along basisVector)
+    }//loop over dimension (which basisVector we are bisecting along)
+}
+
 
 void node::search(int *out){
     if(gg==NULL){
