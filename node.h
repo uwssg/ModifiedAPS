@@ -3,4 +3,28 @@
 
 #include "gp_wrapper.h"
 
+class node{
+
+    public:
+        
+        node();
+        node(const node&);
+        node& operator=(const node&);
+        ~node();
+    
+    private:
+        
+        void copy(const node&);
+        
+        array_1d<int> associates,boundaryPoints;
+        array_2d<double> basisVectors;
+        
+        int center_dex,last_set_bases;
+        double time_ricochet,time_coulomb,time_total;
+        
+        gpWrapper *gg;
+        Ran *dice;
+
+};
+
 #endif

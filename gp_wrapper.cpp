@@ -33,6 +33,7 @@ gpWrapper::gpWrapper(){
     global_mindex=-1;
     
     chisq=NULL;
+    gg=NULL;
     
     good_max.set_name("good_max");
     good_min.set_name("good_min");
@@ -299,4 +300,19 @@ void gpWrapper::evaluate_ngood(){
 
 int gpWrapper::get_good_pt(int i){
     return good_pts.get_data(i);
+}
+
+int gpWrapper::get_dim(){
+    if(gg==NULL){
+        printf("WARNING cannot call gpWrapper::get_dim(); gg is NULL\n");
+    }
+    return gg->get_dim();
+}
+
+int gpWrapper::is_gp_null(){
+    if(gg==NULL){
+        return 1;
+    }
+    
+    return 0;
 }

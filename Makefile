@@ -79,11 +79,14 @@ eigen_wrapper.o containers.o
 gp_wrapper.o: gp_wrapper.h gp_wrapper.cpp chisq.o gaussian_process.o
 	$(gg) -c gp_wrapper.cpp
 
+node.o: node.cpp node.h gp_wrapper.o
+	$(gg) -c node.cpp
+
 aps.o: aps.h aps.cpp kd.o goto_tools.o eigen_wrapper.o gaussian_process.o \
-chisq.o containers.o gp_wrapper.o
+chisq.o containers.o gp_wrapper.o node.o
 	$(gg) -c aps.cpp goto_tools.o \
 	eigen_wrapper.o kd.o gaussian_process.o \
-	chisq.o containers.o gp_wrapper.o $(LIBRARIES) \
+	chisq.o containers.o gp_wrapper.o node.o $(LIBRARIES) \
 	$(INCLUDE) -Wno-deprecated
 
 ellipse: aps_runner_ellipses.cpp aps.o chisq.o

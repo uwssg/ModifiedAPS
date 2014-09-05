@@ -175,6 +175,8 @@ class gpWrapper{
         void evaluate_ngood();
         
         int get_good_pt(int);
+        int get_dim();
+        int is_gp_null();
         
     private:
         gp *gg;
