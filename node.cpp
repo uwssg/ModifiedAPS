@@ -45,7 +45,7 @@ void node::copy(const node &in){
     time_search=in.time_search;
     time_bases=in.time_bases;
     
-    int i,j,dim;
+    int i,j;
     
     farthest_associate=in.farthest_associate;
     
@@ -59,11 +59,10 @@ void node::copy(const node &in){
     
     if(gg!=NULL){
         if(gg->is_gp_null()==0){
-            dim=gg->get_dim();
             
-            basisVectors.set_cols(dim);
-            for(i=0;i<dim;i++){
-                for(j=0;j<dim;j++){
+            basisVectors.set_cols(gg->get_dim());
+            for(i=0;i<gg->get_dim();i++){
+                for(j=0;j<gg->get_dim();j++){
                     basisVectors.set(i,j,in.basisVectors.get_data(i,j));
                 }
             } 
@@ -644,12 +643,12 @@ double node::basis_error(int ix, array_1d<double> &dx, array_1d<int> &basis_asso
     
     /*perturb the ixth basis vector by dx*/
     nn=0.0;
-    for(i=0;i<dim;i++){
+    for(i=0;i<gg->get_dim();i++){
         trial_bases.add_val(ix,i,dx.get_data(i));
         nn+=trial_bases.get_data(ix,i)*trial_bases.get_data(ix,i);
     }
     nn=sqrt(nn);
-    for(i=0;i<dim;i++)trial_bases.divide_val(ix,i,nn);
+    for(i=0;i<gg->get_dim();i++)trial_bases.divide_val(ix,i,nn);
     
     for(jx=ix+1;jx!=ix;){
         if(jx==gg->get_dim())jx=0;
@@ -658,10 +657,10 @@ double node::basis_error(int ix, array_1d<double> &dx, array_1d<int> &basis_asso
             /*make sure that the jxth basis vector is orthogonal to all of the vectors that
             have already been orthogonalized*/
             nn=0.0;
-            for(i=0;i<dim;i++)nn+=trial_bases.get_data(kx,i)*trial_bases.get_data(jx,i);
-            for(i=0;i<dim;i++)trial_bases.subtract_val(jx,i,nn*trial_bases.get_data(kx,i));
+            for(i=0;i<gg->get_dim();i++)nn+=trial_bases.get_data(kx,i)*trial_bases.get_data(jx,i);
+            for(i=0;i<gg->get_dim();i++)trial_bases.subtract_val(jx,i,nn*trial_bases.get_data(kx,i));
             
-            if(kx<gg.get_dim()-1)kx++;
+            if(kx<gg->get_dim()-1)kx++;
             else kx=0;
         }
         
@@ -728,14 +727,14 @@ double node::basis_error(int ix, array_1d<double> &dx, array_1d<int> &basis_asso
     
     matrix.set_dim(gg->get_dim()*gg->get_dim());
     bb.set_dim(gg->get_dim());
-    dd.set_dim(basis_associates.get_dim(),dim);
+    dd.set_dim(basis_associates.get_dim(),gg->get_dim());
     
     int k;
     for(i=0;i<basis_associates.get_dim();i++){
         k=basis_associates.get_data(i);
-        for(j=0;j<dim;j++){
+        for(j=0;j<gg->get_dim();j++){
             nn=0.0;
-            for(jx=0;jx<dim;jx++){
+            for(jx=0;jx<gg->get_dim();jx++){
                 nn+=(gg->get_pt(k,jx)-gg->get_pt(center_dex,jx))*trial_bases.get_data(j,jx);
             }
             dd.set(i,j,nn*nn);
@@ -790,7 +789,7 @@ double node::basis_error(int ix, array_1d<double> &dx, array_1d<int> &basis_asso
         printf("WARNING in basis_error ans is nan\n");
         for(jx=0;jx<basis_associates.get_dim();jx++){
 	    k=basis_associates.get_data(jx);
-	    nn=gg->get_fn(k)-gg->get_fn(center_dex)
+	    nn=gg->get_fn(k)-gg->get_fn(center_dex);
 	    if(isnan(nn) || nn<1.0e-10){
 	        printf("ggfn %e chisq %e %e\n",gg->get_fn(k),gg->get_fn(center_dex),nn);
 	    }
