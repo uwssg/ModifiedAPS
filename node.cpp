@@ -117,7 +117,7 @@ void node::add_as_boundary(int dex){
     boundaryPoints.add(dex);    
 }
 
-void node::bisection(int lowDex, int highDex){
+void node::bisection(int lowDex, int highDex, int *iout){
 
     double flow,fhigh;
     array_1d<double> lowball,highball;
@@ -139,6 +139,8 @@ void node::bisection(int lowDex, int highDex){
     double dd=gg->distance(lowball,highball);
     int ct;
     
+    iout[0]=lowDex;
+    
     while(ct<100 && dd>1.0e-6){
         
         for(i=0;i<gg->get_dim();i++){
@@ -148,6 +150,7 @@ void node::bisection(int lowDex, int highDex){
         evaluateNoAssociate(trial,&ftrial,&itrial);
         
         if(ftrial<gg->get_target()){
+            if(itrial>=0)iout[0]=itrial;
             flow=ftrial;
             for(i=0;i<gg->get_dim();i++)lowball.set(i,trial.get_data(i));
         }
