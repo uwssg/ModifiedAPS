@@ -1,13 +1,22 @@
 #include "node.h"
 
-node::node(){
+void node::set_names(){
     associates.set_name("node_associates");
     boundaryPoints.set_name("node_boundaryPoints");
     basisVectors.set_name("node_basisVectors");
+    trial_model.set_name("node_trial_model");
+    best_model.set_name("node_best_model");
+    trial_bases.set_name("node_trial_bases");
+    best_bases.set_name("node_best_bases");
+}
+
+node::node(){
     
+    set_names();
     time_ricochet=0.0;
     time_coulomb=0.0;
-    time_total=0.0;
+    time_search=0.0;
+    time_bases=0.0;
     last_set_bases=0;
     center_dex=-1;
     
@@ -33,7 +42,8 @@ void node::copy(const node &in){
     last_set_bases=in.last_set_bases;
     time_ricochet=in.time_ricochet;
     time_coulomb=in.time_coulomb;
-    time_total=in.time_total;
+    time_search=in.time_search;
+    time_bases=in.time_bases;
     
     int i,j,dim;
     
@@ -63,6 +73,7 @@ void node::copy(const node &in){
 }
 
 node::node(const node &in){
+    set_names();
     copy(in);
 }
 
@@ -603,6 +614,238 @@ void node::compass_search(int istart){
     }//loop over dimension (which basisVector we are bisecting along)
 }
 
+double node::basis_error(int ix, array_1d<double> &dx, array_1d<int> &basis_associates){
+    /*
+    This will perturb the ixth basisVector by the small vector dx,
+    reconstruct the rest of the basisVectors to be perpendicular to
+    each other, and then see how well a parabolic model in the new bases
+    reconstruct the observed behavior of chisquared
+    */
+    
+    if(ix>=gg->get_dim() || ix<0){
+        printf("WARNING in basis_error ix %d but dim %d\n",
+        ix,gg->get_dim());
+        
+        exit(1);
+    }
+    
+    double nn,tol=1.0e-12;
+    int i,j,jx,kx;
+    
+    array_1d<double> vv;
+    vv.set_name("node_basis_error_vv");
+    vv.set_dim(gg->get_dim());
+    
+    for(i=0;i<gg->get_dim();i++){
+        for(j=0;j<gg->get_dim();j++){
+            trial_bases.set(i,j,best_bases.get_data(i,j));
+        }
+    }
+    
+    /*perturb the ixth basis vector by dx*/
+    nn=0.0;
+    for(i=0;i<dim;i++){
+        trial_bases.add_val(ix,i,dx.get_data(i));
+        nn+=trial_bases.get_data(ix,i)*trial_bases.get_data(ix,i);
+    }
+    nn=sqrt(nn);
+    for(i=0;i<dim;i++)trial_bases.divide_val(ix,i,nn);
+    
+    for(jx=ix+1;jx!=ix;){
+        if(jx==gg->get_dim())jx=0;
+        
+        for(kx=ix;kx!=jx;){
+            /*make sure that the jxth basis vector is orthogonal to all of the vectors that
+            have already been orthogonalized*/
+            nn=0.0;
+            for(i=0;i<dim;i++)nn+=trial_bases.get_data(kx,i)*trial_bases.get_data(jx,i);
+            for(i=0;i<dim;i++)trial_bases.subtract_val(jx,i,nn*trial_bases.get_data(kx,i));
+            
+            if(kx<gg.get_dim()-1)kx++;
+            else kx=0;
+        }
+        
+        nn=0.0;
+        for(i=0;i<gg->get_dim();i++){
+            nn+=trial_bases.get_data(jx,i)*trial_bases.get_data(jx,i);
+        }
+        
+        if(nn<1.0e-20){
+            printf("WARNING had to abort basis_error because of zero-magnitude vector\n");
+            return 2.0*chisq_exception;
+        }
+        
+        
+        nn=sqrt(nn);
+        for(i=0;i<gg->get_dim();i++){
+            trial_bases.divide_val(jx,i,nn);
+        }
+        
+        if(jx<gg->get_dim()-1)jx++;
+        else jx=0;
+    }
+    
+    double normerr,ortherr,err;
+    for(i=0;i<gg->get_dim();i++){
+        nn=0.0;
+        for(j=0;j<gg->get_dim();j++){
+            nn+=trial_bases.get_data(i,j)*trial_bases.get_data(i,j);
+        }
+        err=fabs(nn-1.0);
+        if(i==0 || err>normerr){
+            normerr=err;
+        }
+        
+        for(j=i+1;j<gg->get_dim();j++){
+            nn=0.0;
+            for(jx=0;jx<gg->get_dim();jx++){
+                nn+=trial_bases.get_data(i,jx)*trial_bases.get_data(j,jx);
+            }
+            nn=fabs(nn);
+            if((i==0 && j==1) || nn>ortherr){
+                ortherr=nn;
+            }
+        }
+    }
+    
+    if(normerr>tol || ortherr>1.0e-6){
+        printf("WARNING in basis_err normerr %e ortherr %e\n",normerr,ortherr);
+        exit(1);
+    }
+    
+    /*
+    trial_bases is now made up of a bunch of orthonormal vectors which resulted from
+    the small perturbation of the original best_bases.  Now we will see how well a
+    multi-dimensional parabola on those bases fits the chisquared data we have observed
+    */
+    
+    array_1d<double> matrix,bb;
+    matrix.set_name("node_basis_error_matrix");
+    bb.set_name("node_basis_error_bb");
+    
+    array_2d<double> dd;
+    dd.set_name("node_basis_error_dd");
+    
+    matrix.set_dim(gg->get_dim()*gg->get_dim());
+    bb.set_dim(gg->get_dim());
+    dd.set_dim(basis_associates.get_dim(),dim);
+    
+    int k;
+    for(i=0;i<basis_associates.get_dim();i++){
+        k=basis_associates.get_data(i);
+        for(j=0;j<dim;j++){
+            nn=0.0;
+            for(jx=0;jx<dim;jx++){
+                nn+=(gg->get_pt(k,jx)-gg->get_pt(center_dex,jx))*trial_bases.get_data(j,jx);
+            }
+            dd.set(i,j,nn*nn);
+            
+            if(isnan(dd.get_data(i,j))){
+                printf("WARNING in basis_error dd is nan\n");
+                exit(1);
+            }
+        }
+    }
+    
+    for(i=0;i<gg->get_dim();i++){
+        for(j=0;j<gg->get_dim();j++){
+            matrix.set(i*gg->get_dim()+j,0.0);
+            for(jx=0;jx<basis_associates.get_dim();jx++){
+                k=basis_associates.get_data(jx);
+                if(gg->get_fn(k)>gg->get_fn(center_dex)){
+                    matrix.add_val(i*gg->get_dim()+j,dd.get_data(jx,i)*dd.get_data(jx,j)/power(gg->get_fn(k)-gg->get_fn(center_dex),2));
+                }
+            }
+        }
+    }
+    
+    for(i=0;i<gg->get_dim();i++){
+        bb.set(i,0.0);
+        for(jx=0;jx<basis_associates.get_dim();jx++){
+            k=basis_associates.get_data(jx);
+            if(gg->get_fn(k)>gg->get_fn(center_dex)){
+                bb.add_val(i,dd.get_data(jx,i)/(gg->get_fn(k)-gg->get_fn(center_dex)));
+            }
+        }
+    }
+    
+    try{
+        naive_gaussian_solver(matrix,bb,trial_model,gg->get_dim());
+    }
+    catch(int iex){
+    }
+    
+    double ans=0.0;
+    for(jx=0;jx<basis_associates.get_dim();jx++){
+        k=basis_associates.get_data(jx);
+        nn=gg->get_fn(k)-gg->get_fn(center_dex);
+        for(i=0;i<gg->get_dim();i++){
+            nn-=trial_model.get_data(i)*dd.get_data(jx,i);
+        }
+        nn=nn/(gg->get_fn(k)-gg->get_fn(center_dex));
+        ans+=nn*nn;
+    }
+    
+    if(isnan(ans)){
+        printf("WARNING in basis_error ans is nan\n");
+        for(jx=0;jx<basis_associates.get_dim();jx++){
+	    k=basis_associates.get_data(jx);
+	    nn=gg->get_fn(k)-gg->get_fn(center_dex)
+	    if(isnan(nn) || nn<1.0e-10){
+	        printf("ggfn %e chisq %e %e\n",gg->get_fn(k),gg->get_fn(center_dex),nn);
+	    }
+	}
+     
+        return 2.0*chisq_exception;
+    
+    }
+    
+    return ans/double(basis_associates.get_dim());
+}
+
+void node::find_bases(){
+    /*find best basis vectors for this node*/
+    
+    if(dice==NULL){
+        printf("WARNING cannot call node::find_bases; dice is null\n");
+        exit(1);
+    }
+    
+    if(gg==NULL){
+        printf("WARNING cannot call node::find_bases; gg is null\n");
+        exit(1);
+    }
+    
+    int i,j;
+    
+    array_1d<int> basis_associates;
+    basis_associates.set_name("node_basis_associates");
+    
+    for(i=0;i<associates.get_dim();i++){
+        if(gg->get_fn(associates.get_data(i))-gg->get_fn(center_dex)>1.0e-10){
+            basis_associates.add(associates.get_data(i));
+        }
+    }
+    
+    if(basis_associates.get_dim()<100){
+        return;
+    }
+    
+    best_bases.set_dim(gg->get_dim(),gg->get_dim());
+    trial_bases.set_dim(gg->get_dim(),gg->get_dim());
+    trial_model.set_dim(gg->get_dim());
+    best_model.set_dim(gg->get_dim());
+  
+    best_bases.reset();
+    trial_bases.reset();
+    trial_model.reset();
+    best_model.reset();
+    
+    double before=double(time(NULL));
+    
+    
+    time_bases+=double(time(NULL))-before;
+}
 
 void node::search(int *out){
     if(gg==NULL){
