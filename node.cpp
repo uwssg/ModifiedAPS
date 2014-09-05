@@ -4,10 +4,6 @@ void node::set_names(){
     associates.set_name("node_associates");
     boundaryPoints.set_name("node_boundaryPoints");
     basisVectors.set_name("node_basisVectors");
-    trial_model.set_name("node_trial_model");
-    best_model.set_name("node_best_model");
-    trial_bases.set_name("node_trial_bases");
-    best_bases.set_name("node_best_bases");
 }
 
 node::node(){
@@ -613,12 +609,13 @@ void node::compass_search(int istart){
     }//loop over dimension (which basisVector we are bisecting along)
 }
 
-double node::basis_error(int ix, array_1d<double> &dx, array_1d<int> &basis_associates){
+//double node::basis_error(int ix, array_1d<double> &dx, array_1d<int> &basis_associates){
+
+int node::perturb_bases(array_2d<double> &bases_in, int ix, array_1d<double> &dx, array_2d<double> &bases_out){
     /*
     This will perturb the ixth basisVector by the small vector dx,
     reconstruct the rest of the basisVectors to be perpendicular to
-    each other, and then see how well a parabolic model in the new bases
-    reconstruct the observed behavior of chisquared
+    each other
     */
     
     if(ix>=gg->get_dim() || ix<0){
@@ -637,18 +634,18 @@ double node::basis_error(int ix, array_1d<double> &dx, array_1d<int> &basis_asso
     
     for(i=0;i<gg->get_dim();i++){
         for(j=0;j<gg->get_dim();j++){
-            trial_bases.set(i,j,best_bases.get_data(i,j));
+            bases_out.set(i,j,bases_in.get_data(i,j));
         }
     }
     
     /*perturb the ixth basis vector by dx*/
     nn=0.0;
     for(i=0;i<gg->get_dim();i++){
-        trial_bases.add_val(ix,i,dx.get_data(i));
-        nn+=trial_bases.get_data(ix,i)*trial_bases.get_data(ix,i);
+        bases_out.add_val(ix,i,dx.get_data(i));
+        nn+=bases_out.get_data(ix,i)*bases_out.get_data(ix,i);
     }
     nn=sqrt(nn);
-    for(i=0;i<gg->get_dim();i++)trial_bases.divide_val(ix,i,nn);
+    for(i=0;i<gg->get_dim();i++)bases_out.divide_val(ix,i,nn);
     
     for(jx=ix+1;jx!=ix;){
         if(jx==gg->get_dim())jx=0;
@@ -657,8 +654,8 @@ double node::basis_error(int ix, array_1d<double> &dx, array_1d<int> &basis_asso
             /*make sure that the jxth basis vector is orthogonal to all of the vectors that
             have already been orthogonalized*/
             nn=0.0;
-            for(i=0;i<gg->get_dim();i++)nn+=trial_bases.get_data(kx,i)*trial_bases.get_data(jx,i);
-            for(i=0;i<gg->get_dim();i++)trial_bases.subtract_val(jx,i,nn*trial_bases.get_data(kx,i));
+            for(i=0;i<gg->get_dim();i++)nn+=bases_out.get_data(kx,i)*bases_out.get_data(jx,i);
+            for(i=0;i<gg->get_dim();i++)bases_out.subtract_val(jx,i,nn*bases_out.get_data(kx,i));
             
             if(kx<gg->get_dim()-1)kx++;
             else kx=0;
@@ -666,18 +663,18 @@ double node::basis_error(int ix, array_1d<double> &dx, array_1d<int> &basis_asso
         
         nn=0.0;
         for(i=0;i<gg->get_dim();i++){
-            nn+=trial_bases.get_data(jx,i)*trial_bases.get_data(jx,i);
+            nn+=bases_out.get_data(jx,i)*bases_out.get_data(jx,i);
         }
         
         if(nn<1.0e-20){
-            printf("WARNING had to abort basis_error because of zero-magnitude vector\n");
-            return 2.0*chisq_exception;
+            printf("WARNING had to abort perturb_bases because of zero-magnitude vector\n");
+            return -1;
         }
         
         
         nn=sqrt(nn);
         for(i=0;i<gg->get_dim();i++){
-            trial_bases.divide_val(jx,i,nn);
+            bases_out.divide_val(jx,i,nn);
         }
         
         if(jx<gg->get_dim()-1)jx++;
@@ -688,7 +685,7 @@ double node::basis_error(int ix, array_1d<double> &dx, array_1d<int> &basis_asso
     for(i=0;i<gg->get_dim();i++){
         nn=0.0;
         for(j=0;j<gg->get_dim();j++){
-            nn+=trial_bases.get_data(i,j)*trial_bases.get_data(i,j);
+            nn+=bases_out.get_data(i,j)*bases_out.get_data(i,j);
         }
         err=fabs(nn-1.0);
         if(i==0 || err>normerr){
@@ -698,7 +695,7 @@ double node::basis_error(int ix, array_1d<double> &dx, array_1d<int> &basis_asso
         for(j=i+1;j<gg->get_dim();j++){
             nn=0.0;
             for(jx=0;jx<gg->get_dim();jx++){
-                nn+=trial_bases.get_data(i,jx)*trial_bases.get_data(j,jx);
+                nn+=bases_out.get_data(i,jx)*bases_out.get_data(j,jx);
             }
             nn=fabs(nn);
             if((i==0 && j==1) || nn>ortherr){
@@ -712,11 +709,19 @@ double node::basis_error(int ix, array_1d<double> &dx, array_1d<int> &basis_asso
         exit(1);
     }
     
+    return 1;
+}
+
+
+double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_associates){    
     /*
     trial_bases is now made up of a bunch of orthonormal vectors which resulted from
     the small perturbation of the original best_bases.  Now we will see how well a
     multi-dimensional parabola on those bases fits the chisquared data we have observed
     */
+    
+    int i,j,k,jx;
+    double nn;
     
     array_1d<double> matrix,bb;
     matrix.set_name("node_basis_error_matrix");
@@ -729,7 +734,6 @@ double node::basis_error(int ix, array_1d<double> &dx, array_1d<int> &basis_asso
     bb.set_dim(gg->get_dim());
     dd.set_dim(basis_associates.get_dim(),gg->get_dim());
     
-    int k;
     for(i=0;i<basis_associates.get_dim();i++){
         k=basis_associates.get_data(i);
         for(j=0;j<gg->get_dim();j++){
@@ -767,6 +771,9 @@ double node::basis_error(int ix, array_1d<double> &dx, array_1d<int> &basis_asso
             }
         }
     }
+    
+    array_1d<double> trial_model;
+    trial_model.set_name("node_basis_error_trial_model");
     
     try{
         naive_gaussian_solver(matrix,bb,trial_model,gg->get_dim());
@@ -829,16 +836,7 @@ void node::find_bases(){
     if(basis_associates.get_dim()<100){
         return;
     }
-    
-    best_bases.set_dim(gg->get_dim(),gg->get_dim());
-    trial_bases.set_dim(gg->get_dim(),gg->get_dim());
-    trial_model.set_dim(gg->get_dim());
-    best_model.set_dim(gg->get_dim());
-  
-    best_bases.reset();
-    trial_bases.reset();
-    trial_model.reset();
-    best_model.reset();
+
     
     double before=double(time(NULL));
     

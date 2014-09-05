@@ -47,11 +47,8 @@ class node{
         int ricochet_search(int,array_1d<double>&,array_1d<double>&);
         void compass_search(int);
         void find_bases();
-        double basis_error(int, array_1d<double>&,array_1d<int>&);
-        
-        /*global variables used to find basis vectors*/
-        array_1d<double> trial_model,best_model;
-        array_2d<double> best_bases,trial_bases;
+        int perturb_bases(array_2d<double>&,int,array_1d<double>&,array_2d<double>&);
+        double basis_error(array_2d<double>&,array_1d<int>&);
 
 };
 
