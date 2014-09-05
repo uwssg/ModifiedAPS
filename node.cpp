@@ -293,6 +293,112 @@ int node::coulomb_search(){
         
     }
     
+    array_1d<double> velocity,acceleration,newpt;
+    velocity.set_name("node_coulomb_velocity");
+    acceleration.set_name("node_coulomb_acceleration");
+    newpt.set_name("node_coulomb_newpt");
+    
+    double speed,aa,delta=0.1;
+    
+    /*initialize with a random velocity pointing (mostly) away from the node's center*/
+    for(i=0;i<gg->get_dim();i++){
+        velocity.set(i,walker.get_data(i)-gg->get_pt(center_dex,i));
+        velocity.add_val(i,1.0e-5*(dice->doub()-0.5));
+    }
+    speed=velocity.normalize();
+    
+    while(speed<1.0e-10){
+        for(i=0;i<gg->get_dim();i++)velocity.set(i,dice->doub());
+        speed=velocity.normalize();
+    }
+    
+    speed=0.001;
+    for(i=0;i<gg->get_dim();i++){
+        velocity.multiply_val(i,speed);
+    }
+    
+    int istep=0,step_max=2000;
+    double dtv,dta,dt,newmu,dx=1.0,distance_to_center;
+    
+    while(dx>1.0e-20 && delta>1.0e-10 && (gg->get_target()-mu>tol || istep<100)){
+        istep++;
+        
+        for(i=0;i<gg->get_dim();i++){
+            acceleration.set(i,0.0);
+            dir.set(i,0.0);
+        }
+        
+        for(i=0;i<associates.get_dim()+1;i++){
+            /*loop over points and center, adding repulsive force to acceleration vector*/
+            if(i<associates.get_dim()){
+                for(j=0;j<gg->get_dim();j++){
+                    dir.set(j,gg->get_pt(associates.get_data(i),j)-walker.get_data(j));
+                }
+            }
+            else{
+                for(j=0;j<gg->get_dim();j++){
+                    dir.set(j,gg->get_pt(center_dex,j)-walker.get_data(j));
+                }
+            }
+            
+            nn=dir.normalize();
+            if(i>=associates.get_dim()){
+                distance_to_center=nn;
+            }
+            
+            for(j=0;j<gg->get_dim();j++){
+                acceleration.subtract_val(j,dir.get_data(j)/(nn*nn+eps));
+            }
+        }//loop over points repelling the walker
+        
+        aa=acceleration.normalize();
+        speed=sqrt(velocity.get_square_norm());
+        
+        dtv=delta*distance_to_center/speed;
+        dta=delta*speed/aa;
+        
+        /*dtv is the time step if we want the walker's motion to be small;
+        dta is the time step if we want the walker's acceleration to be small*/
+        
+        if(isnan(dta) && isnan(dtv)){
+            printf("WARNING both coulomb steps are nans\n");
+            exit(1);
+        }
+        else if(isnan(dtv) && !(isnan(dta)))dt=dta;
+        else if(isnan(dta) && !(isnan(dtv)))dt=dtv;
+        else if(dtv<dta) dt=dtv;
+        else if(dta<dtv) dt=dta;
+        else{
+            dt=eps;
+        }
+        
+        for(i=0;i<gg->get_dim();i++){
+            newpt.set(i,walker.get_data(i)+dt*velocity.get_data(i));
+        }
+        
+        dx=gg->distance(walker,newpt);
+        newmu=gg->user_predict(newpt);
+        
+        /*
+        We do not want the coulomb search to carry us outside of the region
+        where the GP predicts chisq<chisq_lim
+        */
+        if(newmu<gg->get_target()){
+            mu=newmu;
+            for(i=0;i<gg->get_dim();i++){
+                walker.add_val(i,dt*speed*velocity.get_data(i));
+                velocity.add_val(i,dt*aa*acceleration.get_data(i));
+            }
+        }
+        else{
+            delta*=0.5;
+        }
+        
+        
+    }//loop over number of coulomb steps
+    
+    evaluate(walker,&nn,&iout);
+    
     time_coulomb+=double(time(NULL))-before;
     return iout;
 }
