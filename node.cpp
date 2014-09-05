@@ -287,6 +287,7 @@ int node::coulomb_search(){
             }
             
             evaluateNoAssociate(walker,&nn,&iout);
+            time_coulomb+=double(time(NULL))-before;
             return iout;
             
         }
@@ -308,6 +309,7 @@ int node::coulomb_search(){
     speed=velocity.normalize();
     
     while(speed<1.0e-10){
+        /*in case the vector between the walker and the center is too small*/
         for(i=0;i<gg->get_dim();i++)velocity.set(i,dice->doub());
         speed=velocity.normalize();
     }
@@ -317,15 +319,16 @@ int node::coulomb_search(){
         velocity.multiply_val(i,speed);
     }
     
-    int istep=0,step_max=2000;
-    double dtv,dta,dt,newmu,dx=1.0,distance_to_center;
+    int istep=0,step_max=100;
+    double dtv,dta,dt,newmu,dx,distance_to_center;
     
-    while(dx>1.0e-20 && delta>1.0e-10 && (gg->get_target()-mu>tol || istep<100)){
+    delta=0.1;
+    dx=1.0;
+    while(dx>1.0e-20 && delta>1.0e-10 && (gg->get_target()-mu>tol || istep<step_max)){
         istep++;
         
         for(i=0;i<gg->get_dim();i++){
             acceleration.set(i,0.0);
-            dir.set(i,0.0);
         }
         
         for(i=0;i<associates.get_dim()+1;i++){
@@ -351,8 +354,8 @@ int node::coulomb_search(){
             }
         }//loop over points repelling the walker
         
-        aa=acceleration.normalize();
-        speed=sqrt(velocity.get_square_norm());
+        aa=sqrt(acceleration.get_square_norm());//this does not actually renormalize the acceleration vector
+        speed=sqrt(velocity.get_square_norm());//this does not actually renormalize the velocity vector
         
         dtv=delta*distance_to_center/speed;
         dta=delta*speed/aa;
@@ -386,8 +389,8 @@ int node::coulomb_search(){
         if(newmu<gg->get_target()){
             mu=newmu;
             for(i=0;i<gg->get_dim();i++){
-                walker.add_val(i,dt*speed*velocity.get_data(i));
-                velocity.add_val(i,dt*aa*acceleration.get_data(i));
+                walker.add_val(i,dt*velocity.get_data(i));
+                velocity.add_val(i,dt*acceleration.get_data(i));
             }
         }
         else{
