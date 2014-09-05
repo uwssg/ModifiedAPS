@@ -146,7 +146,15 @@ void node::add_as_boundary(int dex){
     boundaryPoints.add(dex);    
 }
 
-int node::bisection(int lowDex, int highDex){
+int node::bisection(int low, int high){
+    return bisection(low,high,0);
+}
+
+int node::bisectionAssociate(int low, int high){
+    return bisection(low,high,1);
+}
+
+int node::bisection(int lowDex, int highDex, int asAssociates){
     
     /*
     lowDex and highDex are the indices of the initial highball and lowball poitns
@@ -197,7 +205,12 @@ int node::bisection(int lowDex, int highDex){
             trial.set(i,0.5*(lowball.get_data(i)+highball.get_data(i)));
         }
         
-        evaluateNoAssociate(trial,&ftrial,&itrial);
+        if(asAssociates==0){
+            evaluateNoAssociate(trial,&ftrial,&itrial);
+        }
+        else{
+            evaluate(trial,&ftrial,&itrial);
+        }
         
         if(ftrial<gg->get_target()){
             if(itrial>=0)iout=itrial;
@@ -570,7 +583,7 @@ void node::compass_search(int istart){
     trial.set_name("node_compass_trial");
     
     for(idim=0;idim<gg->get_dim();idim++){
-        for(sgn=-1.0;sgn<2.0;sgn+=2.0){
+        for(sgn=-1.0;sgn<1.5;sgn+=2.0){
             for(i=0;i<gg->get_dim();i++)trial.set(i,gg->get_pt(istart,i));
             
             ftrial=-2.0*chisq_exception;
