@@ -429,3 +429,11 @@ double gpWrapper::user_predict(array_1d<double> &x, double *s) const{
 double gpWrapper::user_predict(array_1d<double> &x) const{
     return gg->user_predict(x,0);
 }
+
+void gpWrapper::actual_gradient(array_1d<double> &x, array_1d<double> &y){
+    gg->actual_gradient(x,y);
+}
+
+void gpWrapper::actual_gradient(int x, array_1d<double> &y){
+    gg->actual_gradient(x,y);
+}

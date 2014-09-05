@@ -197,6 +197,9 @@ class gpWrapper{
         double user_predict(array_1d<double>&,double*)const;
         double user_predict(array_1d<double>&)const;
         
+        void actual_gradient(int,array_1d<double>&);
+        void actual_gradient(array_1d<double>&,array_1d<double>&);
+        
     private:
         gp *gg;
         chisquared *chisq;
