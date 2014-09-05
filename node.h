@@ -13,6 +13,11 @@ class node{
         ~node();
         
         void evaluate(array_1d<double>&,double*,int*);
+        void evaluateNoAssociate(array_1d<double>&,double*,int*);
+        void evaluate(array_1d<double>&,double*,int*,int);
+        
+        void project_to_unit_sphere(array_1d<double>&, array_1d<double>&);
+        void add_as_boundary(int);
         
     private:
         

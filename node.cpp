@@ -69,19 +69,50 @@ node& node::operator=(const node &in){
 }
 
 void node::evaluate(array_1d<double> &pt, double *chiout, int *dexout){
+    evaluate(pt,chiout,dexout,1);
+}
+
+void node::evaluateNoAssociate(array_1d<double> &pt, double *chiout, int *dexout){
+    evaluate(pt,chiout,dexout,0);
+}
+
+void node::evaluate(array_1d<double> &pt, double *chiout, int *dexout, int doAssociate){
     if(gg==NULL){
         printf("WARNING cannot call node::evaluate; gg is NULL\n");
     }
     
     gg->evaluate(pt,chiout,dexout);
     
-    if(chiout[0]<gg->get_target()){
+    if(chiout[0]<gg->get_target() && doAssociate==1){
         associates.add(dexout[0]);
     }
     
-    //spock what should I do about boundaryPoints and the unitSphere?
-    //actually, wait, the unitSphere kd_tree is a global aps phenomenon
-    //(it needs to keep all of the unitSpheres in one place)
-    //
-    //we should be fine
+}
+
+void node::project_to_unit_sphere(array_1d<double> &in, array_1d<double> &out){
+    
+    array_1d<double> dir;
+    out.reset();
+    double norm=0.0;
+    int i;
+    for(i=0;i<gg->get_dim();i++){
+        dir.set(i,in.get_data(i)-gg->get_pt(center_dex,i));
+        norm+=power(dir.get_data(i)/(gg->get_max(i)-gg->get_min(i)),2);
+    }
+    norm=sqrt(norm);
+    for(i=0;i<gg->get_dim();i++){
+        out.set(i,gg->get_pt(center_dex,i)+dir.get_data(i)/norm);
+    }
+    
+}
+
+void node::add_as_boundary(int dex){
+
+    array_1d<double> vv,vv_norm;
+    int i;
+    for(i=0;i<gg->get_dim();i++)vv.set(i,gg->get_pt(dex,i));
+    project_to_unit_sphere(vv,vv_norm);
+    
+    gg->add_to_unitSpheres(vv_norm);
+    boundaryPoints.add(dex);    
 }

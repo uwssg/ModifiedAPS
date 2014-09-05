@@ -183,6 +183,9 @@ class gpWrapper{
         void unitSpheres_nn_srch(array_1d<double>&,int,array_1d<int>&,array_1d<double>&);
         int is_unitSpheres_null();
         int get_unitSpheres_pts();
+        double get_pt(int,int);
+        double get_min(int);
+        double get_max(int);
        
     private:
         gp *gg;

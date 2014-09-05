@@ -66,6 +66,18 @@ void gpWrapper::set_strad(straddle_parameter *strad_in){
     strad=strad_in;
 }
 
+double gpWrapper::get_pt(int dex, int i){
+    return gg->get_pt(dex,i);
+}
+
+double gpWrapper::get_min(int dex){
+    return gg->get_min(dex);
+}
+
+double gpWrapper::get_max(int dex){
+    return gg->get_max(dex);
+}
+
 int gpWrapper::in_bounds(array_1d<double> &pt){
     int i;
     for(i=0;i<gg->get_dim();i++){
