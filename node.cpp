@@ -406,6 +406,16 @@ int node::coulomb_search(){
     return iout;
 }
 
+int node::ricochet_search(int istart, array_1d<double> &vstart, array_1d<double> &vout){
+    /*
+    returns the index of the point found
+    */
+    
+    array_1d<double> gradient,trial;
+    gradient.set_name("node_ricochet_gradient");
+    trial.set_name("node_ricochet_trial");
+}
+
 void node::search(int *out){
     if(gg==NULL){
         printf("WARNING cannot call node search; gpWrapper is null\n");
@@ -420,6 +430,11 @@ void node::search(int *out){
     if(dice==NULL){
         printf("WARNING cannot call node search; dice is null\n");
         
+        exit(1);
+    }
+    
+    if(center_dex<0){
+        printf("WARNING cannot call node search; center_dex is %d\n",center_dex);
         exit(1);
     }
 }
