@@ -162,4 +162,6 @@ void node::bisection(int lowDex, int highDex, int *iout){
         ct++;
         dd*=0.5;
     }
+    
+    add_as_boundary(iout[0]);
 }
