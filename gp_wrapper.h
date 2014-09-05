@@ -177,6 +177,7 @@ class gpWrapper{
         int get_good_pt(int);
         int get_dim();
         int is_gp_null();
+        double get_target();
         
     private:
         gp *gg;

@@ -11,7 +11,9 @@ class node{
         node(const node&);
         node& operator=(const node&);
         ~node();
-    
+        
+        void evaluate(array_1d<double>&,double*,int*);
+        
     private:
         
         void copy(const node&);

@@ -67,3 +67,17 @@ node& node::operator=(const node &in){
     
     return *this;
 }
+
+void node::evaluate(array_1d<double> &pt, double *chiout, int *dexout){
+    if(gg==NULL){
+        printf("WARNING cannot call node::evaluate; gg is NULL\n");
+    }
+    
+    gg->evaluate(pt,chiout,dexout);
+    
+    if(chiout[0]<gg->get_target()){
+        associates.add(dexout[0]);
+    }
+    
+    //spock what should I do about boundaryPoints and the unitSphere?
+}

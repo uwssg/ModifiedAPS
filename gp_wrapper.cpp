@@ -316,3 +316,7 @@ int gpWrapper::is_gp_null(){
     
     return 0;
 }
+
+double gpWrapper::get_target(){
+    return strad->get_target();
+}
