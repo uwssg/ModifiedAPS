@@ -12,12 +12,16 @@ class node{
         node& operator=(const node&);
         ~node();
         
+        void set_dice(Ran*);
+        
         void evaluate(array_1d<double>&,double*,int*);
         void evaluateNoAssociate(array_1d<double>&,double*,int*);
         void evaluate(array_1d<double>&,double*,int*,int);
         
         void project_to_unit_sphere(array_1d<double>&, array_1d<double>&);
         void add_as_boundary(int);
+        
+        void search(int*);
         
     private:
         
@@ -28,11 +32,13 @@ class node{
         
         int center_dex,last_set_bases;
         double time_ricochet,time_coulomb,time_total;
+        double farthest_associate;
         
         gpWrapper *gg;
         Ran *dice;
         
-        void bisection(int,int,int*);
+        int bisection(int,int);
+        int coulomb_search();
 
 };
 

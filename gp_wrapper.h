@@ -192,7 +192,11 @@ class gpWrapper{
         double distance(array_1d<double>&,array_1d<double>&);
         double distance(int,array_1d<double>&);
         double distance(array_1d<double>&,int);
-       
+        
+        void reset_cache();
+        double user_predict(array_1d<double>&,double*)const;
+        double user_predict(array_1d<double>&)const;
+        
     private:
         gp *gg;
         chisquared *chisq;

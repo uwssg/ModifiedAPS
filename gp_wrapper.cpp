@@ -417,3 +417,15 @@ int gpWrapper::get_unitSpheres_pts(){
     
     return unitSpheres->get_pts();
 }
+
+void gpWrapper::reset_cache(){
+    gg->reset_cache();
+}
+
+double gpWrapper::user_predict(array_1d<double> &x, double *s) const{
+    return gg->user_predict(x,s,0);
+}
+
+double gpWrapper::user_predict(array_1d<double> &x) const{
+    return gg->user_predict(x,0);
+}
