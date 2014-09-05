@@ -184,8 +184,14 @@ class gpWrapper{
         int is_unitSpheres_null();
         int get_unitSpheres_pts();
         double get_pt(int,int);
+        double get_fn(int);
         double get_min(int);
         double get_max(int);
+        
+        double distance(int,int);
+        double distance(array_1d<double>&,array_1d<double>&);
+        double distance(int,array_1d<double>&);
+        double distance(array_1d<double>&,int);
        
     private:
         gp *gg;

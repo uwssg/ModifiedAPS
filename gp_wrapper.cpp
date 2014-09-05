@@ -70,12 +70,32 @@ double gpWrapper::get_pt(int dex, int i){
     return gg->get_pt(dex,i);
 }
 
+double gpWrapper::get_fn(int dex){
+    return gg->get_fn(dex);
+}
+
 double gpWrapper::get_min(int dex){
     return gg->get_min(dex);
 }
 
 double gpWrapper::get_max(int dex){
     return gg->get_max(dex);
+}
+
+double gpWrapper::distance(int i, int j){
+    return gg->distance(i,j);
+}
+
+double gpWrapper::distance(array_1d<double> &x, array_1d<double> &y){
+    return gg->distance(x,y);
+}
+
+double gpWrapper::distance(array_1d<double> &x, int i){
+    return gg->distance(x,i);
+}
+
+double gpWrapper::distance(int i, array_1d<double> &x){
+    return gg->distance(i,x);
 }
 
 int gpWrapper::in_bounds(array_1d<double> &pt){

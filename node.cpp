@@ -116,3 +116,47 @@ void node::add_as_boundary(int dex){
     gg->add_to_unitSpheres(vv_norm);
     boundaryPoints.add(dex);    
 }
+
+void node::bisection(int lowDex, int highDex){
+
+    double flow,fhigh;
+    array_1d<double> lowball,highball;
+    lowball.set_name("node_bisection_lowball");
+    highball.set_name("node_bisection_highball");
+    
+    int i;
+    
+    flow=gg->get_fn(lowDex);
+    for(i=0;i<gg->get_dim();i++)lowball.set(i,gg->get_pt(lowDex,i));
+    fhigh=gg->get_fn(highDex);
+    for(i=0;i<gg->get_dim();i++)highball.set(i,gg->get_pt(highDex,i));
+    
+    array_1d<double> trial;
+    double ftrial;
+    int itrial;
+    trial.set_name("node_bisection_trial");
+    
+    double dd=gg->distance(lowball,highball);
+    int ct;
+    
+    while(ct<100 && dd>1.0e-6){
+        
+        for(i=0;i<gg->get_dim();i++){
+            trial.set(i,0.5*(lowball.get_data(i)+highball.get_data(i)));
+        }
+        
+        evaluateNoAssociate(trial,&ftrial,&itrial);
+        
+        if(ftrial<gg->get_target()){
+            flow=ftrial;
+            for(i=0;i<gg->get_dim();i++)lowball.set(i,trial.get_data(i));
+        }
+        else{
+            fhigh=ftrial;
+            for(i=0;i<gg->get_dim();i++)highball.set(i,trial.get_data(i));
+        }
+        
+        ct++;
+        dd*=0.5;
+    }
+}

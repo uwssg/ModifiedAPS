@@ -31,6 +31,8 @@ class node{
         
         gpWrapper *gg;
         Ran *dice;
+        
+        void bisection(int,int);
 
 };
 
