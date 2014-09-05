@@ -628,9 +628,7 @@ int node::perturb_bases(array_2d<double> &bases_in, int ix, array_1d<double> &dx
     double nn,tol=1.0e-12;
     int i,j,jx,kx;
     
-    array_1d<double> vv;
-    vv.set_name("node_basis_error_vv");
-    vv.set_dim(gg->get_dim());
+    bases_out.set_dim(gg->get_dim(),gg->get_dim());
     
     for(i=0;i<gg->get_dim();i++){
         for(j=0;j<gg->get_dim();j++){
@@ -839,7 +837,84 @@ void node::find_bases(){
 
     
     double before=double(time(NULL));
+    array_2d<double> bases_best,bases_trial;
+    bases_best.set_name("node_find_bases_bases_best");
+    bases_trial.set_name("node_find_bases_bases_trial");
     
+    bases_best.set_dim(gg->get_dim(),gg->get_dim());
+    
+    double Ebest,Etrial,Ebest0,lastEbest;
+    for(i=0;i<gg->get_dim();i++){
+        for(j=0;j<gg->get_dim();j++){
+            bases_best.set(i,j,basisVectors.get_data(i,j));
+        }
+    }
+    
+    Ebest0=basis_error(bases_best,basis_associates);
+    Ebest=Ebest0;
+    lastEbest=Ebest0;
+    
+    int ix,changed_bases=0,aborted=0,max_abort=10*gg->get_dim(),total_aborted=0,total_ct=0;
+    double stdevlim=1.0e-5/sqrt(double(gg->get_dim()));
+    double stdev=0.1/sqrt(double(gg->get_dim()));
+    
+    array_1d<double> dx;
+    dx.set_name("node_find_bases_dx");
+    
+    while(aborted<max_abort && stdev>stdevlim && Ebest>0.01*Ebest0){
+        ix=-1;
+        while(ix>=gg->get_dim() || ix<0){
+            ix=dice->int32()%gg->get_dim();
+        }
+        
+        for(i=0;i<gg->get_dim();i++)dx.set(i,normal_deviate(dice,0.0,stdev));
+        
+        total_ct++;
+        
+        perturb_bases(bases_best,ix,dx,bases_trial);
+        Etrial=basis_error(bases_trial,basis_associates);
+        
+        if(Etrial<Ebest){
+            aborted=0;
+            changed_bases=1;
+            for(i=0;i<gg->get_dim();i++){
+                for(j=0;j<gg->get_dim();j++){
+                    bases_best.set(i,j,bases_trial.get_data(i,j));
+                }
+            }
+            Ebest=Etrial;
+        }
+        else{
+            aborted++;
+            total_aborted++;
+        }
+        
+        if(total_ct%(max_abort/2)==0){
+            if(total_aborted<(3*total_ct)/4)stdev=1.5*stdev;
+            else if(total_aborted>(3*total_ct)/4)stdev=stdev*0.5;
+        }
+        
+        if(total_ct%1000==0){
+            /*
+            If Ebest has not changed by more than 10% in the last 1000 calls,
+            just stop trying
+            */
+            if((lastEbest-Ebest)/lastEbest<0.1)stdev=-1.0;
+            
+            lastEbest=Ebest;
+        }
+        
+    }
+    
+    if(changed_bases==1){
+        for(i=0;i<gg->get_dim();i++){
+            for(j=0;j<gg->get_dim();j++){
+                basisVectors.set(i,j,bases_best.get_data(i,j));
+            }
+        }
+        
+        compass_search(center_dex);
+    }
     
     time_bases+=double(time(NULL))-before;
 }
