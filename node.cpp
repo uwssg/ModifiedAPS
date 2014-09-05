@@ -15,6 +15,7 @@ node::node(){
     
     gg=NULL;
     dice=NULL;
+    
 }
 
 node::~node(){}
@@ -70,6 +71,21 @@ node& node::operator=(const node &in){
     copy(in);
     
     return *this;
+}
+
+void node::set_gpWrapper(gpWrapper *ggin){
+    int i,j;
+    basisVectors.reset();
+    gg=ggin;
+    basisVectors.set_dim(gg->get_dim(),gg->get_dim());
+    
+    for(i=0;i<gg->get_dim();i++){
+        for(j=0;j<gg->get_dim();j++){
+            if(i==j)basisVectors.set(i,j,1.0);
+            else basisVectors.set(i,j,0.0);
+        }
+    }
+
 }
 
 void node::set_dice(Ran *ddin){

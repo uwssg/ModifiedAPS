@@ -12,6 +12,8 @@ class node{
         node& operator=(const node&);
         ~node();
         
+        void set_gpWrapper(gpWrapper*);
+        
         void set_dice(Ran*);
         
         void evaluate(array_1d<double>&,double*,int*);
