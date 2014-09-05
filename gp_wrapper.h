@@ -179,11 +179,18 @@ class gpWrapper{
         int is_gp_null();
         double get_target();
         
+        void add_to_unitSpheres(array_1d<double>&);
+        void unitSpheres_nn_srch(array_1d<double>&,int,array_1d<int>&,array_1d<double>&);
+        int is_unitSpheres_null();
+        int get_unitSpheres_pts();
+       
     private:
         gp *gg;
         chisquared *chisq;
         straddle_parameter *strad;
+        kd_tree *unitSpheres;
         
+        array_2d<double> sphereSeedData;
         array_1d<double> good_max,good_min,minpt;
         array_1d<int> good_pts;
         int global_mindex,target_asserted;

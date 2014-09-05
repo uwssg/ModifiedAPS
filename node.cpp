@@ -80,4 +80,8 @@ void node::evaluate(array_1d<double> &pt, double *chiout, int *dexout){
     }
     
     //spock what should I do about boundaryPoints and the unitSphere?
+    //actually, wait, the unitSphere kd_tree is a global aps phenomenon
+    //(it needs to keep all of the unitSpheres in one place)
+    //
+    //we should be fine
 }

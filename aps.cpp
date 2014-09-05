@@ -12,10 +12,6 @@ aps::~aps(){
      
     int i;
     
-    if(unitSpheres!=NULL){
-        delete unitSpheres;
-    }
-    
     for(i=0;i<gg.get_dim();i++){
         delete [] paramnames[i];
     }
@@ -47,8 +43,6 @@ aps::aps(int dim_in, int kk, double dd, int seed){
     range_min.set_name("range_min");
     ddUnitSpheres.set_name("ddUnitSpheres");
     refined_simplex.set_name("refined_simplex");
-    
-    unitSpheres=NULL;
     
     write_every=1000;
     n_printed=0;
@@ -1139,12 +1133,14 @@ void aps::aps_wide(){
                     */
                     ic=find_nearest_center(simplex_best);
                     if(ic>=0){
-                        project_to_unit_sphere(ic,simplex_best,unit_v);
-                        unitSpheres->nn_srch(unit_v,1,neigh_sphere,dd_sphere);
-                        ddUnitSpheres.add(dd_sphere.get_data(0));
+                        if(ggWrap.is_unitSpheres_null()==0){
+                            project_to_unit_sphere(ic,simplex_best,unit_v);
+                            ggWrap.unitSpheres_nn_srch(unit_v,1,neigh_sphere,dd_sphere);
+                            ddUnitSpheres.add(dd_sphere.get_data(0));
                    
-                        if(dd_sphere.get_data(0)>sphere_threshold){
-                            bisect_it=1;
+                            if(dd_sphere.get_data(0)>sphere_threshold){
+                                bisect_it=1;
+                            }
                         }
                     }
                 
@@ -1973,10 +1969,10 @@ void aps::bisection(array_1d<double> &inpt, double chi_in){
     array_1d<double> unit_v;
     unit_v.set_name("bisection_unit_v");
     if(i_nearest>=0 && i_center>=0){
-        if(unitSpheres!=NULL){
-            project_to_unit_sphere(i_center,*gg.get_pt(i_nearest),unit_v);
-            unitSpheres->add(unit_v);
-        }
+
+        project_to_unit_sphere(i_center,*gg.get_pt(i_nearest),unit_v);
+        ggWrap.add_to_unitSpheres(unit_v);
+        
     }
     
 }
@@ -2565,38 +2561,7 @@ void aps::write_pts(){
     }
     
     int ii,jj,ic;
-    array_1d<double> min,max;
-    array_2d<double> sphere_data;
-    min.set_name("unitsphere_min");
-    max.set_name("unitsphere_max");
-    sphere_data.set_name("sphere_data");
-    
-    if(unitSpheres==NULL){
-        /*
-        If the KD-tree of spherical projections has not yet been instantiated, do so now (if enough
-        boundary points have been found)
-        */
-        ii=0;
-        for(i=0;i<boundary_pts.get_rows();i++){
-            ii+=boundary_pts.get_cols(i);
-        }
-        
-        if(ii>=gg.get_dim()){
-            for(i=0;i<gg.get_dim();i++){
-                min.set(i,0.0);
-                max.set(i,gg.get_max(i)-gg.get_min(i));
-            }
-            
-            for(i=0;i<boundary_pts.get_rows();i++){
-                for(j=0;j<boundary_pts.get_cols(i);j++){
-                    sphere_data.add_row(*gg.get_pt(boundary_pts.get_data(i,j)));
-                }
-            }
-            
-            unitSpheres=new kd_tree(sphere_data,min,max);
-        }
-    }
-
+   
     n_printed=gg.get_pts();
 
     double nn;
@@ -2641,8 +2606,8 @@ void aps::write_pts(){
     }
     
     fprintf(output," -- %d %d ",called_wide,called_focus);
-    if(unitSpheres!=NULL){
-        fprintf(output,"unitSpheres engaged %d ",unitSpheres->get_pts());
+    if(ggWrap.is_unitSpheres_null()==0){
+        fprintf(output,"unitSpheres engaged %d ",ggWrap.get_unitSpheres_pts());
     }
     fprintf(output,"\n");
     

@@ -517,7 +517,6 @@ private:
     surrounding their low-chisquared centers.  This is used for determining when to do
     bisection on points discovered by aps_wide()
     */
-    kd_tree *unitSpheres;
     array_1d<double> ddUnitSpheres;
     
     /*

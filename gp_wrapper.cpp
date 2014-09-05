@@ -34,14 +34,22 @@ gpWrapper::gpWrapper(){
     
     chisq=NULL;
     gg=NULL;
+    unitSpheres=NULL;
     
+    sphereSeedData.set_name("sphereSeedData");
     good_max.set_name("good_max");
     good_min.set_name("good_min");
     minpt.set_name("minpt");
     good_pts.set_name("good_pts");
 }
 
-gpWrapper::~gpWrapper(){}
+gpWrapper::~gpWrapper(){
+    
+    if(unitSpheres!=NULL){
+        delete unitSpheres;
+    }
+
+}
 
 void gpWrapper::set_gp(gp *gg_in){
     gg=gg_in;
@@ -319,4 +327,61 @@ int gpWrapper::is_gp_null(){
 
 double gpWrapper::get_target(){
     return strad->get_target();
+}
+
+void gpWrapper::add_to_unitSpheres(array_1d<double> &pt){
+    
+    int i,j;
+    array_1d<double> _min,_max;
+    
+    if(unitSpheres==NULL){
+        if(sphereSeedData.get_cols()==0){
+            sphereSeedData.set_cols(gg->get_dim());
+        }
+        
+        sphereSeedData.add_row(pt);
+        
+        if(sphereSeedData.get_rows()==gg->get_dim()){
+            for(i=0;i<gg->get_dim();i++){
+                _min.set(i,0.0);
+                _max.set(i,gg->get_max(i)-gg->get_min(i));
+            }
+            
+            unitSpheres=new kd_tree(sphereSeedData,_min,_max);
+            sphereSeedData.reset();
+        }
+    }
+    else{
+        unitSpheres->add(pt);
+    }
+    
+}
+
+int gpWrapper::is_unitSpheres_null(){
+    if(unitSpheres==NULL){
+        return 1;
+    }
+    
+    return 0;
+}
+
+void gpWrapper::unitSpheres_nn_srch(array_1d<double> &pt, int kk, array_1d<int> &neigh,
+    array_1d<double> &dd){
+
+    
+    if(unitSpheres==NULL){
+        printf("WARNING cannot call unitSpheres_nn_srch; unitSpheres is null\n");
+        exit(1);
+    }
+    
+    unitSpheres->nn_srch(pt,kk,neigh,dd);
+    
+}
+
+int gpWrapper::get_unitSpheres_pts(){
+    if(unitSpheres==NULL){
+        return 0;
+    }
+    
+    return unitSpheres->get_pts();
 }
