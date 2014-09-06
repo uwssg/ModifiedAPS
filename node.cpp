@@ -174,6 +174,10 @@ int node::bisection(int lowDex, int highDex, int asAssociates){
     will return the best point it found
     */
     
+    if(lowDex<0 || highDex<0){
+        return -1;
+    }
+    
     if(gg->get_fn(lowDex)>gg->get_target()){
         printf("WARNING in node bisection target %e but flow %e\n",
         gg->get_target(),gg->get_fn(lowDex));
@@ -568,6 +572,104 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     
     time_ricochet+=double(time(NULL))-before;
     return iout;
+}
+
+
+void node::ricochet_search(int iStart, array_1d<double> &dir){
+    
+    double ftrial;
+    array_1d<double> trial;
+    trial.set_name("node_ricochet_search_trial");
+    
+    int iEnd,ii,itrial,i,j;
+    double dotproduct;
+    array_1d<double> vout;
+    vout.set_name("node_ricochet_search_vout");
+    array_1d<double> distance_traveled;
+    array_1d<int> pts_visited;
+    
+    distance_traveled.set_name("node_ricochet_search_distance_traveled");
+    /*distance_traveled is a running total of how far the ricochet has come*/
+    
+    pts_visited.set_name("node_ricochet_search_pts_visited");    
+    /*pts_visited logs the end points of the individual ricochets*/
+    
+    int iMedian;
+    double medianDistance,nn;
+    
+
+    dotproduct=1.0;
+    distance_traveled.add(0.0);
+    pts_visited.add(iStart);
+        
+    for(ii=0;ii<10*gg->get_dim() && dir.get_square_norm()>1.0e-20 && dotproduct>0.0; ii++){
+        try{
+            iEnd=ricochet_driver(iStart,dir,vout);
+        }
+        catch (int iex){
+            ii=10*gg->get_dim()+1;
+        }
+            
+        i=distance_traveled.get_dim();
+        distance_traveled.add(distance_traveled.get_data(i-1)+gg->distance(iStart,iEnd));
+        pts_visited.add(iEnd);
+            
+        dotproduct=0.0;
+        for(i=0;i<gg->get_dim();i++){
+            /*can this ever be negative...?*/
+            dotproduct+=vout.get_data(i)*(gg->get_pt(iEnd,i)-gg->get_pt(center_dex,i));
+            dir.set(i,gg->get_pt(iEnd,i)-gg->get_pt(iStart,i));
+        }
+            
+        iStart=iEnd;
+
+    }//loop on ii
+        
+    if(pts_visited.get_dim()>1){
+        /*
+        First do a compass search in the middle of the last ricochet path
+        */
+        j=pts_visited.get_dim()-1;
+        for(i=0;i<gg->get_dim();i++){
+            trial.set(i,0.5*(gg->get_pt(pts_visited.get_data(j),i)+gg->get_pt(pts_visited.get_data(j-1),i)));
+        }
+            
+        evaluateNoAssociate(trial,&ftrial,&itrial);
+            
+        if(itrial>=0)compass_search(itrial);
+            
+        /*
+        Now do a compass search as near to the middle of the full richochet as possible
+        */
+        for(i=0;i<pts_visited.get_dim();i++){
+            nn=fabs(distance_traveled.get_data(i)-0.5*distance_traveled.get_data(distance_traveled.get_dim()-1));
+            if(i==0 || nn<medianDistance){
+                medianDistance=nn;
+                iMedian=i;
+            }
+        }
+            
+        if(iMedian!=distance_traveled.get_dim()-1){
+            if(iMedian==0){
+                for(i=0;i<gg->get_dim();i++){
+                    trial.set(i,0.5*(gg->get_pt(pts_visited.get_data(iMedian),i)+gg->get_pt(pts_visited.get_data(iMedian+1),i)));
+                }
+            }
+            else{
+                for(i=0;i<gg->get_dim();i++){
+                    trial.set(i,0.5*(gg->get_pt(pts_visited.get_data(iMedian),i)+gg->get_pt(pts_visited.get_data(iMedian-1),i)));
+                }
+            }
+                
+            evaluateNoAssociate(trial,&ftrial,&itrial);
+                
+            if(itrial>=0){
+                compass_search(itrial);
+            }
+        }
+            
+    }
+        
 }
 
 void node::compass_search(int istart){
@@ -1012,17 +1114,21 @@ int node::search(){
     that is closest to chisq_limit as the point where we will begin our ricochet search
     */
     int iStart;
-    if(fabs(gg->get_fn(iCoulomb)-gg->get_target())<fabs(gg->get_fn(iBisection)-gg->get_target())){
+    if(iBisection<0 || fabs(gg->get_fn(iCoulomb)-gg->get_target())<fabs(gg->get_fn(iBisection)-gg->get_target())){
         iStart=iCoulomb;
-        
+    }
+    else{
+        iStart=iBisection; 
+    }
+    
+    
+    if(iStart==iCoulomb){
         for(i=0;i<gg->get_dim();i++){
             dir.set(i,gg->get_pt(iCoulomb,i)-gg->get_pt(center_dex,i));
         }
     }
     else{
-        iStart=iBisection;
-        
-        if(gg->get_fn(iCoulomb)<gg->get_target()){
+        if(iCoulomb>0 && gg->get_fn(iCoulomb)<gg->get_target()){
             /*
             if the Coulomb point was inside the limit, use the direction from
             the Coulomb point to the bisection point as the initial ricochet
@@ -1043,97 +1149,12 @@ int node::search(){
         }
     }
     
-    int iEnd,ii,itrial;
-    double dotproduct;
-    array_1d<double> vout;
-    vout.set_name("node_search_vout");
-    array_1d<double> distance_traveled;
-    array_1d<int> pts_visited;
-    
-    distance_traveled.set_name("node_search_distance_traveled");
-    /*distance_traveled is a running total of how far the ricochet has come*/
-    
-    pts_visited.set_name("node_search_pts_visited");    
-    /*pts_visited logs the end points of the individual ricochets*/
-    
-    int iMedian;
-    double medianDistance,nn;
-    
     if(time_ricochet<0.5*time_search && associates.get_dim()>100){
-        dotproduct=1.0;
-        distance_traveled.add(0.0);
-        pts_visited.add(iStart);
-        
-        for(ii=0;ii<10*gg->get_dim() && dir.get_square_norm()>1.0e-20 && dotproduct>0.0; ii++){
-            try{
-                iEnd=ricochet_search(iStart,dir,vout);
-            }
-            catch (int iex){
-                ii=10*gg->get_dim()+1;
-            }
-            
-            i=distance_traveled.get_dim();
-            distance_traveled.add(distance_traveled.get_data(i-1)+gg->distance(iStart,iEnd));
-            pts_visited.add(iEnd);
-            
-            dotproduct=0.0;
-            for(i=0;i<gg->get_dim();i++){
-                /*can this ever be negative...?*/
-                dotproduct+=vout.get_data(i)*(gg->get_pt(iEnd,i)-gg->get_pt(center_dex,i));
-                dir.set(i,gg->get_pt(iEnd,i)-gg->get_pt(iStart,i));
-            }
-            
-            iStart=iEnd;
-
-        }//loop on ii
-        
-        if(pts_visited.get_dim()>1){
-            /*
-            First do a compass search in the middle of the last ricochet path
-            */
-            j=pts_visited.get_dim()-1;
-            for(i=0;i<gg->get_dim();i++){
-                trial.set(i,0.5*(gg->get_pt(pts_visited.get_data(j),i)+gg->get_pt(pts_visited.get_data(j-1),i)));
-            }
-            
-            evaluateNoAssociate(trial,&ftrial,&itrial);
-            
-            if(itrial>=0)compass_search(itrial);
-            
-            /*
-            Now do a compass search as near to the middle of the full richochet as possible
-            */
-            for(i=0;i<pts_visited.get_dim();i++){
-                nn=fabs(distance_traveled.get_data(i)-0.5*distance_traveled.get_data(distance_traveled.get_dim()-1));
-                if(i==0 || nn<medianDistance){
-                    medianDistance=nn;
-                    iMedian=i;
-                }
-            }
-            
-            if(iMedian!=distance_traveled.get_dim()-1){
-                if(iMedian==0){
-                    for(i=0;i<gg->get_dim();i++){
-                        trial.set(i,0.5*(gg->get_pt(pts_visited.get_data(iMedian),i)+gg->get_pt(pts_visited.get_data(iMedian+1),i)));
-                    }
-                }
-                else{
-                    for(i=0;i<gg->get_dim();i++){
-                        trial.set(i,0.5*(gg->get_pt(pts_visited.get_data(iMedian),i)+gg->get_pt(pts_visited.get_data(iMedian-1),i)));
-                    }
-                }
-                
-                evaluateNoAssociate(trial,&ftrial,&itrial);
-                
-                if(itrial>=0){
-                    compass_search(itrial);
-                }
-            }
-            
-        }
-        
-    }//whether or not to do ricochet
+        ricochet_search(iStart,dir);
+    }
     
-    time_search+=double(time(NULL));
+    time_search+=double(time(NULL))-before;
     
 }
+
+
