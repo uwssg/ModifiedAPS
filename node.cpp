@@ -81,6 +81,14 @@ node& node::operator=(const node &in){
     return *this;
 }
 
+double node::get_farthest_associate(){
+    return farthest_associate;
+}
+
+int node::get_n_associates(){
+    return associates.get_dim();
+}
+
 void node::set_gpWrapper(gpWrapper *ggin){
     int i,j;
     basisVectors.reset();

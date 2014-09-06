@@ -33,6 +33,9 @@ class node{
         
         void copy(const node&);
         
+        double get_farthest_associate();
+        int get_n_associates();
+        
     private:
         
         array_1d<int> associates,boundaryPoints;
