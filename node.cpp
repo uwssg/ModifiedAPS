@@ -982,7 +982,7 @@ int node::search(){
         ftrial=-2.0*chisq_exception;
         while(ftrial<=gg->get_target()){
             
-            length*2.0;
+            length*=2.0;
             
             for(i=0;i<gg->get_dim();i++){
                 trial.add_val(i,length*dir.get_data(i));
@@ -1023,11 +1023,20 @@ int node::search(){
         iStart=iBisection;
         
         if(gg->get_fn(iCoulomb)<gg->get_target()){
+            /*
+            if the Coulomb point was inside the limit, use the direction from
+            the Coulomb point to the bisection point as the initial ricochet
+            direction
+            */
             for(i=0;i<gg->get_dim();i++){
                 dir.set(i,gg->get_pt(iBisection,i)-gg->get_pt(iCoulomb,i));
             }
         }
         else{
+            /*
+            otherwise, use the direction from the center to the bisection point
+            as the ricochet direction
+            */
             for(i=0;i<gg->get_dim();i++){
                 dir.set(i,gg->get_pt(iBisection,i)-gg->get_pt(center_dex,i));
             }
@@ -1042,7 +1051,10 @@ int node::search(){
     array_1d<int> pts_visited;
     
     distance_traveled.set_name("node_search_distance_traveled");
+    /*distance_traveled is a running total of how far the ricochet has come*/
+    
     pts_visited.set_name("node_search_pts_visited");    
+    /*pts_visited logs the end points of the individual ricochets*/
     
     int iMedian;
     double medianDistance,nn;
@@ -1066,7 +1078,8 @@ int node::search(){
             
             dotproduct=0.0;
             for(i=0;i<gg->get_dim();i++){
-                dotproduct+=vout.get_data(i)*(gg->get_pt(iStart,i)-gg->get_pt(center_dex,i));
+                /*can this ever be negative...?*/
+                dotproduct+=vout.get_data(i)*(gg->get_pt(iEnd,i)-gg->get_pt(center_dex,i));
                 dir.set(i,gg->get_pt(iEnd,i)-gg->get_pt(iStart,i));
             }
             
