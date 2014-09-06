@@ -543,7 +543,7 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     }
     
     ct=0;
-    ss+=speed;
+    ss+=0.5*speed;
     fhigh=-2.0*chisq_exception;
     while(fhigh<=gg->get_target() && ct<20){
         for(i=0;i<gg->get_dim();i++){
@@ -552,9 +552,9 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
         
         evaluateNoAssociate(trial,&fhigh,&iHigh);
         
-        if(fhigh<=gg->get_target()){
+        /*if(fhigh<=gg->get_target()){
             ss*=2.0;
-        }
+        }*/
         ct++;
     }
     
@@ -703,7 +703,7 @@ void node::compass_search(int istart){
             ftrial=-2.0*chisq_exception;
             scale=0.5;
             while(ftrial<=gg->get_target()){
-                scale*=2.0;
+                //scale*=2.0;
                 for(i=0;i<gg->get_dim();i++){
                     trial.add_val(i,basisVectors.get_data(idim,i)*scale*sgn);
                 }
@@ -1079,12 +1079,12 @@ int node::search(){
         
             trial.set(i,gg->get_pt(iCoulomb,i));
         }
-        length=dir.normalize();
+        length=0.5*dir.normalize();
         
         ftrial=-2.0*chisq_exception;
         while(ftrial<=gg->get_target()){
             
-            length*=2.0;
+            //length*=2.0;
             
             for(i=0;i<gg->get_dim();i++){
                 trial.add_val(i,length*dir.get_data(i));
@@ -1114,42 +1114,43 @@ int node::search(){
     that is closest to chisq_limit as the point where we will begin our ricochet search
     */
     int iStart;
-    if(iBisection<0 || fabs(gg->get_fn(iCoulomb)-gg->get_target())<fabs(gg->get_fn(iBisection)-gg->get_target())){
-        iStart=iCoulomb;
-    }
-    else{
-        iStart=iBisection; 
-    }
-    
-    
-    if(iStart==iCoulomb){
-        for(i=0;i<gg->get_dim();i++){
-            dir.set(i,gg->get_pt(iCoulomb,i)-gg->get_pt(center_dex,i));
+    if(time_ricochet<0.5*time_search && associates.get_dim()>100){
+        if(iBisection<0 || fabs(gg->get_fn(iCoulomb)-gg->get_target())<fabs(gg->get_fn(iBisection)-gg->get_target())){
+            iStart=iCoulomb;
         }
-    }
-    else{
-        if(iCoulomb>0 && gg->get_fn(iCoulomb)<gg->get_target()){
-            /*
-            if the Coulomb point was inside the limit, use the direction from
-            the Coulomb point to the bisection point as the initial ricochet
-            direction
-            */
+        else{
+            iStart=iBisection; 
+        }
+    
+    
+        if(iStart==iCoulomb){
             for(i=0;i<gg->get_dim();i++){
-                dir.set(i,gg->get_pt(iBisection,i)-gg->get_pt(iCoulomb,i));
+                dir.set(i,gg->get_pt(iCoulomb,i)-gg->get_pt(center_dex,i));
             }
         }
         else{
-            /*
-            otherwise, use the direction from the center to the bisection point
-            as the ricochet direction
-            */
-            for(i=0;i<gg->get_dim();i++){
-                dir.set(i,gg->get_pt(iBisection,i)-gg->get_pt(center_dex,i));
+            if(iBisection<0 || gg->get_fn(iCoulomb)<gg->get_target()){
+                /*
+                if the Coulomb point was inside the limit, use the direction from
+                the Coulomb point to the bisection point as the initial ricochet
+                direction
+                */
+                for(i=0;i<gg->get_dim();i++){
+                    dir.set(i,gg->get_pt(iBisection,i)-gg->get_pt(iCoulomb,i));
+                }
+            }
+            else{
+                /*
+                otherwise, use the direction from the center to the bisection point
+                as the ricochet direction
+                */
+                for(i=0;i<gg->get_dim();i++){
+                    dir.set(i,gg->get_pt(iBisection,i)-gg->get_pt(center_dex,i));
+                }
             }
         }
-    }
     
-    if(time_ricochet<0.5*time_search && associates.get_dim()>100){
+
         ricochet_search(iStart,dir);
     }
     
