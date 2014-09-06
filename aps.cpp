@@ -937,6 +937,7 @@ void aps::find_global_minimum(array_1d<int> &neigh){
     which cannot be used as the seed to a simplex search again.
     */
     known_minima.add(_mindex);
+    assess_node(_mindex);
     j=centers.get_rows();
     
     int ic,acutally_added,use_it;
@@ -1107,6 +1108,8 @@ void aps::aps_wide(){
     
     if(simplex_best.get_dim()==gg.get_dim()){
         ggWrap.evaluate(simplex_best,&chitrue,&actually_added);
+        
+        assess_node(actually_added);
 
         if(actually_added>=0){
             wide_pts.add(actually_added);
@@ -2630,7 +2633,14 @@ void aps::assess_node(int dex){
         return;
     }
     
-    int could_be_used,use_it,i;
+    int i;
+    for(i=0;i<nodes.get_dim();i++){
+        if(dex==nodes(i)->get_center()){
+            return;
+        }
+    }
+    
+    int could_be_used,use_it;
     
     /*could_be_used allows us to accept node candidates based on their
     distance from the nearest node*/
