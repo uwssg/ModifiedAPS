@@ -46,7 +46,8 @@ class node{
         int bisectionAssociate(int,int);
         int bisection(int,int,int);
         int coulomb_search();
-        int ricochet_search(int,array_1d<double>&,array_1d<double>&);
+        int ricochet_search(int,array_1d<double>&);
+        int ricochet_driver(int,array_1d<double>&,array_1d<double>&);
         void compass_search(int);
         void find_bases();
         int perturb_bases(array_2d<double>&,int,array_1d<double>&,array_2d<double>&);

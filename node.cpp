@@ -461,7 +461,7 @@ int node::coulomb_search(){
     return iout;
 }
 
-int node::ricochet_search(int istart, array_1d<double> &vstart, array_1d<double> &vout){
+int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double> &vout){
     /*
     returns the index of the point found
     */
