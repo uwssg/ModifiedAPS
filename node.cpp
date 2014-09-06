@@ -13,7 +13,8 @@ node::node(){
     time_coulomb=0.0;
     time_search=0.0;
     time_bases=0.0;
-    last_set_bases=0;
+    last_nAssociates=0;
+    last_nBasisAssociates=0;
     center_dex=-1;
     
     farthest_associate=0.0;
@@ -35,7 +36,8 @@ void node::copy(const node &in){
     basisVectors.reset();
     
     center_dex=in.center_dex;
-    last_set_bases=in.last_set_bases;
+    last_nAssociates=in.last_nAssociates;
+    last_nBasisAssociates=in.last_nBasisAssociates;
     time_ricochet=in.time_ricochet;
     time_coulomb=in.time_coulomb;
     time_search=in.time_search;
@@ -96,6 +98,10 @@ void node::set_gpWrapper(gpWrapper *ggin){
 
 void node::set_dice(Ran *ddin){
     dice=ddin;
+}
+
+void node::set_center_dex(int ii){
+    center_dex=ii;
 }
 
 void node::evaluate(array_1d<double> &pt, double *chiout, int *dexout){
@@ -511,7 +517,7 @@ int node::ricochet_search(int istart, array_1d<double> &vstart, array_1d<double>
     
     /*try to find seeds for bisection along the reflected direction*/
     flow=2.0*chisq_exception;
-    ss=0.1*speed;
+    ss=2.0*speed;
     int ct=0;
     while(flow>=gg->get_target() && ct<20){
         for(i=0;i<gg->get_dim();i++){
@@ -820,6 +826,8 @@ void node::find_bases(){
         exit(1);
     }
     
+    last_nAssociates=associates.get_dim();
+    
     int i,j;
     
     array_1d<int> basis_associates;
@@ -831,10 +839,11 @@ void node::find_bases(){
         }
     }
     
-    if(basis_associates.get_dim()<100){
+    if(basis_associates.get_dim()<100 || basis_associates.get_dim()<last_nBasisAssociates+1000){
         return;
     }
-
+    
+    last_nBasisAssociates=basis_associates.get_dim();
     
     double before=double(time(NULL));
     array_2d<double> bases_best,bases_trial;
@@ -919,7 +928,7 @@ void node::find_bases(){
     time_bases+=double(time(NULL))-before;
 }
 
-void node::search(int *out){
+int node::search(){
     if(gg==NULL){
         printf("WARNING cannot call node search; gpWrapper is null\n");
         exit(1);
@@ -940,4 +949,178 @@ void node::search(int *out){
         printf("WARNING cannot call node search; center_dex is %d\n",center_dex);
         exit(1);
     }
+    
+    double before=double(time(NULL));
+    
+    int iCoulomb;
+    
+    iCoulomb=coulomb_search();
+    
+    int iLow,iHigh,i,j;
+    array_1d<double> dir,trial;
+    dir.set_name("node_search_dir");
+    trial.set_name("node_search_trial");
+    double length,ftrial;
+    
+    while(iCoulomb<0){
+        for(i=0;i<gg->get_dim();i++){
+            trial.set(i,gg->get_pt(center_dex,i)+0.01*dice->doub()*(gg->get_max(i)-gg->get_min(i)));
+        }
+        evaluate(trial,&ftrial,&iCoulomb);
+    }
+    
+    
+    if(gg->get_fn(iCoulomb)<gg->get_target()){
+        iLow=iCoulomb;
+        for(i=0;i<gg->get_dim();i++){
+            dir.set(i,gg->get_pt(iCoulomb,i)-gg->get_pt(center_dex,i));
+        
+            trial.set(i,gg->get_pt(iCoulomb,i));
+        }
+        length=dir.normalize();
+        
+        ftrial=-2.0*chisq_exception;
+        while(ftrial<=gg->get_target()){
+            
+            length*2.0;
+            
+            for(i=0;i<gg->get_dim();i++){
+                trial.add_val(i,length*dir.get_data(i));
+            }
+            
+            evaluateNoAssociate(trial,&ftrial,&iHigh);
+        }
+    }
+    else{
+        iLow=center_dex;
+        iHigh=iCoulomb;
+    }
+    
+    int iBisection;
+    
+    iBisection=bisectionAssociate(iLow,iHigh);
+    
+    if((associates.get_dim()>last_nAssociates+300 || last_nAssociates==0) && associates.get_dim()>200){
+        try{
+            find_bases();
+        }
+        catch(int iex){}
+    }
+    
+    /*
+    Now, of the two points (the end of the Coulomb search and the end of the bisection), choose the one
+    that is closest to chisq_limit as the point where we will begin our ricochet search
+    */
+    int iStart;
+    if(fabs(gg->get_fn(iCoulomb)-gg->get_target())<fabs(gg->get_fn(iBisection)-gg->get_target())){
+        iStart=iCoulomb;
+        
+        for(i=0;i<gg->get_dim();i++){
+            dir.set(i,gg->get_pt(iCoulomb,i)-gg->get_pt(center_dex,i));
+        }
+    }
+    else{
+        iStart=iBisection;
+        
+        if(gg->get_fn(iCoulomb)<gg->get_target()){
+            for(i=0;i<gg->get_dim();i++){
+                dir.set(i,gg->get_pt(iBisection,i)-gg->get_pt(iCoulomb,i));
+            }
+        }
+        else{
+            for(i=0;i<gg->get_dim();i++){
+                dir.set(i,gg->get_pt(iBisection,i)-gg->get_pt(center_dex,i));
+            }
+        }
+    }
+    
+    int iEnd,ii,itrial;
+    double dotproduct;
+    array_1d<double> vout;
+    vout.set_name("node_search_vout");
+    array_1d<double> distance_traveled;
+    array_1d<int> pts_visited;
+    
+    distance_traveled.set_name("node_search_distance_traveled");
+    pts_visited.set_name("node_search_pts_visited");    
+    
+    int iMedian;
+    double medianDistance,nn;
+    
+    if(time_ricochet<0.5*time_search && associates.get_dim()>100){
+        dotproduct=1.0;
+        distance_traveled.add(0.0);
+        pts_visited.add(iStart);
+        
+        for(ii=0;ii<10*gg->get_dim() && dir.get_square_norm()>1.0e-20 && dotproduct>0.0; ii++){
+            try{
+                iEnd=ricochet_search(iStart,dir,vout);
+            }
+            catch (int iex){
+                ii=10*gg->get_dim()+1;
+            }
+            
+            i=distance_traveled.get_dim();
+            distance_traveled.add(distance_traveled.get_data(i-1)+gg->distance(iStart,iEnd));
+            pts_visited.add(iEnd);
+            
+            dotproduct=0.0;
+            for(i=0;i<gg->get_dim();i++){
+                dotproduct+=vout.get_data(i)*(gg->get_pt(iStart,i)-gg->get_pt(center_dex,i));
+                dir.set(i,gg->get_pt(iEnd,i)-gg->get_pt(iStart,i));
+            }
+            
+            iStart=iEnd;
+
+        }//loop on ii
+        
+        if(pts_visited.get_dim()>1){
+            /*
+            First do a compass search in the middle of the last ricochet path
+            */
+            j=pts_visited.get_dim()-1;
+            for(i=0;i<gg->get_dim();i++){
+                trial.set(i,0.5*(gg->get_pt(pts_visited.get_data(j),i)+gg->get_pt(pts_visited.get_data(j-1),i)));
+            }
+            
+            evaluateNoAssociate(trial,&ftrial,&itrial);
+            
+            if(itrial>=0)compass_search(itrial);
+            
+            /*
+            Now do a compass search as near to the middle of the full richochet as possible
+            */
+            for(i=0;i<pts_visited.get_dim();i++){
+                nn=fabs(distance_traveled.get_data(i)-0.5*distance_traveled.get_data(distance_traveled.get_dim()-1));
+                if(i==0 || nn<medianDistance){
+                    medianDistance=nn;
+                    iMedian=i;
+                }
+            }
+            
+            if(iMedian!=distance_traveled.get_dim()-1){
+                if(iMedian==0){
+                    for(i=0;i<gg->get_dim();i++){
+                        trial.set(i,0.5*(gg->get_pt(pts_visited.get_data(iMedian),i)+gg->get_pt(pts_visited.get_data(iMedian+1),i)));
+                    }
+                }
+                else{
+                    for(i=0;i<gg->get_dim();i++){
+                        trial.set(i,0.5*(gg->get_pt(pts_visited.get_data(iMedian),i)+gg->get_pt(pts_visited.get_data(iMedian-1),i)));
+                    }
+                }
+                
+                evaluateNoAssociate(trial,&ftrial,&itrial);
+                
+                if(itrial>=0){
+                    compass_search(itrial);
+                }
+            }
+            
+        }
+        
+    }//whether or not to do ricochet
+    
+    time_search+=double(time(NULL));
+    
 }

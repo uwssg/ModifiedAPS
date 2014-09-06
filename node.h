@@ -12,6 +12,8 @@ class node{
         node& operator=(const node&);
         ~node();
         
+        void set_center_dex(int);
+        
         void set_gpWrapper(gpWrapper*);
         
         void set_dice(Ran*);
@@ -23,7 +25,7 @@ class node{
         void project_to_unit_sphere(array_1d<double>&, array_1d<double>&);
         void add_as_boundary(int);
         
-        void search(int*);
+        int search();
         
     private:
         
@@ -32,7 +34,7 @@ class node{
         array_1d<int> associates,boundaryPoints;
         array_2d<double> basisVectors;
         
-        int center_dex,last_set_bases;
+        int center_dex,last_nBasisAssociates,last_nAssociates;
         double time_ricochet,time_coulomb,time_search,time_bases;
         double farthest_associate;
         

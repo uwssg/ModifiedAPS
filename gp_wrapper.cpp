@@ -437,3 +437,7 @@ void gpWrapper::actual_gradient(array_1d<double> &x, array_1d<double> &y){
 void gpWrapper::actual_gradient(int x, array_1d<double> &y){
     gg->actual_gradient(x,y);
 }
+
+int gpWrapper::get_called(){
+    return chisq->get_called();
+}

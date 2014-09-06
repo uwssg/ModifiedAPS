@@ -200,6 +200,8 @@ class gpWrapper{
         void actual_gradient(int,array_1d<double>&);
         void actual_gradient(array_1d<double>&,array_1d<double>&);
         
+        int get_called();
+        
     private:
         gp *gg;
         chisquared *chisq;
