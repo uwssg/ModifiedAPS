@@ -1178,6 +1178,10 @@ int node::get_center(){
     return center_dex;
 }
 
+void node::set_farthest_associate(double xx){
+    farthest_associate=xx;
+}
+
 ///////////////arrayOfNodes code below//////////
 
 arrayOfNodes::arrayOfNodes(){
@@ -1258,4 +1262,15 @@ void arrayOfNodes::remove(int ii){
         data[i-1].copy(data[i]);
     }
     ct--;
+}
+
+node* arrayOfNodes::operator()(int dex){
+    if(dex<0 || dex>=ct){
+        printf("WARNING asked arrayOfNodes for dex %d but only have %d (operator)\n",
+        dex,ct);
+        
+        exit(1);
+    }
+    
+    return &data[dex];
 }

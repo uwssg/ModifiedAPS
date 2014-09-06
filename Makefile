@@ -92,7 +92,7 @@ chisq.o containers.o gp_wrapper.o node.o
 ellipse: aps_runner_ellipses.cpp aps.o chisq.o
 	$(gg) -o ellipse aps_runner_ellipses.cpp \
 	goto_tools.o containers.o kd.o eigen_wrapper.o gaussian_process.o \
-	chisq.o aps.o gp_wrapper.o $(LIBRARIES) $(INCLUDE)
+	chisq.o aps.o gp_wrapper.o node.o $(LIBRARIES) $(INCLUDE)
 
 all:
 	make test_containers

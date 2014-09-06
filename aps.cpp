@@ -50,6 +50,7 @@ aps::aps(int dim_in, int kk, double dd, int seed){
 
     called_focus=0;
     called_wide=0;
+    ddNodeRatio=-1.0;
         
     last_optimized=0;
     time_optimizing=0.0;
@@ -2616,6 +2617,77 @@ void aps::write_pts(){
     set_where("nowhere");
     time_writing+=double(time(NULL))-before;
     
-  
+}
+
+////////////////////node-based code below/////////
+
+void aps::assess_node(int dex){
+    if(dex<0 || dex>=gg.get_pts()){
+        return;
+    }
     
+    if(gg.get_fn(dex)>strad.get_target()){
+        return;
+    }
+    
+    int could_be_used,use_it,i;
+    
+    /*could_be_used allows us to accept node candidates based on their
+    distance from the nearest node*/
+    could_be_used=0;
+    
+    for(i=0;i<nodes.get_dim() && could_be_used==0;i++){
+        if(nodes(i)->get_farthest_associate()>0.0 && 
+           nodes(i)->get_n_associates()>100){
+           
+               could_be_used=1;   
+        }
+    }
+    
+    array_1d<double> midpt;
+    midpt.set_name("aps_assess_node_midpt");
+    double ftrial,dd,ddmin;
+    int j,itrial,inode,iclosest=-1;
+    
+    use_it=1;
+    for(i=0;i<nodes.get_dim() && (use_it==1 || could_be_used==1);i++){
+        inode=nodes(i)->get_center();
+        dd=gg.distance(inode,dex);
+        if(i==0 || dd<ddmin){
+            ddmin=dd;
+            iclosest=i;
+        }
+        
+        if(dd<ddNodeRatio*nodes(i)->get_farthest_associate() && ddNodeRatio>1.0e-10){
+            /*the point under consideration is too close to an existent node to be
+            set based on distance*/
+            could_be_used=0;
+        }
+        
+        for(j=0;j<gg.get_dim();j++){
+            midpt.set(j,0.5*(gg.get_pt(inode,j)+gg.get_pt(dex,j)));
+        }
+        
+        ggWrap.evaluate(midpt,&ftrial);
+        
+        if(ftrial<strad.get_target()){
+            use_it=0;
+        }
+    }
+    
+    if(iclosest>=0){
+        if(nodes(iclosest)->get_n_associates()<100)could_be_used=0;
+    }
+    
+    if(use_it==0 && could_be_used==1){
+        use_it=1;
+    }
+    
+    if(use_it==1){
+        nodes.add(dex,dice,&ggWrap);
+        i=nodes.get_dim()-1;
+        if(iclosest>=0){
+            nodes(i)->set_farthest_associate(nodes(iclosest)->get_farthest_associate());
+        }
+    }
 }

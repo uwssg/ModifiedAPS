@@ -27,6 +27,8 @@ class node{
         
         int search();
         
+        void set_farthest_associate(double);
+        
         Ran* get_Ran();
         gpWrapper* get_gpWrapper();
         int get_center();

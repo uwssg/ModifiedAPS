@@ -14,6 +14,7 @@
 #include "gaussian_process.h"
 #include "chisq.h"
 #include "gp_wrapper.h"
+#include "node.h"
 
 
 class aps{
@@ -527,6 +528,9 @@ private:
     */
     void project_to_unit_sphere(int, array_1d<double>&, array_1d<double>&);
     
+    arrayOfNodes nodes;
+    void assess_node(int);
+    double ddNodeRatio;
 };
 
 
