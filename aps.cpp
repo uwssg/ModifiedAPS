@@ -515,7 +515,7 @@ double aps::simplex_evaluate(array_1d<double> &pt, int *actually_added,
     return mu;
 }
 
-void aps::find_global_minimum(array_1d<int> &neigh){
+int aps::find_global_minimum(array_1d<int> &neigh){
     
     /*
     * Use simplex minimization, seeded by the sampled points whose
@@ -937,7 +937,6 @@ void aps::find_global_minimum(array_1d<int> &neigh){
     which cannot be used as the seed to a simplex search again.
     */
     known_minima.add(_mindex);
-    assess_node(_mindex);
     j=centers.get_rows();
     
     int ic,acutally_added,use_it;
@@ -977,6 +976,7 @@ void aps::find_global_minimum(array_1d<int> &neigh){
     }
     
     set_where("nowhere");
+    return _mindex;
 }
 
 
@@ -1064,8 +1064,10 @@ void aps::search(){
     aps_score=ct_aps;
     simplex_score=ct_simplex;
     
+    int i_simplex;
     if(simplex_score<aps_score){
-        simplex_search();
+        i_simplex=simplex_search();
+        assess_node(i_simplex);
     }
     
     aps_search();
@@ -1077,7 +1079,7 @@ void aps::search(){
     time_total+=double(time(NULL))-before;
 }
 
-void aps::aps_wide(){
+int aps::aps_wide(){
     
     called_wide++;
     double sig;
@@ -1097,7 +1099,7 @@ void aps::aps_wide(){
     double chitrue,chimid;
     int actually_added,ic,i,j,use_it;
      
-    int bisect_it=0;
+    int bisect_it=0,iout=-1;
     array_1d<double> unit_v,dd_sphere;
     array_1d<int> neigh_sphere;
     
@@ -1109,7 +1111,7 @@ void aps::aps_wide(){
     if(simplex_best.get_dim()==gg.get_dim()){
         ggWrap.evaluate(simplex_best,&chitrue,&actually_added);
         
-        assess_node(actually_added);
+        iout=actually_added;
 
         if(actually_added>=0){
             wide_pts.add(actually_added);
@@ -1179,6 +1181,8 @@ void aps::aps_wide(){
             }
         }
     }
+    
+    return iout;
    
 }
 
@@ -1984,13 +1988,14 @@ void aps::bisection(array_1d<double> &inpt, double chi_in){
 void aps::aps_search(){
 
     double before=double(time(NULL));
-    int ibefore=ggWrap.get_chisq_called();
+    int ibefore=ggWrap.get_chisq_called(),i_wide;
  
     if(called_focus<called_wide){
         aps_focus();
     }
     else{
-        aps_wide();
+        i_wide=aps_wide();
+        assess_node(i_wide);
     }
 
     time_aps+=double(time(NULL))-before;
@@ -2011,14 +2016,14 @@ double aps::distance(int i1, int i2, array_1d<double> &range){
     return sqrt(dd);
 }
 
-void aps::simplex_search(){
+int aps::simplex_search(){
     //printf("\ngradient searching\n");
     set_where("simplex_search");
   
     double before=double(time(NULL));
     int ibefore=ggWrap.get_chisq_called();
     
-    int ix,i,j,imin;
+    int ix,i,j,imin,iout=-1;
     
     array_1d<int> candidates;
     array_1d<double> local_max,local_min,local_range;
@@ -2042,7 +2047,7 @@ void aps::simplex_search(){
     
         ct_simplex+=ggWrap.get_chisq_called()-ibefore;
         time_simplex+=double(time(NULL))-before;
-        return;
+        return -1;
     }
     
     
@@ -2153,7 +2158,7 @@ void aps::simplex_search(){
         exit(1);
     }
 
-    find_global_minimum(seed);
+    iout=find_global_minimum(seed);
     
     mindex_is_candidate=0;
     
@@ -2161,6 +2166,7 @@ void aps::simplex_search(){
     time_simplex+=double(time(NULL))-before;
     
     set_where("nowhere");
+    return iout;
     //printf("done gradient searching\n");
 }
 

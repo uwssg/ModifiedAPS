@@ -132,7 +132,7 @@ public:
     /*
     Perform the simplex search
     */
-    void simplex_search();
+    int simplex_search();
     
     /*
     Sample chisquared at the point specified by the array_1d
@@ -238,7 +238,7 @@ private:
     which seeks to maximize S.  This simplex search is run by simplex_strad() and simplex_strad_metric()
     below.
     */
-    void aps_wide();
+    int aps_wide();
     
     /*
     aps_focus() runs the focused search (steps 1B-5B in the paper) about known centers of
@@ -283,7 +283,7 @@ private:
     The simplex search will run until it has made 200 calls to chisquared
     without improving upon its discovered local minimum in chisquared.
     */
-    void find_global_minimum(array_1d<int>&);
+    int find_global_minimum(array_1d<int>&);
     
     /*
     These are wrappers of the function evaluate() specifically designed
