@@ -4,7 +4,7 @@
 #include "gp_wrapper.h"
 
 class node{
-
+    
     public:
         
         node();
@@ -27,9 +27,13 @@ class node{
         
         int search();
         
-    private:
+        Ran* get_Ran();
+        gpWrapper* get_gpWrapper();
+        int get_center();
         
         void copy(const node&);
+        
+    private:
         
         array_1d<int> associates,boundaryPoints;
         array_2d<double> basisVectors;

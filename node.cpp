@@ -1158,4 +1158,82 @@ int node::search(){
     
 }
 
+Ran* node::get_Ran(){
+    return dice;
+}
 
+gpWrapper* node::get_gpWrapper(){
+    return gg;
+}
+
+int node::get_center(){
+    return center_dex;
+}
+
+///////////////arrayOfNodes code below//////////
+
+arrayOfNodes::arrayOfNodes(){
+    data=NULL;
+    ct=0;
+    room=0;
+}
+
+arrayOfNodes::~arrayOfNodes(){
+    if(data!=NULL){
+        delete [] data;
+    }
+}
+
+void arrayOfNodes::add(int cc, Ran *dice, gpWrapper *gg){
+
+    node *buffer;
+    int i,j;
+    
+    if(ct==room){
+        if(ct>0){
+            buffer=new node[ct];
+            for(i=0;i<ct;i++){
+                buffer->copy(data[i]);
+            }
+            
+            delete [] data;
+        }
+        
+        room+=5;
+        data=new node[room];
+        
+        if(ct>0){
+            for(i=0;i<ct;i++){
+                data[i].copy(buffer[i]);
+            }
+            delete [] buffer;
+        }
+    }
+    
+    data[ct].set_center_dex(cc);
+    data[ct].set_gpWrapper(gg);
+    data[ct].set_dice(dice);
+    
+    ct++;
+
+}
+
+void arrayOfNodes::add(int i, gpWrapper *g, Ran *d){
+    add(i,d,g);
+}
+
+void arrayOfNodes::add(gpWrapper *g, Ran *d, int i){
+    add(i,d,g);
+}
+
+void arrayOfNodes::add(gpWrapper *g, int i, Ran *d){
+    add(i,d,g);
+}
+
+void arrayOfNodes::add(Ran *d, gpWrapper *g, int i){
+    add(i,d,g);
+}
+
+void arrayOfNodes::add(Ran *d, int i, gpWrapper *g){
+    add(i,d,g);
+}
