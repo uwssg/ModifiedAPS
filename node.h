@@ -55,4 +55,31 @@ class node{
 
 };
 
+class arrayOfNodes{
+
+    public:
+        arrayOfNodes();
+        ~arrayOfNodes();
+        
+        void add(int,gpWrapper*,Ran*);
+        void add(int,Ran*,gpWrapper*);
+        void add(Ran*,int,gpWrapper*);
+        void add(Ran*,gpWrapper*,int);
+        void add(gpWrapper*,Ran*,int);
+        void add(gpWrapper*,int,Ran*);
+        
+        int get_dim();
+        
+        void remove(int);
+        
+        node* operator()(int);
+        
+    private:
+        node *data;
+        int ct,room;
+
+
+};
+
+
 #endif
