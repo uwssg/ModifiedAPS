@@ -1237,3 +1237,17 @@ void arrayOfNodes::add(Ran *d, gpWrapper *g, int i){
 void arrayOfNodes::add(Ran *d, int i, gpWrapper *g){
     add(i,d,g);
 }
+
+int arrayOfNodes::get_dim(){
+    return ct;
+}
+
+void arrayOfNodes::remove(int ii){
+    int i;
+    if(ii>=ct) return;
+    
+    for(i=ii+1;i<ct;i++){
+        data[i-1].copy(data[i]);
+    }
+    ct--;
+}
