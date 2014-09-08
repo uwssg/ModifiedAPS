@@ -971,10 +971,6 @@ int aps::find_global_minimum(array_1d<int> &neigh){
         }
     }
     
-    if(use_it==1){
-        assess_node(_mindex);
-    }
-    
     set_where("nowhere");
     
     assess_node(_mindex);
