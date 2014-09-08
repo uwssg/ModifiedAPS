@@ -516,7 +516,7 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
         gg->actual_gradient(istart,gradient);
     }
     catch(int iex){
-        printf("    ricochet gradient calculatio failed\n");
+        printf("    ricochet gradient calculation failed\n");
         time_ricochet+=double(time(NULL))-before;
         time_ricochet+=time_penalty*(gg->get_called()-ibefore);
         return -1;
@@ -637,19 +637,24 @@ void node::ricochet_search(int iStart, array_1d<double> &dir){
         catch (int iex){
             ii=10*gg->get_dim()+1;
         }
+        
+        if(iEnd>=0){    
+            i=distance_traveled.get_dim();
+            distance_traveled.add(distance_traveled.get_data(i-1)+gg->distance(iStart,iEnd));
+            pts_visited.add(iEnd);
             
-        i=distance_traveled.get_dim();
-        distance_traveled.add(distance_traveled.get_data(i-1)+gg->distance(iStart,iEnd));
-        pts_visited.add(iEnd);
+            dotproduct=0.0;
+            for(i=0;i<gg->get_dim();i++){
+                /*can this ever be negative...?*/
+                dotproduct+=vout.get_data(i)*(gg->get_pt(iEnd,i)-gg->get_pt(center_dex,i));
+                dir.set(i,gg->get_pt(iEnd,i)-gg->get_pt(iStart,i));
+            }
             
-        dotproduct=0.0;
-        for(i=0;i<gg->get_dim();i++){
-            /*can this ever be negative...?*/
-            dotproduct+=vout.get_data(i)*(gg->get_pt(iEnd,i)-gg->get_pt(center_dex,i));
-            dir.set(i,gg->get_pt(iEnd,i)-gg->get_pt(iStart,i));
+            iStart=iEnd;
         }
-            
-        iStart=iEnd;
+        else{
+            ii=10*gg->get_dim()+1;
+        }
 
     }//loop on ii
         

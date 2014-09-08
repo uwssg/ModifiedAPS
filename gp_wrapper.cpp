@@ -103,6 +103,10 @@ double gpWrapper::get_max(int dex){
 }
 
 double gpWrapper::distance(int i, int j){
+    if(i<0 || j<0 || i>=gg->get_pts() || j>=gg->get_pts()){
+        printf("    iWhere %d\n",iWhere);
+        printf("    int int\n");
+    }
     return gg->distance(i,j);
 }
 
@@ -111,10 +115,19 @@ double gpWrapper::distance(array_1d<double> &x, array_1d<double> &y){
 }
 
 double gpWrapper::distance(array_1d<double> &x, int i){
+    if(i<0 || i>=gg->get_pts()){
+        printf("    iWhere %d\n",iWhere);
+        printf("    pt, int\n");
+    }
+
     return gg->distance(x,i);
 }
 
 double gpWrapper::distance(int i, array_1d<double> &x){
+    if(i<0 || i>=gg->get_pts()){
+        printf("    iWhere %d\n",iWhere);
+        printf("    int, pt\n");
+    }
     return gg->distance(i,x);
 }
 
