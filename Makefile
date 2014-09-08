@@ -99,6 +99,11 @@ ellipse: aps_runner_ellipses.cpp aps.o chisq.o
 	goto_tools.o containers.o kd.o eigen_wrapper.o gaussian_process.o \
 	chisq.o aps.o gp_wrapper.o node.o $(LIBRARIES) $(INCLUDE)
 
+s_curve: aps_runner_s_curve.cpp aps.o chisq.o
+	$(gg) -o s_curve aps_runner_s_curve.cpp \
+	goto_tools.o containers.o kd.o eigen_wrapper.o gaussian_process.o \
+	gp_wrapper.o chisq.o aps.o node.o $(LIBRARIES) $(INCLUDE)
+
 all:
 	make test_containers
 	make test_kd
@@ -106,6 +111,7 @@ all:
 	make ellipse
 	make aps_extract
 	make s_control
+	make s_curve
 clean:
 	rm *.o test_containers test_kd test_eigen ellipse \
-	aps_extract s_control
+	aps_extract s_curve s_control
