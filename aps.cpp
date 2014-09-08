@@ -2711,4 +2711,13 @@ void aps::assess_node(int dex){
             nodes(i)->set_farthest_associate(nodes(iclosest)->get_farthest_associate());
         }
     }
+    
+    
+    for(i=0;i<nodes.get_dim();i++){
+        if(gg.get_fn(nodes(i)->get_center())>strad.get_target()){
+            nodes.remove(i);
+            i--;
+        }
+    }
+    
 }
