@@ -2608,6 +2608,7 @@ void aps::write_pts(){
     printf("APS: %d\n",ggWrap.get_whereCt(iAPS));
     printf("Simplex: %d\n",ggWrap.get_whereCt(iSimplex));
     printf("Bisection: %d\n",ggWrap.get_whereCt(iBisect));
+    printf("node Bisection: %d\n",ggWrap.get_whereCt(iNodeBisect));
     printf("Coulomb: %d\n",ggWrap.get_whereCt(iCoulomb));
     printf("Compass: %d\n",ggWrap.get_whereCt(iCompass));
     printf("Ricochet: %d\n",ggWrap.get_whereCt(iRicochet));

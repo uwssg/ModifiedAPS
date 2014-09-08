@@ -130,7 +130,7 @@ void node::evaluate(array_1d<double> &pt, double *chiout, int *dexout, int doAss
     gg->evaluate(pt,chiout,dexout);
     
     double dd;
-    if(chiout[0]<gg->get_target() && doAssociate==1){
+    if(chiout[0]<gg->get_target() && doAssociate==1 && dexout[0]>=0){
         associates.add(dexout[0]);
         dd=gg->distance(dexout[0],center_dex);
         if(dd>farthest_associate){
@@ -203,7 +203,7 @@ int node::bisection(int lowDex, int highDex, int asAssociates){
     }
     
     if(gg->get_iWhere()==iCoulomb){
-        gg->set_iWhere(iBisect);
+        gg->set_iWhere(iNodeBisect);
     }
     
     int iout;
@@ -255,7 +255,7 @@ int node::bisection(int lowDex, int highDex, int asAssociates){
         ct++;
         dd*=0.5;
     }
-    
+
     if(iout!=lowDex)add_as_boundary(iout);
     
     return iout;
@@ -1069,6 +1069,7 @@ void node::find_bases(){
 }
 
 int node::search(){
+
     if(gg==NULL){
         printf("WARNING cannot call node search; gpWrapper is null\n");
         exit(1);
@@ -1109,7 +1110,6 @@ int node::search(){
         }
         evaluate(trial,&ftrial,&iCoulomb);
     }
-    
     
     if(gg->get_fn(iCoulomb)<gg->get_target()){
         iLow=iCoulomb;
@@ -1195,7 +1195,6 @@ int node::search(){
     
     time_search+=double(time(NULL))-before;
     time_search+=time_penalty*(gg->get_called()-ibefore);
-    
 }
 
 Ran* node::get_Ran(){

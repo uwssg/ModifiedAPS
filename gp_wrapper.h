@@ -15,7 +15,7 @@
 #include "chisq.h"
 
 ////////////code for diagnostic testing
-enum{iAPS,iSimplex,iCoulomb,iCompass,iBisect,iRicochet};
+enum{iAPS,iSimplex,iCoulomb,iCompass,iBisect,iNodeBisect,iRicochet};
 ///////////////
 
 

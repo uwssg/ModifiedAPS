@@ -46,6 +46,7 @@ gpWrapper::gpWrapper(){
     whereCt.set(iCoulomb,0);
     whereCt.set(iCompass,0);
     whereCt.set(iBisect,0);
+    whereCt.set(iNodeBisect,0);
     whereCt.set(iRicochet,0);
     iWhere=iAPS;
     
