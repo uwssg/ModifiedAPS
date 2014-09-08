@@ -200,6 +200,10 @@ int node::bisection(int lowDex, int highDex, int asAssociates){
         exit(1);
     }
     
+    if(gg->get_iWhere()==iCoulomb){
+        gg->set_iWhere(iBisect);
+    }
+    
     int iout;
     double flow,fhigh;
     array_1d<double> lowball,highball;
@@ -259,6 +263,9 @@ int node::coulomb_search(){
     /*
     will return the index of the best point it found
     */
+    
+    gg->set_iWhere(iCoulomb);
+    
     int iout=-1;
     double before=double(time(NULL));
     double eps=1.0e-6,tol=1.0;
@@ -585,6 +592,8 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
 
 void node::ricochet_search(int iStart, array_1d<double> &dir){
     
+    gg->set_iWhere(iRicochet);
+    
     double ftrial;
     array_1d<double> trial;
     trial.set_name("node_ricochet_search_trial");
@@ -698,6 +707,8 @@ void node::compass_search(int istart){
     if(gg->get_fn(istart)>=gg->get_target()){
         return;
     }
+    
+    gg->set_iWhere(iCompass);
     
     int idim,i,iHigh;
     double ftrial,sgn,scale;
