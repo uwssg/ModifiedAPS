@@ -13,7 +13,7 @@ FILE *output;
 
 int i,j,k;
 
-
+//chifn.build_boundary(11.0);
 chifn.build_boundary(33.9);//for 22dof
     
 for(i=0;i<dim;i++){
