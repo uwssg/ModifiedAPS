@@ -14,6 +14,11 @@
 #include "gaussian_process.h"
 #include "chisq.h"
 
+////////////code for diagnostic testing
+enum{iAPS,iSimplex,iCoulomb,iCompass,iBisect,iRicochet};
+///////////////
+
+
 class straddle_parameter{
     /*
     This class is meant to store both the target value of chisquared_lim and
@@ -202,6 +207,12 @@ class gpWrapper{
         
         int get_called();
         
+        /////////code for diagnostic testing
+        int set_iWhere(int);
+        int get_iWhere();
+        int get_whereCt(int);
+        //////////
+        
     private:
         gp *gg;
         chisquared *chisq;
@@ -214,6 +225,12 @@ class gpWrapper{
         int global_mindex,target_asserted;
         
         double chimin,delta_chisquared;
+        
+        ///////code for diagnostic testing
+        int iWhere;
+        array_1d<int> whereCt;
+        
+        ///////
 
 };
 

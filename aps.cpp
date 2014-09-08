@@ -28,6 +28,8 @@ void aps::set_where(char *word){
 
 aps::aps(int dim_in, int kk, double dd, int seed){
     
+    ggWrap.set_iWhere(iAPS);
+     
     sprintf(outname,"master_output.sav");
     sprintf(timingname,"timing_file.sav");
     
@@ -69,7 +71,7 @@ aps::aps(int dim_in, int kk, double dd, int seed){
     start_time=double(time(NULL));
 
     gg.set_kk(kk);
-
+    
     ggWrap.set_delta_chisquared(dd);
   
     global_threshold=-2.0*chisq_exception;
@@ -1729,6 +1731,8 @@ void aps::project_to_unit_sphere(int ic, array_1d<double> &pt_in, array_1d<doubl
 
 void aps::bisection(array_1d<double> &inpt, double chi_in){
     
+    ggWrap.set_iWhere(iBisect);
+    
     /*
     If the point is already fairly near to chisquared_lim, or if APS has not yet found
     a low-chisquared region for which chisquared<chisquared_lim, do not do bisection
@@ -1996,6 +2000,7 @@ void aps::aps_search(){
         aps_focus();
     }
     else{
+        ggWrap.set_iWhere(iAPS);
         i_wide=aps_wide();
         assess_node(i_wide);
     }
@@ -2019,6 +2024,9 @@ double aps::distance(int i1, int i2, array_1d<double> &range){
 }
 
 int aps::simplex_search(){
+    
+    ggWrap.set_iWhere(iSimplex);
+    
     //printf("\ngradient searching\n");
     set_where("simplex_search");
   

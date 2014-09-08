@@ -1,7 +1,5 @@
 #include "aps.h"
 
-enum{iWIDE,iFOCUS};
-
 straddle_parameter::straddle_parameter(){
     target=-1.0;
 }
@@ -41,6 +39,16 @@ gpWrapper::gpWrapper(){
     good_min.set_name("good_min");
     minpt.set_name("minpt");
     good_pts.set_name("good_pts");
+    
+    whereCt.set_name("gp_wrapper_whereCt");
+    whereCt.set(iAPS,0);
+    whereCt.set(iSimplex,0);
+    whereCt.set(iCoulomb,0);
+    whereCt.set(iCompass,0);
+    whereCt.set(iBisect,0);
+    whereCt.set(iRicochet,0);
+    iWhere=iAPS;
+    
 }
 
 gpWrapper::~gpWrapper(){
@@ -56,6 +64,18 @@ void gpWrapper::set_gp(gp *gg_in){
     good_max.set_dim(gg->get_dim());
     good_min.set_dim(gg->get_dim());
     minpt.set_dim(gg->get_dim());
+}
+
+int gpWrapper::set_iWhere(int i){
+    iWhere=i;
+}
+
+int gpWrapper::get_iWhere(){
+    return iWhere;
+}
+
+int gpWrapper::get_whereCt(int i){
+    return whereCt.get_data(i);
 }
 
 void gpWrapper::set_chisq(chisquared *cc){
@@ -174,6 +194,9 @@ void gpWrapper::evaluate(array_1d<double> &pt, double *chiout, int *dex, int val
             */
             add_pt(pt,chiout[0]);
             dex[0]=gg->get_pts()-1;
+            
+            whereCt.add_val(iWhere,1);
+            
         }
     }
 }
