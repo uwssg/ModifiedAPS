@@ -146,12 +146,27 @@ void chisquared::make_bases(int seed){
     }
     
     
-    /*centers=new double*[ncenters];
-    for(i=0;i<ncenters;i++)centers[i]=new double[dim];
-    widths=new double*[ncenters];
-    for(i=0;i<ncenters;i++)widths[i]=new double[dim];*/
+    make_centersNonRandom();
     
-    double rr,theta;
+    centers.set_where("nowhere");
+    bases.set_where("nowhere");
+    widths.set_where("nowhere");
+    
+    time_spent=0.0;
+    called=0;
+    
+    printf("set centers and widths %d %d\n",dim,ncenters);
+    
+}  
+
+void chisquared::make_centersNonRandom(){ 
+    
+    /*make centers for non_random bases*/
+    
+    double nn;
+    int i,j,ii,jj,goon;
+    
+    double rr,theta,dx,dy;
     array_1d<double> trial_center,trial_pt;
     int acceptable,iterations=0;;
     
@@ -180,18 +195,26 @@ void chisquared::make_bases(int seed){
 	    
 	    for(i=0;i<dim;i++)trial_center.set(i,0.0);
 	    
+            for(i=0;i<dim;i++){
+                trial_center.add_val(i,normal_deviate(dice,0.0,30.0));
+	    }
+            
 	    if(ii>0){
 	        rr=normal_deviate(dice,40.0,20.0);
 	        theta=dice->doub()*2.0*pi;
 	        
-		trial_center.set(0,centers.get_data(0,0)+rr*cos(theta));
-		trial_center.set(1,centers.get_data(0,1)+rr*sin(theta));
+                if(cos(theta)<0.0)dx=-2.0;
+                else dx=2.0;
+                
+                if(sin(theta)<0.0)dy=-2.0;
+                else dy=2.0;
+                
+		trial_center.set(0,centers.get_data(0,0)+(rr*cos(theta)+dx)*widths.get_data(0,0));
+		trial_center.set(1,centers.get_data(0,1)+(rr*sin(theta)+dy)*widths.get_data(0,1));
 	 
 	    } 
 	     
-	    for(i=0;i<dim;i++){
-                trial_center.add_val(i,normal_deviate(dice,30.0,15.0));
-	    }
+	    
 	    
 	    for(i=0;i<dim;i++){
 		trial_pt.set(i,0.0);
@@ -205,7 +228,7 @@ void chisquared::make_bases(int seed){
 	    if(acceptable==1){
 	        for(i=0;i<dim;i++){
 		    centers.set(ii,i,trial_center.get_data(i));
-		    widths.set(ii,i,fabs(normal_deviate(dice,2.0,0.5))+0.1);
+		    widths.set(ii,i,fabs(normal_deviate(dice,3.0-(1.8/21.0)*double(dim),0.1))+0.1);
 	        }
 	    }
 	    else ii--;
@@ -235,14 +258,7 @@ void chisquared::make_bases(int seed){
 	
     }
     
-    centers.set_where("nowhere");
-    bases.set_where("nowhere");
-    widths.set_where("nowhere");
-    
-    time_spent=0.0;
-    called=0;
-    
-    printf("set centers and widths %d %d\n",dim,ncenters);
+
 }
 
 void chisquared::add_to_boundary(array_1d<double> &alpha, int ix, int iy,double chitest){

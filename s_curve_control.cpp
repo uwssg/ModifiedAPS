@@ -3,9 +3,9 @@
 main(){
 
 //d=5 means delta_chisq=11
-int dim=22,ncenters=3;
+int dim=22,ncenters=2;
 
-ellipses chifn(dim,ncenters);;
+s_curve chifn(dim,ncenters);
 
 double v1=1.0,v2=1.0;
 char outname[letters];
