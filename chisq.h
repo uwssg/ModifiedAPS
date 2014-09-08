@@ -295,7 +295,7 @@ protected:
     */
     void make_bases(int);
     
-    void make_centersNonRandom();
+    void make_centersRandom();
     void make_centers();
     
     /*

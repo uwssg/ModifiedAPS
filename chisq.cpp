@@ -146,7 +146,7 @@ void chisquared::make_bases(int seed){
     }
     
     
-    make_centersNonRandom();
+    make_centersRandom();
     
     centers.set_where("nowhere");
     bases.set_where("nowhere");
@@ -159,7 +159,7 @@ void chisquared::make_bases(int seed){
     
 }  
 
-void chisquared::make_centersNonRandom(){ 
+void chisquared::make_centersRandom(){ 
     
     /*make centers for non_random bases*/
     
