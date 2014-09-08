@@ -770,7 +770,8 @@ void s_curve::build_boundary(double br){
     ix=0;
     iy=1;
     
-  
+    array_1d<double> alphaUp,alphaDown,alphaNearest;
+    double fUp,fDown,fNearest,ftrial;
     
     if(widths.get_data(0,0)<widths.get_data(0,1))ds=0.1*widths.get_data(0,0);
     else ds=0.1*widths.get_data(0,1);
@@ -800,41 +801,75 @@ void s_curve::build_boundary(double br){
 	    norm=sqrt(norm);
 	
 	    for(i=0;i<dim;i++)alpha.set(i,centers.get_data(0,i));
-	
-
-	    alpha.set(0,x0+grad[0]*ds/norm);
-	    alpha.set(1,y0+grad[1]*ds/norm);
 	    
-            alpha.set(0,x0);
-	    alpha.set(1,y0);
+            for(i=2;i<dim;i++){
+                alphaUp.set(i,centers.get_data(0,i));
+                alphaDown.set(i,centers.get_data(0,i));
+            }
+            
+            alphaDown.set(0,x0);
+            alphaDown.set(1,y0);
+            for(i=0;i<dim;i++){
+                pt.set(i,0.0);
+                for(j=0;j<dim;j++)pt.add_val(i,alphaDown.get_data(j)*bases.get_data(j,i));
+            }
+            fDown=(*this)(pt);
+            if(fDown>br){
+                printf("WARNING fDown %e br %e\n",fDown,br);
+                exit(1);
+            }
+            
+            fUp=fDown;
+            while(fUp<=br){
+                alphaUp.add_val(0,grad[0]*ds/norm);
+                alphaUp.add_val(0,grad[1]*ds/norm);
+                
+                for(i=0;i<dim;i++){
+                    pt.set(i,0.0);
+                    for(j=0;j<dim;j++){
+                        pt.add_val(i,alphaUp.get_data(j)*bases.get_data(j,i));
+                    }
+                }
+                fUp=(*this)(pt);
+            }
+            
+            if(fUp-br<br-fDown){
+                fNearest=fUp;
+                for(i=0;i<dim;i++)alphaNearest.set(i,alphaUp.get_data(i));
+            }
+            else{
+                fNearest=fDown;
+                for(i=0;i<dim;i++)alphaNearest.set(i,alphaDown.get_data(i));
+            }
+            
+            while(fabs(br-fNearest)>tol){
+                for(i=0;i<dim;i++)alpha.set(i,0.5*(alphaUp.get_data(i)+alphaDown.get_data(i)));
+                for(i=0;i<dim;i++){
+                    pt.set(i,0.0);
+                    for(j=0;j<dim;j++){
+                        pt.add_val(i,alpha.get_data(j)*bases.get_data(j,i));
+                    }
+                }
+                
+                ftrial=(*this)(pt);
+                
+                if(ftrial<br){
+                    for(i=0;i<dim;i++)alphaDown.set(i,alpha.get_data(i));
+                }
+                else{
+                    for(i=0;i<dim;i++)alphaUp.set(i,alpha.get_data(i));
+                }
+                
+                if(fabs(br-ftrial)<fabs(br-fNearest)){
+                    fNearest=ftrial;
+                    for(i=0;i<dim;i++)alphaNearest.set(i,alpha.get_data(i));
+                }
+            }
+            
+            
+            add_to_boundary(alphaNearest,ix,iy,fNearest);
 	    
-
-	    for(i=0;i<dim;i++){
-		pt.set(i,0.0);
-	        for(j=0;j<dim;j++)pt.add_val(i,alpha.get_data(j)*bases.get_data(j,i));
-	    }
-	    chitest=(*this)(pt);
-	    
-	    if(chitest>br)death_knell("started outside the pale\n");
-	    
-	    while(chitest<br){
-	        
-	        alpha.add_val(0,ds*grad[0]/norm);
-	        alpha.add_val(1,ds*grad[1]/norm);
-	    
-	        for(i=0;i<dim;i++){
-
-		    pt.set(i,0.0);
-		    for(j=0;j<dim;j++)pt.add_val(i,alpha.get_data(j)*bases.get_data(j,i));
-	        }
-	        chitest=(*this)(pt);
-		
-		
-	    }
-	    
-	    if(fabs(chitest-br)<tol){
-	        add_to_boundary(alpha,ix,iy,chitest);
-	    }
+            
 	    /*for(i=0;i<2;i++){
 	        printf("%e ",alpha[i]);
 	    }
