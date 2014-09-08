@@ -213,9 +213,7 @@ void chisquared::make_centersRandom(){
 		trial_center.set(1,centers.get_data(0,1)+(rr*sin(theta)+dy)*widths.get_data(0,1));
 	 
 	    } 
-	     
-	    
-	    
+
 	    for(i=0;i<dim;i++){
 		trial_pt.set(i,0.0);
 	        for(j=0;j<dim;j++)trial_pt.add_val(i,trial_center.get_data(j)*bases.get_data(j,i));

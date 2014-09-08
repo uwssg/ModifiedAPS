@@ -3,7 +3,7 @@
 main(){
 
 //d=5 means delta_chisq=11
-int dim=22,ncenters=2;
+int dim=22,ncenters=3;
 
 s_curve chifn(dim,ncenters);
 

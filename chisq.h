@@ -296,7 +296,7 @@ protected:
     void make_bases(int);
     
     void make_centersRandom();
-    void make_centers();
+
     
     /*
     Used by build_boundary() to add points to **boundary
