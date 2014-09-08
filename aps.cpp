@@ -2257,7 +2257,7 @@ void aps::refine_center(){
     sort the boundary points of the chosen center by their distance
     from the chosen center
     */
-    for(i=0;nodes(ic_chosen)->get_n_boundary();i++){
+    for(i=0;i<nodes(ic_chosen)->get_n_boundary();i++){
         ii=nodes(ic_chosen)->get_boundary(i);
         
         inn.set(i,ii);

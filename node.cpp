@@ -1187,6 +1187,12 @@ int node::get_n_boundary(){
 }
 
 int node::get_boundary(int dex){
+    if(dex>=boundaryPoints.get_dim() || dex<0){
+        printf("node::get_boundary asked for %d but only have %d\n",
+        dex,boundaryPoints.get_dim());
+        
+        exit(1);
+    }
     return boundaryPoints.get_data(dex);
 }
 
