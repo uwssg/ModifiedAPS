@@ -1182,6 +1182,14 @@ void node::set_farthest_associate(double xx){
     farthest_associate=xx;
 }
 
+int node::get_n_boundary(){
+    return boundaryPoints.get_dim();
+}
+
+int node::get_boundary(int dex){
+    return boundaryPoints.get_data(dex);
+}
+
 ///////////////arrayOfNodes code below//////////
 
 arrayOfNodes::arrayOfNodes(){

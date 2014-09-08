@@ -37,9 +37,6 @@ aps::aps(int dim_in, int kk, double dd, int seed){
     sig_storage.set_name("aps_sig_storage");
     wide_pts.set_name("aps_wide_pts");
     focus_pts.set_name("aps_focus_pts");
-    centers.set_name("aps_centers");
-    center_dexes.set_name("aps_center_dexes");
-    boundary_pts.set_name("aps_boundary_pts");
     characteristic_length.set_name("characteristic_length");
     range_max.set_name("range_max");
     range_min.set_name("range_min");
@@ -92,8 +89,6 @@ aps::aps(int dim_in, int kk, double dd, int seed){
     
     if(seed<-1)seed=int(time(NULL));
     dice=new Ran(seed);
-    
-    centers.set_cols(dim);
     
     start_timingfile();
     printf("dim is %d dd %d\n",dim,dim_in);
@@ -398,9 +393,8 @@ void aps::resume(char *filename){
     ggWrap.set_chimin(local_min,(*gg.get_pt(i_min)),i_min);
     mindex_is_candidate=1;
     
-    centers.add_row(*ggWrap.get_minpt());
-    center_dexes.add(ggWrap.get_global_mindex());
-    
+    assess_node(ggWrap.get_global_mindex());
+  
     write_pts();
 }
 
@@ -939,9 +933,9 @@ int aps::find_global_minimum(array_1d<int> &neigh){
     which cannot be used as the seed to a simplex search again.
     */
     known_minima.add(_mindex);
-    j=centers.get_rows();
+    j=nodes.get_dim();
     
-    int ic,acutally_added,use_it;
+    int ic,acutally_added,use_it,inode;
     array_1d<double> midpt;
     double chimid;
     
@@ -952,29 +946,25 @@ int aps::find_global_minimum(array_1d<int> &neigh){
     use_it=1;
     if(gg.get_fn(_mindex)>strad.get_target())use_it=0;
     
-    for(ic=0;ic<centers.get_rows() && use_it==1;ic++){
+    for(ic=0;ic<nodes.get_dim() && use_it==1;ic++){
+        inode=nodes(ic)->get_center();
         for(i=0;i<gg.get_dim();i++){
-            midpt.set(i,0.5*(centers.get_data(ic,i)+gg.get_pt(_mindex,i)));
+            midpt.set(i,0.5*(gg.get_pt(inode,i)+gg.get_pt(_mindex,i)));
         }
         
         ggWrap.evaluate(midpt,&chimid,&actually_added);
         
         if(chimid<strad.get_target()){
             use_it=0;
-            
-            if(gg.get_fn(_mindex)<gg.get_fn(center_dexes.get_data(ic))){
-                center_dexes.set(ic,_mindex);
-                for(i=0;i<gg.get_dim();i++){
-                    centers.set(ic,i,gg.get_pt(_mindex,i));
-                }
+            if(gg.get_fn(_mindex)<gg.get_fn(inode)){
+                nodes(ic)->set_center_dex(_mindex);
             }
             
         }
     }
     
     if(use_it==1){
-        centers.add_row(*gg.get_pt(_mindex));
-        center_dexes.add(_mindex);
+        assess_node(_mindex);
     }
     
     set_where("nowhere");
@@ -1030,7 +1020,7 @@ double aps::get_chival(int dex){
 }
 
 int aps::get_n_centers(){
-    return center_dexes.get_dim();
+    return nodes.get_dim();
 }
 
 double aps::get_pt(int dex, array_1d<double> &output){
@@ -1103,7 +1093,7 @@ int aps::aps_wide(){
     double chitrue,chimid;
     int actually_added,ic,i,j,use_it;
      
-    int bisect_it=0,iout=-1;
+    int bisect_it=0,iout=-1,inode;
     array_1d<double> unit_v,dd_sphere;
     array_1d<int> neigh_sphere;
     
@@ -1168,9 +1158,10 @@ int aps::aps_wide(){
             */
             if(chitrue<strad.get_target()){
                 use_it=1;
-                for(ic=0;ic<centers.get_rows() && use_it==1;ic++){
+                for(ic=0;ic<nodes.get_dim() && use_it==1;ic++){
+                    inode=nodes(ic)->get_center();
                     for(i=0;i<gg.get_dim();i++){
-                        midpt.set(i,0.5*(simplex_best.get_data(i)+centers.get_data(ic,i)));
+                        midpt.set(i,0.5*(simplex_best.get_data(i)+gg.get_pt(inode,i)));
                     }
                     
                     ggWrap.evaluate(midpt,&chimid,&i);
@@ -1179,8 +1170,7 @@ int aps::aps_wide(){
                 }
                 
                 if(use_it==1){
-                    centers.add_row(simplex_best);
-                    center_dexes.add(actually_added);
+                    assess_node(actually_added);
                 }
             }
         }
@@ -1439,7 +1429,7 @@ void aps::random_focus(int ic){
         }
         rr.normalize();
         for(i=0;i<gg.get_dim();i++){
-            trial.set(i,centers.get_data(ic,i)+0.1*rr.get_data(i)*(gg.get_max(i)-gg.get_min(i)));
+            trial.set(i,gg.get_pt(nodes(ic)->get_center(),i)+0.1*rr.get_data(i)*(gg.get_max(i)-gg.get_min(i)));
         }
         
         ggWrap.evaluate(trial,&chitrue,&actually_added);
@@ -1475,23 +1465,23 @@ void aps::corner_focus(int ic){
     /*
     Find the boudary points that minimize and maximize each parameter
     */
-    for(i=0;i<boundary_pts.get_cols(ic);i++){
+    for(i=0;i<nodes(ic)->get_n_boundary();i++){
         for(j=0;j<gg.get_dim();j++){
-            nn=gg.get_pt(boundary_pts.get_data(ic,i),j);
+            nn=gg.get_pt(nodes(ic)->get_boundary(i),j);
             if(i==0 || nn<min.get_data(j)){
                 min.set(j,nn);
-                min_dex.set(j,boundary_pts.get_data(ic,i));
+                min_dex.set(j,nodes(ic)->get_boundary(i));
             }
             
             if(i==0 || nn>max.get_data(j)){
                 max.set(j,nn);
-                max_dex.set(j,boundary_pts.get_data(ic,i));
+                max_dex.set(j,nodes(ic)->get_boundary(i));
             } 
         }
     }
     
     for(i=0;i<gg.get_dim();i++){
-        origin.set(i,centers.get_data(ic,i));
+        origin.set(i,gg.get_pt(nodes(ic)->get_center(),i));
     }
     
     for(i=0;i<gg.get_dim();i++){
@@ -1661,9 +1651,9 @@ void aps::aps_focus(){
 
    int ic;
 
-   for(ic=0;ic<centers.get_rows();ic++){
+   for(ic=0;ic<nodes.get_dim();ic++){
        called_focus++;
-       if(boundary_pts.get_cols(ic)<gg.get_dim()){
+       if(nodes(ic)->get_n_boundary()<gg.get_dim()){
            random_focus(ic);
            
        }//if don't have enough boundary points
@@ -1688,9 +1678,9 @@ int aps::find_nearest_center(array_1d<double> &pt, double chi_in){
     double dd,ddmin;
     ans=-1;
     
-    for(i=0;i<centers.get_rows();i++){
-        dd=gg.distance(pt,*centers(i));
-        if((ans<0 || dd<ddmin) && gg.get_fn(center_dexes.get_data(i))<chi_in){
+    for(i=0;i<nodes.get_dim();i++){
+        dd=gg.distance(pt,nodes(i)->get_center());
+        if((ans<0 || dd<ddmin) && gg.get_fn(nodes(i)->get_center())<chi_in){
             ddmin=dd;
             ans=i;
         }
@@ -1702,7 +1692,7 @@ int aps::find_nearest_center(array_1d<double> &pt, double chi_in){
 
 void aps::project_to_unit_sphere(int ic, array_1d<double> &pt_in, array_1d<double> &pt_out){
 
-    if(ic<0 || ic>=centers.get_rows()){
+    if(ic<0 || ic>=nodes.get_dim()){
         return;
     }
     
@@ -1710,7 +1700,7 @@ void aps::project_to_unit_sphere(int ic, array_1d<double> &pt_in, array_1d<doubl
     double norm=0.0;
     int i;
     for(i=0;i<gg.get_dim();i++){
-        dir.set(i,pt_in.get_data(i)-centers.get_data(ic,i));
+        dir.set(i,pt_in.get_data(i)-gg.get_pt(nodes(ic)->get_center(),i));
         
         /*
         gg.get_max-gg.get_min will return the characteristic length if it was set,
@@ -1724,7 +1714,7 @@ void aps::project_to_unit_sphere(int ic, array_1d<double> &pt_in, array_1d<doubl
     } 
     
     for(i=0;i<gg.get_dim();i++){
-        pt_out.set(i,centers.get_data(ic,i)+dir.get_data(i));
+        pt_out.set(i,gg.get_pt(nodes(ic)->get_center(),i)+dir.get_data(i));
     }
     
 }
@@ -1786,7 +1776,7 @@ void aps::bisection(array_1d<double> &inpt, double chi_in){
         i_center=find_nearest_center(inpt,chi_in);
         
         if(i_center>=0){
-            j=center_dexes.get_data(i_center);
+            j=nodes(i_center)->get_center();
         }
         
         
@@ -1967,27 +1957,9 @@ void aps::bisection(array_1d<double> &inpt, double chi_in){
     /*add the discovered point to the list of boundary points for the center
     from which we began our bisection search*/
     if(i_center>=0 && i_nearest>=0){
-        if(i_center>=boundary_pts.get_rows()){
-            /*we need to add an entirely new row to the asymm_array_2d<int> boundary_pts*/
-            boundary_pts.set(i_center,0,i_nearest);
-        }
-        else{
-            boundary_pts.add(i_center,i_nearest);
-        }
+        nodes(i_center)->add_as_boundary(i_nearest); 
     }
-    
-    /*
-    Add the spherical projection of this point about it's low-chisquared center
-    to the KD-tree of spherical projections
-    */
-    array_1d<double> unit_v;
-    unit_v.set_name("bisection_unit_v");
-    if(i_nearest>=0 && i_center>=0){
 
-        project_to_unit_sphere(i_center,*gg.get_pt(i_nearest),unit_v);
-        ggWrap.add_to_unitSpheres(unit_v);
-        
-    }
     
 }
 
@@ -2205,7 +2177,7 @@ void aps::simplex_too_few_candidates(array_1d<int> &candidates){
     
     stepNorm=0.0;
     for(i=0;i<gg.get_dim();i++){
-        step.set(i,gg.get_pt(i_min,i)-centers.get_data(ic,i));
+        step.set(i,gg.get_pt(i_min,i)-gg.get_pt(nodes(ic)->get_center(),i));
         stepNorm+=power(step.get_data(i)/(gg.get_max(i)-gg.get_min(i)),2);
     }
     stepNorm=sqrt(stepNorm);
@@ -2260,12 +2232,12 @@ void aps::refine_center(){
     double maxchi;
     
     /*choose the center with the highest value of chisquared*/
-    for(ic=0;ic<centers.get_rows();ic++){
+    for(ic=0;ic<nodes.get_dim();ic++){
         
-        if(boundary_pts.get_cols(ic)>=gg.get_dim()+1 && 
-        (ic_chosen<0 || gg.get_fn(center_dexes.get_data(ic))>maxchi)){
+        if(nodes(ic)->get_n_boundary()>=gg.get_dim()+1 && 
+        (ic_chosen<0 || gg.get_fn(nodes(ic)->get_center())>maxchi)){
             
-            maxchi=gg.get_fn(center_dexes.get_data(ic));
+            maxchi=gg.get_fn(nodes(ic)->get_center());
             ic_chosen=ic;
         
         }
@@ -2289,11 +2261,11 @@ void aps::refine_center(){
     sort the boundary points of the chosen center by their distance
     from the chosen center
     */
-    for(i=0;i<boundary_pts.get_cols(ic_chosen);i++){
-        ii=boundary_pts.get_data(ic_chosen,i);
+    for(i=0;nodes(ic_chosen)->get_n_boundary();i++){
+        ii=nodes(ic_chosen)->get_boundary(i);
         
         inn.set(i,ii);
-        tosort.set(i,gg.distance(ii,center_dexes.get_data(ic_chosen)));
+        tosort.set(i,gg.distance(ii,nodes(ic_chosen)->get_center()));
     
     }
     sort_and_check(tosort,sorted,inn);
@@ -2475,17 +2447,17 @@ void aps::write_pts(){
     /*
     Find the parameter space volumes of each independent low-chisquared region
     */
-    for(i=0;i<center_dexes.get_dim();i++){
+    for(i=0;i<nodes.get_dim();i++){
         vmax.reset();
         vmin.reset();
-        for(j=0;j<boundary_pts.get_cols(i);j++){
+        for(j=0;j<nodes(i)->get_n_boundary();j++){
             for(k=0;k<gg.get_dim();k++){
-                if(j==0 || gg.get_pt(boundary_pts.get_data(i,j),k)<vmin.get_data(k)){
-                    vmin.set(k,gg.get_pt(boundary_pts.get_data(i,j),k));
+                if(j==0 || gg.get_pt(nodes(i)->get_boundary(j),k)<vmin.get_data(k)){
+                    vmin.set(k,gg.get_pt(nodes(i)->get_boundary(j),k));
                 }
                 
-                if(j==0 || gg.get_pt(boundary_pts.get_data(i,j),k)>vmax.get_data(k)){
-                    vmax.set(k,gg.get_pt(boundary_pts.get_data(i,j),k));
+                if(j==0 || gg.get_pt(nodes(i)->get_boundary(j),k)>vmax.get_data(k)){
+                    vmax.set(k,gg.get_pt(nodes(i)->get_boundary(j),k));
                 }
             }
         }
@@ -2621,7 +2593,7 @@ void aps::write_pts(){
     
     fprintf(output,"%e %e -- ",ggWrap.get_chimin(),strad.get_target());
     
-    for(i=0;i<center_dexes.get_dim();i++){
+    for(i=0;i<nodes.get_dim();i++){
         fprintf(output,"%e ",volume.get_data(i));
     }
     

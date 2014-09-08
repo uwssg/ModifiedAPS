@@ -448,22 +448,11 @@ private:
     The minimum and maximum allowed values of each parameter
     */
     array_1d<double> range_max,range_min;
-    
-    /*a list of the points which are centers of low chisquared regions*/
-    array_2d<double> centers;
-    
+
     /*
-    center_dexes stores the indexes of points that are centers of low chisquared regions
-    */
-    array_1d<int> center_dexes;
-    
-    /*
-    boundary_pts stores the indexes of all of the boundary points associated with each center of
-    a low-chisquared region
-    
     refined_simplex stores the seeds used by refine_center() for each low-chisquared center
     */
-    asymm_array_2d<int> boundary_pts,refined_simplex;
+    asymm_array_2d<int> refined_simplex;
     
     /*
     These are variables used by simplex_strad to keep track of

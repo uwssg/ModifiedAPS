@@ -38,6 +38,9 @@ class node{
         double get_farthest_associate();
         int get_n_associates();
         
+        int get_n_boundary();
+        int get_boundary(int);
+        
     private:
         
         array_1d<int> associates,boundaryPoints;
