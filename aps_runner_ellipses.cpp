@@ -51,7 +51,7 @@ aps_test.assign_chisquared(&chisq);
 aps_test.assign_covariogram(&cv);
 
 //how often will APS stop and write its output
-aps_test.set_write_every(1000);
+aps_test.set_write_every(300);
 
 //set the G parameter from equation (4) in the paper
 aps_test.set_grat(1.0);
@@ -77,7 +77,7 @@ aps_test.set_outname(outname);
 
 //initialize aps with 1000 random samples
 printf("time to initialize\n");
-aps_test.initialize(1000,min,max);
+aps_test.initialize(100,min,max);
 
 double chival,chivaltest,err;
 
