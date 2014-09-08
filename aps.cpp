@@ -1777,10 +1777,6 @@ void aps::bisection(array_1d<double> &inpt, double chi_in){
         
         if(i_center>=0){
             j=nodes(i_center)->get_center();
-        }
-        
-        
-        if(i_center>=0){
             for(i=0;i<gg.get_dim();i++){
                 dir_origin.set(i,gg.get_pt(j,i));
             }
