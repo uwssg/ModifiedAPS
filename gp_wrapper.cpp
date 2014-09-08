@@ -82,6 +82,10 @@ int gpWrapper::get_whereCt(int i){
     return whereCt.get_data(i);
 }
 
+void gpWrapper::set_whereFrom(int dex, int i){
+    whereFrom.set(dex,i);
+}
+
 int gpWrapper::get_whereFrom(int i){
     if(i>=whereFrom.get_dim()){
         return 0;

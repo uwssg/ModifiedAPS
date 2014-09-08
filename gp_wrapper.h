@@ -211,6 +211,7 @@ class gpWrapper{
         int get_iWhere();
         int get_whereCt(int);
         int get_whereFrom(int);
+        void set_whereFrom(int,int);
         //////////
         
     private:

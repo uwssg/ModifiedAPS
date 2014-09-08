@@ -360,8 +360,12 @@ void aps::resume(char *filename){
             i_min=ct;
         }
         
+        
+        ggWrap.set_whereFrom(ct,ling);
+         
         fscanf(input,"%le %le %d",&mu,&sig,&ling);
         if(ling==0){
+            
             wide_pts.add(ct);
             mu_storage.add(mu);
             sig_storage.add(sig);
