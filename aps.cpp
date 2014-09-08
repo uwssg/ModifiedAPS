@@ -976,6 +976,9 @@ int aps::find_global_minimum(array_1d<int> &neigh){
     }
     
     set_where("nowhere");
+    
+    assess_node(_mindex);
+    
     return _mindex;
 }
 
@@ -1067,7 +1070,6 @@ void aps::search(){
     int i_simplex;
     if(simplex_score<aps_score){
         i_simplex=simplex_search();
-        assess_node(i_simplex);
     }
     
     aps_search();
