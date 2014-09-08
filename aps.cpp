@@ -2704,7 +2704,9 @@ void aps::assess_node(int dex){
     }
     
     if(use_it==1 || used_because_distance==1){
-        printf("accepting node %d %d -- %e\n",use_it,used_because_distance,gg.get_fn(dex));
+        printf("accepting node %d %d -- %e -- %d\n",
+        use_it,used_because_distance,gg.get_fn(dex),ggWrap.get_whereCt(iSimplex));
+        
         nodes.add(dex,dice,&ggWrap);
         i=nodes.get_dim()-1;
         if(iclosest>=0){
