@@ -213,6 +213,7 @@ int node::bisection(int lowDex, int highDex, int asAssociates){
     highball.set_name("node_bisection_highball");
     
     int i;
+    double bisection_tolerance=0.1*gg->get_delta_chisquared();
     
     flow=gg->get_fn(lowDex);
     for(i=0;i<gg->get_dim();i++)lowball.set(i,gg->get_pt(lowDex,i));
@@ -228,8 +229,8 @@ int node::bisection(int lowDex, int highDex, int asAssociates){
     int ct;
     
     iout=lowDex;
-    
-    while(ct<100 && dd>1.0e-6){
+ 
+    while(ct<100 && dd>1.0e-6 && gg->get_target()-flow>bisection_tolerance){
         
         for(i=0;i<gg->get_dim();i++){
             trial.set(i,0.5*(lowball.get_data(i)+highball.get_data(i)));
