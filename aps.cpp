@@ -1,7 +1,5 @@
 #include "aps.h"
 
-enum{iWIDE,iFOCUS};
-
 aps::aps(){
     printf("you called the APS constructor without paramters\n");
     printf("do not do that\n");
