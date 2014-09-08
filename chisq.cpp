@@ -809,6 +809,8 @@ void s_curve::build_boundary(double br){
             
             alphaDown.set(0,x0);
             alphaDown.set(1,y0);
+            alphaUp.set(0,x0);
+            alphaUp.set(1,y0);
             for(i=0;i<dim;i++){
                 pt.set(i,0.0);
                 for(j=0;j<dim;j++)pt.add_val(i,alphaDown.get_data(j)*bases.get_data(j,i));
@@ -822,7 +824,7 @@ void s_curve::build_boundary(double br){
             fUp=fDown;
             while(fUp<=br){
                 alphaUp.add_val(0,grad[0]*ds/norm);
-                alphaUp.add_val(0,grad[1]*ds/norm);
+                alphaUp.add_val(1,grad[1]*ds/norm);
                 
                 for(i=0;i<dim;i++){
                     pt.set(i,0.0);
