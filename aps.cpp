@@ -636,7 +636,7 @@ int aps::find_global_minimum(array_1d<int> &neigh){
     double theta;
     
     array_1d<double> trial,gradient;
-    double mu1,mu2,x1,x2;
+    double mu1,mu2,x1,x2,mean_value;
     
     int delta_max=0;
     
@@ -789,8 +789,14 @@ int aps::find_global_minimum(array_1d<int> &neigh){
         */
         spread=ff.get_data(ih)-ff.get_data(il);
         
+        mean_value=0.0;
+        for(i=0;i<dim+1;i++){
+            mean_value+=ff.get_data(i);
+        }
+        mean_value=mean_value/double(dim);
         
-        if(spread<1.0e-4){
+        
+        if(spread<1.0e-2*mean_value || _min_ct-_last_found>100){
             /*
             If it appears that the simplex is converging into a valley in chisquared, 
             try a modified gradient descent from the current minimum point of the simplex, 
