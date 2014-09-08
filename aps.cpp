@@ -2644,11 +2644,13 @@ void aps::assess_node(int dex){
     distance from the nearest node*/
     used_because_distance=0;
     
-    for(i=0;i<nodes.get_dim() && used_because_distance==0;i++){
-        if(nodes(i)->get_farthest_associate()>0.0 && 
-           nodes(i)->get_n_associates()>100){
+    if(ddNodeRatio>1.0e-10){
+        for(i=0;i<nodes.get_dim() && used_because_distance==0;i++){
+            if(nodes(i)->get_farthest_associate()>0.0 && 
+               nodes(i)->get_n_associates()>100){
            
-               used_because_distance=1;   
+                   used_because_distance=1;   
+            }
         }
     }
     

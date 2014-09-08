@@ -10,10 +10,15 @@ main(int iargc, char *argv[]){
 
 int seed=99;
 int dim,ncenters;
+int nsamples=10000;
 
 seed=atoi(argv[1]);
 dim=atoi(argv[2]);
 ncenters=atoi(argv[3]);
+
+if(iargc>4){
+    nsamples=atoi(argv[4]);
+}
 
 char timingname[letters],outname[letters];
 
@@ -86,7 +91,7 @@ i=-1;
 //search parameter space until the
 //chisquared function has been called
 //10000 times
-while(aps_test.get_called()<10000){
+while(aps_test.get_called()<nsamples){
     aps_test.search();    
 }
 aps_test.write_pts();
