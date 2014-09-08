@@ -88,7 +88,7 @@ aps_test.set_outname(outname);
 
 //initialize aps with 1000 random samples
 printf("time to initialize\n");
-aps_test.initialize(100,min,max);
+aps_test.initialize(1000,min,max);
 
 double chival,chivaltest,err;
 

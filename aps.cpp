@@ -1963,8 +1963,14 @@ void aps::aps_search(){
     double before=double(time(NULL));
     int ibefore=ggWrap.get_called(),i_wide;
     
+    int do_focus=0,i;
+    for(i=0;i<nodes.get_dim() && do_focus==0;i++){
+        if(gg.get_fn(nodes(i)->get_center())<strad.get_target()){
+            do_focus=1;
+        }
+    }
     
-    if(nodes.get_dim()>0 && called_focus/nodes.get_dim()<called_wide){
+    if(do_focus==1 && called_focus/nodes.get_dim()<called_wide){
         aps_focus();
         called_focus+=ggWrap.get_called()-ibefore;
     }
