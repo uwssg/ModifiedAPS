@@ -1650,11 +1650,13 @@ void aps::corner_focus(int ic){
 
 void aps::aps_focus(){
 
-   int ic,imin;
+   int ic,imin=-1;
    double ttmin;
    
    for(ic=0;ic<nodes.get_dim();ic++){
-       if(ic==0 || nodes(ic)->get_time()<ttmin){
+       if(gg.get_fn(nodes(ic)->get_center())<strad.get_target() && 
+           (imin==-1 || nodes(ic)->get_time()<ttmin)){
+       
            imin=ic;
            ttmin=nodes(ic)->get_time();
        }
