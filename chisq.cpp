@@ -151,7 +151,7 @@ void chisquared::make_bases(int seed){
     widths=new double*[ncenters];
     for(i=0;i<ncenters;i++)widths[i]=new double[dim];*/
     
-    double rr,theta;
+    double rr,theta,dx,dy;
     array_1d<double> trial_center,trial_pt;
     int acceptable,iterations=0;;
     
@@ -162,7 +162,7 @@ void chisquared::make_bases(int seed){
     while(goon==0){
         iterations++;
         
-        if(iterations>5000){
+        if(iterations>10000){
             printf("WARNING; chisq was unable to construct an acceptable function\n");
             
             exit(1);
@@ -178,21 +178,28 @@ void chisquared::make_bases(int seed){
 	    
 	    acceptable=1;
 	    
-	    for(i=0;i<dim;i++)trial_center.set(i,0.0);
-	    
+	    for(i=0;i<dim;i++){
+               trial_center.set(i,normal_deviate(dice,0.0,20.0));
+	    }
+            
 	    if(ii>0){
-	        rr=normal_deviate(dice,40.0,20.0);
+	        rr=normal_deviate(dice,7.0,5.0);
 	        theta=dice->doub()*2.0*pi;
 	        
-		trial_center.set(0,centers.get_data(0,0)+rr*cos(theta));
-		trial_center.set(1,centers.get_data(0,1)+rr*sin(theta));
-	 
+                if(cos(theta)<0.0)dx=-2.0;
+                else dx=2.0;
+                
+                if(sin(theta)<0.0)dy=-2.0;
+                else dy=2.0;
+                
+		trial_center.set(0,centers.get_data(0,0)+(rr*cos(theta)+dx)*widths.get_data(0,0));
+		trial_center.set(1,centers.get_data(0,1)+(rr*sin(theta)+dy)*widths.get_data(0,1));
+
+                
 	    } 
-	     
-	    for(i=0;i<dim;i++){
-                trial_center.add_val(i,normal_deviate(dice,30.0,15.0));
-	    }
 	    
+            
+            
 	    for(i=0;i<dim;i++){
 		trial_pt.set(i,0.0);
 	        for(j=0;j<dim;j++)trial_pt.add_val(i,trial_center.get_data(j)*bases.get_data(j,i));
@@ -205,16 +212,12 @@ void chisquared::make_bases(int seed){
 	    if(acceptable==1){
 	        for(i=0;i<dim;i++){
 		    centers.set(ii,i,trial_center.get_data(i));
-		    widths.set(ii,i,fabs(normal_deviate(dice,2.0,0.5))+0.1);
+		    widths.set(ii,i,fabs(normal_deviate(dice,0.1,0.5))+0.5);
 	        }
 	    }
 	    else ii--;
 	
         }
-	
-	
-	
-	
 	
 	for(i=0;i<dim && acceptable==1;i++){
 	    for(ii=0;ii<ncenters && acceptable==1;ii++){
