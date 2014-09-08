@@ -41,6 +41,7 @@ class node{
         int get_n_boundary();
         int get_boundary(int);
         
+        double get_time();
         
     private:
         

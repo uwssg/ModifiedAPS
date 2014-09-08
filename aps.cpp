@@ -1646,23 +1646,17 @@ void aps::corner_focus(int ic){
 
 void aps::aps_focus(){
 
-   int ic;
+   int ic,imin;
+   double ttmin;
    
    for(ic=0;ic<nodes.get_dim();ic++){
-       nodes(ic)->search();
+       if(ic==0 || nodes(ic)->get_time()<ttmin){
+           imin=ic;
+           ttmin=nodes(ic)->get_time();
+       }
    }
    
-   //old focus code
-   /*for(ic=0;ic<nodes.get_dim();ic++){
-       if(nodes(ic)->get_n_boundary()<gg.get_dim()){
-           random_focus(ic);
-           
-       }//if don't have enough boundary points
-       else{
-           corner_focus(ic);
-       }    
-       
-   }*/
+   nodes(imin)->search();
    
 }
 

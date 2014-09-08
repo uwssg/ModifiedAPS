@@ -1204,6 +1204,10 @@ int node::search(){
     time_search+=time_penalty*(gg->get_called()-ibefore);
 }
 
+double node::get_time(){
+    return time_search;
+}
+
 Ran* node::get_Ran(){
     return dice;
 }
