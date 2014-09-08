@@ -555,6 +555,9 @@ class gp{
         /*return a pointer to the parameter space point specified by the int*/
         array_1d<double>* get_pt(int);
         
+        void actual_gradient(array_1d<double>&,array_1d<double>&);
+        void actual_gradient(int,array_1d<double>&);
+        
         /*return a pointer to the covariogram*/
         covariance_function* get_covariogram();
 

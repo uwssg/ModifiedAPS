@@ -2297,6 +2297,143 @@ int gp::get_last_refactored(){
     return last_refactored;
 }
 
+void gp::actual_gradient(array_1d<double> &pt, array_1d<double> &vout){
+    
+    double gg;
+    
+    array_1d<int> ii;
+    ii.set_name("gp_actual_gradient_ii");
+    ii.set_dim(1);
+    
+    array_1d<double> dd;
+    dd.set_name("gp_actual_gradient_dd");
+    dd.set_dim(1);
+    
+    pt.set_where("gp_actual_gradient");
+    
+    nn_srch(pt,1,ii,dd);
+    actual_gradient(ii.get_data(0),vout);
+    
+    /*printf("gradient: %e\n",dd);
+    for(i=0;i<dim;i++)printf("%e ",vout[i]);
+    printf("\n");*/
+    
+    pt.set_where("nowhere");
+
+}
+
+void gp::actual_gradient(int dex, array_1d<double> &vout){
+    vout.set_where("gp_actual_gradient");
+
+    if(dex>=pts || dex<0){
+        printf("WARNING asked for gradient at %d, pts %d\n",
+	dex,pts);
+	
+	exit(1);
+    }
+    
+    int i,j;
+    
+    if(pts<dim+1){
+        printf("CANNOT call gradient yet; dim = %d pts =%d\n",
+	dim,pts);
+	
+	for(i=0;i<dim;i++)vout.set(i,0.0);
+    }
+   
+   int total_neighbors;
+   if(pts<10*dim+1){
+       total_neighbors=pts;
+   }
+   else{
+       total_neighbors=10*dim+1;
+   }
+    
+   array_1d<double> delta_matrix,f_vector,dd,vv,uu; 
+   delta_matrix.set_name("gp_actual_gradient_delta_matrix");
+   f_vector.set_name("gp_actual_gradient_f_vector");
+   dd.set_name("gp_actual_gradient_dd");
+   vv.set_name("gp_actual_gradient_vv");
+   uu.set_name("gp_actual_gradient_uu");
+    
+   array_1d<int> neighbors; 
+   neighbors.set_name("gp_actual_gradient_neighbors");
+    
+   double to_return,nn;
+   
+   vv.set_dim(dim);
+   uu.set_dim(dim);
+     
+   neighbors.set_dim(total_neighbors);
+   dd.set_dim(total_neighbors);
+   delta_matrix.set_dim(dim*dim);
+   f_vector.set_dim(dim);
+   
+   
+   nn_srch(dex,total_neighbors,neighbors,dd);
+   
+   if(neighbors.get_data(0)!=dex){
+	printf("WARNING gradient did not find self\n");
+	exit(1);
+    }
+	
+    if(dd.get_data(1)<1.0e-20){
+	printf("WARNING gradient next nearest neighbor %e\n",dd.get_data(1));
+	exit(1);
+    }
+    
+    int abort=0,success=0;
+  
+    
+    while(success==0){
+        abort=0;
+        for(i=0;i<dim;i++){
+            for(j=0;j<dim;j++){
+	        nn=(get_pt(neighbors.get_data(i+1),j)-get_pt(dex,j))/(get_max(j)-get_min(j));
+		delta_matrix.set(i*dim+j,nn);
+                
+            }
+	   f_vector.set(i,fn.get_data(neighbors.get_data(i+1))-fn.get_data(dex)); 
+
+        }
+    
+  
+        success=1;
+        try{
+	    naive_gaussian_solver(delta_matrix,f_vector,vout,dim);
+	  
+         }
+         catch(int iex){
+	   
+	    abort=1;
+	    success=0;
+	    if(total_neighbors<=dim+1 || iex<0 || iex>=dim){
+		
+		throw abort;
+	    }
+	    else{
+	        for(i=iex;i<total_neighbors-1;i++){
+		    neighbors.set(i,neighbors.get_data(i+1));
+		}
+		total_neighbors--;
+	    }
+	    
+	
+        }
+	
+    }
+    
+    for(i=0;i<dim;i++){
+        vout.divide_val(i,get_max(i)-get_min(i));
+    } 
+    
+    vout.set_where("nowhere");
+    
+    
+   
+}
+
+
 covariance_function* gp::get_covariogram(){
     return covariogram;
 }

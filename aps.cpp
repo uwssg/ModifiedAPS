@@ -2,31 +2,6 @@
 
 enum{iWIDE,iFOCUS};
 
-straddle_parameter::straddle_parameter(){
-    target=-1.0;
-}
-
-straddle_parameter::~straddle_parameter(){}
-
-void straddle_parameter::set_target(double tt){
-    target=tt;
-} 
-
-double straddle_parameter::get_target(){
-    return target;
-}
-
-double straddle_parameter::operator()(double mu, double sig) const{
-    if(target<0.0){
-        printf("WARNING target %e in straddle parameter \n",target);
-        exit(1);
-    }
-    
-    if(isnan(mu) || isnan(target))return -1.0*chisq_exception;
-    
-    return sig-fabs(mu-target);
-}
-
 aps::aps(){
     printf("you called the APS constructor without paramters\n");
     printf("do not do that\n");
@@ -36,10 +11,6 @@ aps::aps(){
 aps::~aps(){
      
     int i;
-    
-    if(unitSpheres!=NULL){
-        delete unitSpheres;
-    }
     
     for(i=0;i<gg.get_dim();i++){
         delete [] paramnames[i];
@@ -52,57 +23,43 @@ aps::~aps(){
 void aps::set_where(char *word){
     mu_storage.set_where(word);
     sig_storage.set_where(word);
-    good_max.set_where(word);
-    good_min.set_where(word);
     wide_pts.set_where(word);
 }
 
 aps::aps(int dim_in, int kk, double dd, int seed){
     
+    ggWrap.set_iWhere(iAPS);
+     
     sprintf(outname,"master_output.sav");
     sprintf(timingname,"timing_file.sav");
     
     mu_storage.set_name("aps_mu_storage");
     sig_storage.set_name("aps_sig_storage");
-    good_max.set_name("aps_good_max");
-    good_min.set_name("aps_good_min");
     wide_pts.set_name("aps_wide_pts");
     focus_pts.set_name("aps_focus_pts");
-    good_pts.set_name("aps_good_pts");
-    centers.set_name("aps_centers");
-    center_dexes.set_name("aps_center_dexes");
-    boundary_pts.set_name("aps_boundary_pts");
     characteristic_length.set_name("characteristic_length");
     range_max.set_name("range_max");
     range_min.set_name("range_min");
     ddUnitSpheres.set_name("ddUnitSpheres");
     refined_simplex.set_name("refined_simplex");
     
-    unitSpheres=NULL;
-    
     write_every=1000;
     n_printed=0;
     do_bisection=1;
-    
-    target_asserted=0;
 
-    chimin=-1.0;
-    
     called_focus=0;
     called_wide=0;
+    ddNodeRatio=-1.0;
         
     last_optimized=0;
     time_optimizing=0.0;
     time_refactoring=0.0;
-    
-    global_mindex=-1;
+
     mindex_is_candidate=0;
     
     ct_aps=0;
     ct_simplex=0;
 
-    ngood=0;
-    
     time_aps=0.0;
     time_simplex=0.0;
     time_total=0.0;
@@ -112,14 +69,8 @@ aps::aps(int dim_in, int kk, double dd, int seed){
 
     gg.set_kk(kk);
     
-    good_max.set_dim(dim_in);
-    good_min.set_dim(dim_in);
-    
-    
-    delta_chisquared=dd;
-    
-    chisq=NULL;
-    
+    ggWrap.set_delta_chisquared(dd);
+  
     global_threshold=-2.0*chisq_exception;
     sphere_threshold=-2.0*chisq_exception;
     grat=1.0;
@@ -138,8 +89,6 @@ aps::aps(int dim_in, int kk, double dd, int seed){
     
     if(seed<-1)seed=int(time(NULL));
     dice=new Ran(seed);
-    
-    centers.set_cols(dim);
     
     start_timingfile();
     printf("dim is %d dd %d\n",dim,dim_in);
@@ -197,7 +146,7 @@ void aps::assign_covariogram(covariance_function *cc){
 }
 
 void aps::assign_chisquared(chisquared *cc){
-    chisq=cc;
+    ggWrap.set_chisq(cc);
 }
 
 void aps::set_characteristic_length(int dex, double nn){
@@ -209,88 +158,9 @@ void aps::initialize(int npts,array_1d<double> &min, array_1d<double> &max){
     initialize(npts,min,max,q);
 }
 
-int aps::in_bounds(array_1d<double> &pt){
-    int i;
-    for(i=0;i<gg.get_dim();i++){
-        if(pt.get_data(i)>chisq->get_max(i) && chisq->get_max(i)>-1.0*chisq_exception){
-            return 0;
-        }
-        
-        if(pt.get_data(i)<chisq->get_min(i) && chisq->get_min(i)<chisq_exception){
-            return 0;
-        }
-    }
-    
-    return 1;
-    
-    
-}
-
-int aps::is_valid(array_1d<double> &pt){
-    double xx;
-    return is_valid(pt,&xx);
-}
-
-int aps::is_valid(array_1d<double> &pt, double *chiout){
-    
-    chiout[0]=-1.0;
-    
-    if(in_bounds(pt)==0){
-        chiout[0]=2.0*chisq_exception;
-        return 0;
-    }
-    
-    array_1d<int> neigh;
-    array_1d<double> ddneigh;
-    
-    gg.nn_srch(pt,1,neigh,ddneigh);
-    if(ddneigh.get_data(0)<=1.0e-8){
-        chiout[0]=gg.get_fn(neigh.get_data(0));
-        return 0;
-    }
-    
-    return 1;
-}
-
-void aps::evaluate(array_1d<double> &pt, double *chiout){
-    int i;
-    evaluate(pt,chiout,&i,-1);
-}
-
-void aps::evaluate(array_1d<double> &pt, double *chiout, int *dex){
-    evaluate(pt,chiout,dex,-1);
-}
-
-void aps::evaluate(array_1d<double> &pt, double *chiout, int *dex, int validity){
-    
-    dex[0]=-1;
-    
-    if(validity==-1){
-        validity=is_valid(pt,chiout);
-    }
-    
-    if(validity==0){
-        return;
-    }
-    else{
-        chiout[0]=(*chisq)(pt);
-        if(chiout[0]<chisq_exception){
-            /*
-            Add the point to the Gaussian Process
-            */
-            add_pt(pt,chiout[0]);
-            dex[0]=gg.get_pts()-1;
-        }
-    }
-}
-
 void aps::initialize(int npts, array_1d<double> &min, array_1d<double> &max, 
     array_2d<double> &guesses){
-    if(chisq==NULL){
-        printf("WARNING chisq is null in APS initializer\n");
-        exit(1);
-    }
-    
+
     int nguesses=guesses.get_rows();
     printf("dim %d\n",dim);
     
@@ -305,18 +175,19 @@ void aps::initialize(int npts, array_1d<double> &min, array_1d<double> &max,
     array_2d<double> data;
     data.set_name("aps_initializer_data");
     
+    ggWrap.set_strad(&strad);
     
     for(i=0;i<nguesses;i++){
         for(j=0;j<dim;j++)vector.set(j,guesses.get_data(i,j));
 
-        ff.set(i,(*chisq)(vector));
+        ff.set(i,ggWrap.call_chisq(vector));
         
         while(!(ff.get_data(i)<chisq_exception)){
             for(j=0;j<dim;j++){
                 vector.set(j,min.get_data(j)+dice->doub()*(max.get_data(j)-min.get_data(j)));
             }
 
-            ff.set(i,(*chisq)(vector));
+            ff.set(i,ggWrap.call_chisq(vector));
         }
         
         data.add_row(vector);
@@ -329,7 +200,7 @@ void aps::initialize(int npts, array_1d<double> &min, array_1d<double> &max,
         while(!(ff.get_data(i)<chisq_exception)){
             
             for(j=0;j<dim;j++)vector.set(j,min.get_data(j)+dice->doub()*(max.get_data(j)-min.get_data(j)));
-            ff.set(i,(*chisq)(vector));
+            ff.set(i,ggWrap.call_chisq(vector));
             
             /*printf("ff %e \n",ff.get_data(i));
             for(j=0;j<dim;j++){
@@ -361,6 +232,7 @@ void aps::initialize(int npts, array_1d<double> &min, array_1d<double> &max,
     
     printf("calling on gg.initialize\n");
     gg.initialize(data,ff,ggmin,ggmax);
+    ggWrap.set_gp(&gg);
     
     if(gg.get_dim()!=dim){
         printf("WARNING gg.get_dim %d dim %d\n",
@@ -370,9 +242,9 @@ void aps::initialize(int npts, array_1d<double> &min, array_1d<double> &max,
     }
     
 
-    if(chisq->get_dim()!=gg.get_dim() || chisq->get_dim()!=dim){
+    if(ggWrap.get_chisq_dim()!=gg.get_dim() || ggWrap.get_chisq_dim()!=dim){
         printf("WARNING chisq dim %d gg %d dim %d\n",
-        chisq->get_dim(),gg.get_dim(),dim);
+        ggWrap.get_chisq_dim(),gg.get_dim(),dim);
             
         exit(1);
     }
@@ -383,7 +255,6 @@ void aps::initialize(int npts, array_1d<double> &min, array_1d<double> &max,
     
     printf("done optimizing\n");
     
-    //ct_aps=chisq->get_called();
     ct_aps=0;
     
     ff.reset();
@@ -396,7 +267,7 @@ void aps::initialize(int npts, array_1d<double> &min, array_1d<double> &max,
         sig_storage.add(-2.0);
     }
     
-    int before_grad=chisq->get_called();
+    int before_grad=ggWrap.get_chisq_called();
         
     double nn;
     for(i=0;i<gg.get_pts();i++){
@@ -406,8 +277,9 @@ void aps::initialize(int npts, array_1d<double> &min, array_1d<double> &max,
         }
     }
     
-    if(nn<chimin || chimin<0.0){
-        set_chimin(nn,(*gg.get_pt(j)),j);
+    printf("time to set chimin\n");
+    if(nn<ggWrap.get_chimin() || ggWrap.get_chimin()<0.0){
+        ggWrap.set_chimin(nn,(*gg.get_pt(j)),j);
         mindex_is_candidate=1;
     }
     
@@ -515,45 +387,30 @@ void aps::resume(char *filename){
     }
     
     gg.initialize(data,ff,ggmin,ggmax);
+    ggWrap.set_gp(&gg);
+    
     printf("initialized gg\n");
-    set_chimin(local_min,(*gg.get_pt(i_min)),i_min);
+    ggWrap.set_chimin(local_min,(*gg.get_pt(i_min)),i_min);
     mindex_is_candidate=1;
     
-    centers.add_row(minpt);
-    center_dexes.add(global_mindex);
-    
+    assess_node(ggWrap.get_global_mindex());
+  
     write_pts();
 }
 
 void aps::set_target(double tt){
-    target_asserted=1;
+    ggWrap.assert_target();
     strad.set_target(tt);
 }
 
-void aps::set_chimin(double cc,array_1d<double> &pt, int dex){
-    chimin=cc;
-    
-    int i;
-    for(i=0;i<pt.get_dim();i++){
-        minpt.set(i,pt.get_data(i));
-    }
-    
-    if(target_asserted==0){
-        strad.set_target(cc+delta_chisquared);
-    }
-    
-    global_mindex=dex;
-
-}
-
 double aps::get_chimin(){
-    return chimin;
+    return ggWrap.get_chimin();
 }
 
 void aps::get_minpt(array_1d<double> &output){
     int i;
     for(i=0;i<gg.get_dim();i++){
-        output.set(i,minpt.get_data(i));
+        output.set(i,ggWrap.get_minpt(i));
     }
 }
 
@@ -576,7 +433,7 @@ int aps::is_it_a_candidate(int dex){
         if(dex==known_minima.get_data(i))return 0;
     }
     
-    if(gg.get_fn(dex)<chimin+grat*(fabs(global_threshold)-chimin) && 
+    if(gg.get_fn(dex)<ggWrap.get_chimin()+grat*(fabs(global_threshold)-ggWrap.get_chimin()) && 
         gg.get_fn(dex)>strad.get_target()){
           
         /*
@@ -592,7 +449,7 @@ int aps::is_it_a_candidate(int dex){
                 mid_pt.set(i,0.5*(gg.get_pt(known_minima.get_data(ic),i)+gg.get_pt(dex,i)));
             }
         
-            evaluate(mid_pt,&chitrial);
+            ggWrap.evaluate(mid_pt,&chitrial);
 
             if(chitrial<=gg.get_fn(dex)-0.25*(gg.get_fn(dex)-gg.get_fn(known_minima.get_data(ic)))){
                 forbidden_candidates.add(dex);
@@ -630,7 +487,7 @@ double aps::simplex_evaluate(array_1d<double> &pt, int *actually_added,
     _min_ct++;
     
     /*actually call chisquared*/
-    evaluate(pt,&mu,actually_added);
+    ggWrap.evaluate(pt,&mu,actually_added);
     
     /*if _simplex_min is improved upon...*/
     if(mu<_simplex_min){
@@ -654,7 +511,7 @@ double aps::simplex_evaluate(array_1d<double> &pt, int *actually_added,
     return mu;
 }
 
-void aps::find_global_minimum(array_1d<int> &neigh){
+int aps::find_global_minimum(array_1d<int> &neigh){
     
     /*
     * Use simplex minimization, seeded by the sampled points whose
@@ -681,7 +538,7 @@ void aps::find_global_minimum(array_1d<int> &neigh){
         exit(1);
     }
     
-    int i_before=chisq->get_called();
+    int i_before=ggWrap.get_chisq_called();
 
     array_1d<double> vv;
     array_1d<int> simplex_candidates;
@@ -1076,11 +933,11 @@ void aps::find_global_minimum(array_1d<int> &neigh){
     which cannot be used as the seed to a simplex search again.
     */
     known_minima.add(_mindex);
-    j=centers.get_rows();
+    j=nodes.get_dim();
     
-    int ic,acutally_added,use_it;
+    int ic,acutally_added,use_it,inode;
     array_1d<double> midpt;
-    double chimin;
+    double chimid;
     
     /*
     Now we must assess whether the point to which this simplex search converged is an
@@ -1089,66 +946,34 @@ void aps::find_global_minimum(array_1d<int> &neigh){
     use_it=1;
     if(gg.get_fn(_mindex)>strad.get_target())use_it=0;
     
-    for(ic=0;ic<centers.get_rows() && use_it==1;ic++){
+    for(ic=0;ic<nodes.get_dim() && use_it==1;ic++){
+        inode=nodes(ic)->get_center();
         for(i=0;i<gg.get_dim();i++){
-            midpt.set(i,0.5*(centers.get_data(ic,i)+gg.get_pt(_mindex,i)));
+            midpt.set(i,0.5*(gg.get_pt(inode,i)+gg.get_pt(_mindex,i)));
         }
         
-        evaluate(midpt,&chimin,&actually_added);
+        ggWrap.evaluate(midpt,&chimid,&actually_added);
         
-        if(chimin<strad.get_target()){
+        if(chimid<strad.get_target()){
             use_it=0;
-            
-            if(gg.get_fn(_mindex)<gg.get_fn(center_dexes.get_data(ic))){
-                center_dexes.set(ic,_mindex);
-                for(i=0;i<gg.get_dim();i++){
-                    centers.set(ic,i,gg.get_pt(_mindex,i));
-                }
+            if(gg.get_fn(_mindex)<gg.get_fn(inode)){
+                nodes(ic)->set_center_dex(_mindex);
             }
             
         }
     }
     
     if(use_it==1){
-        centers.add_row(*gg.get_pt(_mindex));
-        center_dexes.add(_mindex);
+        assess_node(_mindex);
     }
     
     set_where("nowhere");
+    
+    assess_node(_mindex);
+    
+    return _mindex;
 }
 
-
-int aps::add_pt(array_1d<double> &vv, double chitrue){
-    
-    int i;
-
-    
-    gg.add_pt(vv,chitrue);
-        
-        
-    if(chitrue<chimin || chimin<0.0){
-            set_chimin(chitrue,vv,gg.get_pts()-1);
-    }
-
-    if(chitrue<strad.get_target()){
-        good_pts.add(gg.get_pts()-1);
-        if(ngood==0){
-            for(i=0;i<gg.get_dim();i++){
-                good_max.set(i,vv.get_data(i));
-                good_min.set(i,vv.get_data(i));
-            }
-        }
-        else{
-            for(i=0;i<gg.get_dim();i++){
-                if(vv.get_data(i)<good_min.get_data(i))good_min.set(i,vv.get_data(i));
-                if(vv.get_data(i)>good_max.get_data(i))good_max.set(i,vv.get_data(i));
-            }
-        }
-        
-        ngood++; 
-    }
-
-}
 
 int aps::get_ct_aps(){
     return ct_aps;
@@ -1159,7 +984,7 @@ int aps::get_ct_simplex(){
 }
 
 int aps::get_called(){
-    return chisq->get_called();
+    return ggWrap.get_chisq_called();
 }
 
 int aps::get_n_pts(){
@@ -1195,7 +1020,7 @@ double aps::get_chival(int dex){
 }
 
 int aps::get_n_centers(){
-    return center_dexes.get_dim();
+    return nodes.get_dim();
 }
 
 double aps::get_pt(int dex, array_1d<double> &output){
@@ -1210,28 +1035,20 @@ double aps::get_pt(int dex, array_1d<double> &output){
 
 
 void aps::guess(array_1d<double> &pt){
-    if(chisq==NULL){
-        printf("WARNING guessing, but chisq is null\n");
-        exit(1);
-    }
-    
+
     double chitrue;
-    int ibefore=chisq->get_called();
+    int ibefore=ggWrap.get_chisq_called();
     int actually_added;
 
-    evaluate(pt,&chitrue);
+    ggWrap.evaluate(pt,&chitrue);
 
-    ct_aps+=chisq->get_called()-ibefore;
+    ct_aps+=ggWrap.get_chisq_called()-ibefore;
 }
 
 void aps::search(){
     
     double before=double(time(NULL));
-    if(chisq==NULL){
-        printf("WARNING in search, chisq is null\n");
-        exit(1);
-    }
-    
+ 
     double aps_score,simplex_score;
     int i;
     
@@ -1242,8 +1059,9 @@ void aps::search(){
     aps_score=ct_aps;
     simplex_score=ct_simplex;
     
+    int i_simplex;
     if(simplex_score<aps_score){
-        simplex_search();
+        i_simplex=simplex_search();
     }
     
     aps_search();
@@ -1255,7 +1073,7 @@ void aps::search(){
     time_total+=double(time(NULL))-before;
 }
 
-void aps::aps_wide(){
+int aps::aps_wide(){
     
     called_wide++;
     double sig;
@@ -1275,7 +1093,7 @@ void aps::aps_wide(){
     double chitrue,chimid;
     int actually_added,ic,i,j,use_it;
      
-    int bisect_it=0;
+    int bisect_it=0,iout=-1,inode;
     array_1d<double> unit_v,dd_sphere;
     array_1d<int> neigh_sphere;
     
@@ -1285,7 +1103,9 @@ void aps::aps_wide(){
     
     
     if(simplex_best.get_dim()==gg.get_dim()){
-        evaluate(simplex_best,&chitrue,&actually_added);
+        ggWrap.evaluate(simplex_best,&chitrue,&actually_added);
+        
+        iout=actually_added;
 
         if(actually_added>=0){
             wide_pts.add(actually_added);
@@ -1313,12 +1133,14 @@ void aps::aps_wide(){
                     */
                     ic=find_nearest_center(simplex_best);
                     if(ic>=0){
-                        project_to_unit_sphere(ic,simplex_best,unit_v);
-                        unitSpheres->nn_srch(unit_v,1,neigh_sphere,dd_sphere);
-                        ddUnitSpheres.add(dd_sphere.get_data(0));
+                        if(ggWrap.is_unitSpheres_null()==0){
+                            project_to_unit_sphere(ic,simplex_best,unit_v);
+                            ggWrap.unitSpheres_nn_srch(unit_v,1,neigh_sphere,dd_sphere);
+                            ddUnitSpheres.add(dd_sphere.get_data(0));
                    
-                        if(dd_sphere.get_data(0)>sphere_threshold){
-                            bisect_it=1;
+                            if(dd_sphere.get_data(0)>sphere_threshold){
+                                bisect_it=1;
+                            }
                         }
                     }
                 
@@ -1336,23 +1158,25 @@ void aps::aps_wide(){
             */
             if(chitrue<strad.get_target()){
                 use_it=1;
-                for(ic=0;ic<centers.get_rows() && use_it==1;ic++){
+                for(ic=0;ic<nodes.get_dim() && use_it==1;ic++){
+                    inode=nodes(ic)->get_center();
                     for(i=0;i<gg.get_dim();i++){
-                        midpt.set(i,0.5*(simplex_best.get_data(i)+centers.get_data(ic,i)));
+                        midpt.set(i,0.5*(simplex_best.get_data(i)+gg.get_pt(inode,i)));
                     }
                     
-                    evaluate(midpt,&chimid,&i);
+                    ggWrap.evaluate(midpt,&chimid,&i);
                     
                     if(chimid<strad.get_target())use_it=0;
                 }
                 
                 if(use_it==1){
-                    centers.add_row(simplex_best);
-                    center_dexes.add(actually_added);
+                    assess_node(actually_added);
                 }
             }
         }
     }
+    
+    return iout;
    
 }
 
@@ -1367,7 +1191,7 @@ double aps::simplex_metric(array_1d<double> &pt, array_1d<double> &min_bound, ar
     
     int i;
     
-    if(in_bounds(pt)==0){
+    if(ggWrap.in_bounds(pt)==0){
         return 2.0*chisq_exception;
     }
     
@@ -1489,7 +1313,7 @@ double aps::simplex_strad(array_1d<double> &min_bound, array_1d<double> &max_bou
    S wil be evaluated by simplex_metric, which will be charged with storing the local maximum
    of S discovered and of keeping track of simplex_ct for convergence purposes
    */
-   while(sig>delta_chisquared && simplex_ct<1000){
+   while(sig>ggWrap.get_delta_chisquared() && simplex_ct<1000){
        for(i=0;i<gg.get_dim();i++){
            pbar.set(i,0.0);
            for(j=0;j<gg.get_dim()+1;j++){
@@ -1605,10 +1429,10 @@ void aps::random_focus(int ic){
         }
         rr.normalize();
         for(i=0;i<gg.get_dim();i++){
-            trial.set(i,centers.get_data(ic,i)+0.1*rr.get_data(i)*(gg.get_max(i)-gg.get_min(i)));
+            trial.set(i,gg.get_pt(nodes(ic)->get_center(),i)+0.1*rr.get_data(i)*(gg.get_max(i)-gg.get_min(i)));
         }
         
-        evaluate(trial,&chitrue,&actually_added);
+        ggWrap.evaluate(trial,&chitrue,&actually_added);
         
     }
     focus_pts.add(actually_added);
@@ -1641,23 +1465,23 @@ void aps::corner_focus(int ic){
     /*
     Find the boudary points that minimize and maximize each parameter
     */
-    for(i=0;i<boundary_pts.get_cols(ic);i++){
+    for(i=0;i<nodes(ic)->get_n_boundary();i++){
         for(j=0;j<gg.get_dim();j++){
-            nn=gg.get_pt(boundary_pts.get_data(ic,i),j);
+            nn=gg.get_pt(nodes(ic)->get_boundary(i),j);
             if(i==0 || nn<min.get_data(j)){
                 min.set(j,nn);
-                min_dex.set(j,boundary_pts.get_data(ic,i));
+                min_dex.set(j,nodes(ic)->get_boundary(i));
             }
             
             if(i==0 || nn>max.get_data(j)){
                 max.set(j,nn);
-                max_dex.set(j,boundary_pts.get_data(ic,i));
+                max_dex.set(j,nodes(ic)->get_boundary(i));
             } 
         }
     }
     
     for(i=0;i<gg.get_dim();i++){
-        origin.set(i,centers.get_data(ic,i));
+        origin.set(i,gg.get_pt(nodes(ic)->get_center(),i));
     }
     
     for(i=0;i<gg.get_dim();i++){
@@ -1763,7 +1587,7 @@ void aps::corner_focus(int ic){
                         trial.add_val(ix,0.1*length.get_data(ix));
                     }
                      
-                    if(is_valid(trial)==0){
+                    if(ggWrap.is_valid(trial)==0){
                         stradval=-2.0*chisq_exception;
                     }
                     else{
@@ -1806,7 +1630,7 @@ void aps::corner_focus(int ic){
         Evaluate chisquared at the chosen point.
         Perform bisection to make certain that a new boundary point is found.
         */
-        evaluate(sambest,&chitrue,&actually_added,1);
+        ggWrap.evaluate(sambest,&chitrue,&actually_added,1);
         if(actually_added>=0){
             focus_pts.add(actually_added);
             if(do_bisection==1){
@@ -1827,9 +1651,9 @@ void aps::aps_focus(){
 
    int ic;
 
-   for(ic=0;ic<centers.get_rows();ic++){
+   for(ic=0;ic<nodes.get_dim();ic++){
        called_focus++;
-       if(boundary_pts.get_cols(ic)<gg.get_dim()){
+       if(nodes(ic)->get_n_boundary()<gg.get_dim()){
            random_focus(ic);
            
        }//if don't have enough boundary points
@@ -1854,9 +1678,9 @@ int aps::find_nearest_center(array_1d<double> &pt, double chi_in){
     double dd,ddmin;
     ans=-1;
     
-    for(i=0;i<centers.get_rows();i++){
-        dd=gg.distance(pt,*centers(i));
-        if((ans<0 || dd<ddmin) && gg.get_fn(center_dexes.get_data(i))<chi_in){
+    for(i=0;i<nodes.get_dim();i++){
+        dd=gg.distance(pt,nodes(i)->get_center());
+        if((ans<0 || dd<ddmin) && gg.get_fn(nodes(i)->get_center())<chi_in){
             ddmin=dd;
             ans=i;
         }
@@ -1868,7 +1692,7 @@ int aps::find_nearest_center(array_1d<double> &pt, double chi_in){
 
 void aps::project_to_unit_sphere(int ic, array_1d<double> &pt_in, array_1d<double> &pt_out){
 
-    if(ic<0 || ic>=centers.get_rows()){
+    if(ic<0 || ic>=nodes.get_dim()){
         return;
     }
     
@@ -1876,7 +1700,7 @@ void aps::project_to_unit_sphere(int ic, array_1d<double> &pt_in, array_1d<doubl
     double norm=0.0;
     int i;
     for(i=0;i<gg.get_dim();i++){
-        dir.set(i,pt_in.get_data(i)-centers.get_data(ic,i));
+        dir.set(i,pt_in.get_data(i)-gg.get_pt(nodes(ic)->get_center(),i));
         
         /*
         gg.get_max-gg.get_min will return the characteristic length if it was set,
@@ -1890,18 +1714,21 @@ void aps::project_to_unit_sphere(int ic, array_1d<double> &pt_in, array_1d<doubl
     } 
     
     for(i=0;i<gg.get_dim();i++){
-        pt_out.set(i,centers.get_data(ic,i)+dir.get_data(i));
+        pt_out.set(i,gg.get_pt(nodes(ic)->get_center(),i)+dir.get_data(i));
     }
     
 }
 
 void aps::bisection(array_1d<double> &inpt, double chi_in){
     
+    ggWrap.set_iWhere(iBisect);
+    
     /*
     If the point is already fairly near to chisquared_lim, or if APS has not yet found
     a low-chisquared region for which chisquared<chisquared_lim, do not do bisection
     */
-    if(chi_in<strad.get_target() && strad.get_target()-chi_in<0.1*delta_chisquared || chimin>strad.get_target()){
+    if(chi_in<strad.get_target() && 
+    strad.get_target()-chi_in<0.1*ggWrap.get_delta_chisquared() || ggWrap.get_chimin()>strad.get_target()){
         return;
     }
     
@@ -1913,7 +1740,7 @@ void aps::bisection(array_1d<double> &inpt, double chi_in){
     double dd,ddmin;
     int origin_dex,i,j,k,use_it_parabola,i_center=-1;
     
-    double bisection_tolerance=0.1*delta_chisquared;
+    double bisection_tolerance=0.1*ggWrap.get_delta_chisquared();
     
     /*
     The code will work by finding one point with chisquared<chisquared_lim which will
@@ -1938,10 +1765,10 @@ void aps::bisection(array_1d<double> &inpt, double chi_in){
    i_center will be the index (as stored in array_1d<int> center_dexes or array_2d<double> centers
    of the nearest low-chisquared center point) 
    */
-    if(good_pts.get_dim()==0){
-        for(i=0;i<gg.get_dim();i++)dir_origin.set(i,minpt.get_data(i));
-        fdir_origin=chimin;
-        origin_dex=global_mindex;
+    if(ggWrap.get_ngood()==0){
+        for(i=0;i<gg.get_dim();i++)dir_origin.set(i,ggWrap.get_minpt(i));
+        fdir_origin=ggWrap.get_chimin();
+        origin_dex=ggWrap.get_global_mindex();
     }
     else{
         ddmin=chisq_exception;
@@ -1949,11 +1776,7 @@ void aps::bisection(array_1d<double> &inpt, double chi_in){
         i_center=find_nearest_center(inpt,chi_in);
         
         if(i_center>=0){
-            j=center_dexes.get_data(i_center);
-        }
-        
-        
-        if(i_center>=0){
+            j=nodes(i_center)->get_center();
             for(i=0;i<gg.get_dim();i++){
                 dir_origin.set(i,gg.get_pt(j,i));
             }
@@ -1962,9 +1785,9 @@ void aps::bisection(array_1d<double> &inpt, double chi_in){
             
         }
         else{
-            fdir_origin=chimin;
-            origin_dex=global_mindex;
-            for(i=0;i<gg.get_dim();i++)dir_origin.set(i,minpt.get_data(i));
+            fdir_origin=ggWrap.get_chimin();
+            origin_dex=ggWrap.get_global_mindex();
+            for(i=0;i<gg.get_dim();i++)dir_origin.set(i,ggWrap.get_minpt(i));
         }
     }
     
@@ -2020,7 +1843,7 @@ void aps::bisection(array_1d<double> &inpt, double chi_in){
             }
             
             
-            evaluate(highball,&fhigh);
+            ggWrap.evaluate(highball,&fhigh);
  
             rr*=2.0;
         }
@@ -2062,7 +1885,7 @@ void aps::bisection(array_1d<double> &inpt, double chi_in){
             trial.set(i,0.5*(lowball.get_data(i)+highball.get_data(i)));
         }
         
-        evaluate(trial,&mu,&i_test);
+        ggWrap.evaluate(trial,&mu,&i_test);
         
         if(mu>strad.get_target()){
             for(i=0;i<gg.get_dim();i++)highball.set(i,trial.get_data(i));
@@ -2130,49 +1953,28 @@ void aps::bisection(array_1d<double> &inpt, double chi_in){
     /*add the discovered point to the list of boundary points for the center
     from which we began our bisection search*/
     if(i_center>=0 && i_nearest>=0){
-        if(i_center>=boundary_pts.get_rows()){
-            /*we need to add an entirely new row to the asymm_array_2d<int> boundary_pts*/
-            boundary_pts.set(i_center,0,i_nearest);
-        }
-        else{
-            boundary_pts.add(i_center,i_nearest);
-        }
+        nodes(i_center)->add_as_boundary(i_nearest); 
     }
-    
-    /*
-    Add the spherical projection of this point about it's low-chisquared center
-    to the KD-tree of spherical projections
-    */
-    array_1d<double> unit_v;
-    unit_v.set_name("bisection_unit_v");
-    if(i_nearest>=0 && i_center>=0){
-        if(unitSpheres!=NULL){
-            project_to_unit_sphere(i_center,*gg.get_pt(i_nearest),unit_v);
-            unitSpheres->add(unit_v);
-        }
-    }
+
     
 }
 
 void aps::aps_search(){
-    
-    if(chisq==NULL){
-        printf("WARNING chisq is null in aps_scatter_search\n");
-        exit(1);
-    }
 
     double before=double(time(NULL));
-    int ibefore=chisq->get_called();
+    int ibefore=ggWrap.get_chisq_called(),i_wide;
  
     if(called_focus<called_wide){
         aps_focus();
     }
     else{
-        aps_wide();
+        ggWrap.set_iWhere(iAPS);
+        i_wide=aps_wide();
+        assess_node(i_wide);
     }
 
     time_aps+=double(time(NULL))-before;
-    ct_aps+=chisq->get_called()-ibefore;
+    ct_aps+=ggWrap.get_chisq_called()-ibefore;
     set_where("nowhere");
     
 }
@@ -2189,14 +1991,17 @@ double aps::distance(int i1, int i2, array_1d<double> &range){
     return sqrt(dd);
 }
 
-void aps::simplex_search(){
+int aps::simplex_search(){
+    
+    ggWrap.set_iWhere(iSimplex);
+    
     //printf("\ngradient searching\n");
     set_where("simplex_search");
   
     double before=double(time(NULL));
-    int ibefore=chisq->get_called();
+    int ibefore=ggWrap.get_chisq_called();
     
-    int ix,i,j,imin;
+    int ix,i,j,imin,iout=-1;
     
     array_1d<int> candidates;
     array_1d<double> local_max,local_min,local_range;
@@ -2218,9 +2023,9 @@ void aps::simplex_search(){
         }
         
     
-        ct_simplex+=chisq->get_called()-ibefore;
+        ct_simplex+=ggWrap.get_chisq_called()-ibefore;
         time_simplex+=double(time(NULL))-before;
-        return;
+        return -1;
     }
     
     
@@ -2245,7 +2050,7 @@ void aps::simplex_search(){
     vv.set_name("simplex_search_vv");
    
     
-    int o_mindex=global_mindex;
+    int o_mindex=ggWrap.get_global_mindex();
 
     array_1d<int> seed;
     double nn,nnmin,nnchosen;
@@ -2308,7 +2113,7 @@ void aps::simplex_search(){
     }//loop over ii
 
 
-    if(mindex_is_candidate==1 && global_mindex>=0){
+    if(mindex_is_candidate==1 && ggWrap.get_global_mindex()>=0){
         /*
         Replace the seed point with the highest chisquared value
         with the index of the current chisquared minimum.
@@ -2323,7 +2128,7 @@ void aps::simplex_search(){
             }
         }
         
-        seed.set(ix,global_mindex);
+        seed.set(ix,ggWrap.get_global_mindex());
     }
     
     if(ix<0){
@@ -2331,14 +2136,15 @@ void aps::simplex_search(){
         exit(1);
     }
 
-    find_global_minimum(seed);
+    iout=find_global_minimum(seed);
     
     mindex_is_candidate=0;
     
-    ct_simplex+=chisq->get_called()-ibefore;
+    ct_simplex+=ggWrap.get_chisq_called()-ibefore;
     time_simplex+=double(time(NULL))-before;
     
     set_where("nowhere");
+    return iout;
     //printf("done gradient searching\n");
 }
 
@@ -2367,7 +2173,7 @@ void aps::simplex_too_few_candidates(array_1d<int> &candidates){
     
     stepNorm=0.0;
     for(i=0;i<gg.get_dim();i++){
-        step.set(i,gg.get_pt(i_min,i)-centers.get_data(ic,i));
+        step.set(i,gg.get_pt(i_min,i)-gg.get_pt(nodes(ic)->get_center(),i));
         stepNorm+=power(step.get_data(i)/(gg.get_max(i)-gg.get_min(i)),2);
     }
     stepNorm=sqrt(stepNorm);
@@ -2395,7 +2201,7 @@ void aps::simplex_too_few_candidates(array_1d<int> &candidates){
         }
         
         
-        evaluate(trial,&cc,&actually_added);
+        ggWrap.evaluate(trial,&cc,&actually_added);
         
         if(actually_added>=0 && is_it_a_candidate(actually_added)){
             candidates.add(actually_added);
@@ -2422,12 +2228,12 @@ void aps::refine_center(){
     double maxchi;
     
     /*choose the center with the highest value of chisquared*/
-    for(ic=0;ic<centers.get_rows();ic++){
+    for(ic=0;ic<nodes.get_dim();ic++){
         
-        if(boundary_pts.get_cols(ic)>=gg.get_dim()+1 && 
-        (ic_chosen<0 || gg.get_fn(center_dexes.get_data(ic))>maxchi)){
+        if(nodes(ic)->get_n_boundary()>=gg.get_dim()+1 && 
+        (ic_chosen<0 || gg.get_fn(nodes(ic)->get_center())>maxchi)){
             
-            maxchi=gg.get_fn(center_dexes.get_data(ic));
+            maxchi=gg.get_fn(nodes(ic)->get_center());
             ic_chosen=ic;
         
         }
@@ -2451,11 +2257,11 @@ void aps::refine_center(){
     sort the boundary points of the chosen center by their distance
     from the chosen center
     */
-    for(i=0;i<boundary_pts.get_cols(ic_chosen);i++){
-        ii=boundary_pts.get_data(ic_chosen,i);
+    for(i=0;i<nodes(ic_chosen)->get_n_boundary();i++){
+        ii=nodes(ic_chosen)->get_boundary(i);
         
         inn.set(i,ii);
-        tosort.set(i,gg.distance(ii,center_dexes.get_data(ic_chosen)));
+        tosort.set(i,gg.distance(ii,nodes(ic_chosen)->get_center()));
     
     }
     sort_and_check(tosort,sorted,inn);
@@ -2596,10 +2402,10 @@ void aps::write_pts(){
     double per_chisq,per_total,overhead;
     
     /*how much clock time is spent per call to chisquared just calling chisquared*/
-    per_chisq=chisq->get_time_spent()/chisq->get_called();
+    per_chisq=ggWrap.get_chisq_time()/ggWrap.get_chisq_called();
     
     /*how much clock time is spent per call to chisquared on all of the calculations*/
-    per_total=(double(time(NULL))-start_time)/chisq->get_called();
+    per_total=(double(time(NULL))-start_time)/ggWrap.get_chisq_called();
     
     /*how much extra clock time has been added to each chisquared call
     by all of the extra calculations involved in APS*/
@@ -2624,32 +2430,8 @@ void aps::write_pts(){
     (since chisquared_lim may have changed because of the discovery of a new
     chisquared_min)
     */
-    good_pts.reset();
-    ngood=0;
-    for(i=0;i<gg.get_pts();i++){
-        if(gg.get_fn(i)<strad.get_target()){
-            good_pts.add(i);
-            if(ngood==0){
-                for(j=0;j<gg.get_dim();j++){
-                    good_min.set(j,gg.get_pt(i,j));
-                    good_max.set(j,gg.get_pt(i,j));
-                }
-            }
-            else{
-                for(j=0;j<gg.get_dim();j++){
-                    if(gg.get_pt(i,j)<good_min.get_data(j)){
-                        good_min.set(j,gg.get_pt(i,j));
-                    }
-                    if(gg.get_pt(i,j)>good_max.get_data(j)){
-                        good_max.set(j,gg.get_pt(i,j));
-                    }
-                }
-            }
-            
-            ngood++;
-            
-        }
-    }
+    ggWrap.evaluate_ngood();
+    
     
     array_1d<double> volume,vmax,vmin;
     double vol,lvol;
@@ -2661,17 +2443,17 @@ void aps::write_pts(){
     /*
     Find the parameter space volumes of each independent low-chisquared region
     */
-    for(i=0;i<center_dexes.get_dim();i++){
+    for(i=0;i<nodes.get_dim();i++){
         vmax.reset();
         vmin.reset();
-        for(j=0;j<boundary_pts.get_cols(i);j++){
+        for(j=0;j<nodes(i)->get_n_boundary();j++){
             for(k=0;k<gg.get_dim();k++){
-                if(j==0 || gg.get_pt(boundary_pts.get_data(i,j),k)<vmin.get_data(k)){
-                    vmin.set(k,gg.get_pt(boundary_pts.get_data(i,j),k));
+                if(j==0 || gg.get_pt(nodes(i)->get_boundary(j),k)<vmin.get_data(k)){
+                    vmin.set(k,gg.get_pt(nodes(i)->get_boundary(j),k));
                 }
                 
-                if(j==0 || gg.get_pt(boundary_pts.get_data(i,j),k)>vmax.get_data(k)){
-                    vmax.set(k,gg.get_pt(boundary_pts.get_data(i,j),k));
+                if(j==0 || gg.get_pt(nodes(i)->get_boundary(j),k)>vmax.get_data(k)){
+                    vmax.set(k,gg.get_pt(nodes(i)->get_boundary(j),k));
                 }
             }
         }
@@ -2767,38 +2549,7 @@ void aps::write_pts(){
     }
     
     int ii,jj,ic;
-    array_1d<double> min,max;
-    array_2d<double> sphere_data;
-    min.set_name("unitsphere_min");
-    max.set_name("unitsphere_max");
-    sphere_data.set_name("sphere_data");
-    
-    if(unitSpheres==NULL){
-        /*
-        If the KD-tree of spherical projections has not yet been instantiated, do so now (if enough
-        boundary points have been found)
-        */
-        ii=0;
-        for(i=0;i<boundary_pts.get_rows();i++){
-            ii+=boundary_pts.get_cols(i);
-        }
-        
-        if(ii>=gg.get_dim()){
-            for(i=0;i<gg.get_dim();i++){
-                min.set(i,0.0);
-                max.set(i,gg.get_max(i)-gg.get_min(i));
-            }
-            
-            for(i=0;i<boundary_pts.get_rows();i++){
-                for(j=0;j<boundary_pts.get_cols(i);j++){
-                    sphere_data.add_row(*gg.get_pt(boundary_pts.get_data(i,j)));
-                }
-            }
-            
-            unitSpheres=new kd_tree(sphere_data,min,max);
-        }
-    }
-
+   
     n_printed=gg.get_pts();
 
     double nn;
@@ -2827,24 +2578,24 @@ void aps::write_pts(){
    
     output=fopen(timingname,"a");
     fprintf(output,"%d %d %e %e %e %e -- ",
-    gg.get_pts(),chisq->get_called(),chisq->get_time_spent(),
-    chisq->get_time_spent()/double(chisq->get_called()),time_now-start_time,
-    (time_now-start_time)/double(chisq->get_called()));
+    gg.get_pts(),ggWrap.get_chisq_called(),ggWrap.get_chisq_time(),
+    ggWrap.get_chisq_time()/double(ggWrap.get_chisq_called()),time_now-start_time,
+    (time_now-start_time)/double(ggWrap.get_chisq_called()));
     
     fprintf(output,"%d %e -- ",ct_aps,time_aps);
     fprintf(output,"%d %e -- ",ct_simplex,time_simplex);
     
     fprintf(output,"%e -- %e -- ",time_optimizing,time_refactoring);
     
-    fprintf(output,"%e %e -- ",chimin,strad.get_target());
+    fprintf(output,"%e %e -- ",ggWrap.get_chimin(),strad.get_target());
     
-    for(i=0;i<center_dexes.get_dim();i++){
+    for(i=0;i<nodes.get_dim();i++){
         fprintf(output,"%e ",volume.get_data(i));
     }
     
     fprintf(output," -- %d %d ",called_wide,called_focus);
-    if(unitSpheres!=NULL){
-        fprintf(output,"unitSpheres engaged %d ",unitSpheres->get_pts());
+    if(ggWrap.is_unitSpheres_null()==0){
+        fprintf(output,"unitSpheres engaged %d ",ggWrap.get_unitSpheres_pts());
     }
     fprintf(output,"\n");
     
@@ -2853,7 +2604,84 @@ void aps::write_pts(){
     set_where("nowhere");
     time_writing+=double(time(NULL))-before;
     
-  
-    
 }
 
+////////////////////node-based code below/////////
+
+void aps::assess_node(int dex){
+    if(dex<0 || dex>=gg.get_pts()){
+        return;
+    }
+    
+    if(gg.get_fn(dex)>strad.get_target()){
+        return;
+    }
+    
+    int i;
+    for(i=0;i<nodes.get_dim();i++){
+        if(dex==nodes(i)->get_center()){
+            return;
+        }
+    }
+    
+    int could_be_used,use_it;
+    
+    /*could_be_used allows us to accept node candidates based on their
+    distance from the nearest node*/
+    could_be_used=0;
+    
+    for(i=0;i<nodes.get_dim() && could_be_used==0;i++){
+        if(nodes(i)->get_farthest_associate()>0.0 && 
+           nodes(i)->get_n_associates()>100){
+           
+               could_be_used=1;   
+        }
+    }
+    
+    array_1d<double> midpt;
+    midpt.set_name("aps_assess_node_midpt");
+    double ftrial,dd,ddmin;
+    int j,itrial,inode,iclosest=-1;
+    
+    use_it=1;
+    for(i=0;i<nodes.get_dim() && (use_it==1 || could_be_used==1);i++){
+        inode=nodes(i)->get_center();
+        dd=gg.distance(inode,dex);
+        if(i==0 || dd<ddmin){
+            ddmin=dd;
+            iclosest=i;
+        }
+        
+        if(dd<ddNodeRatio*nodes(i)->get_farthest_associate() && ddNodeRatio>1.0e-10){
+            /*the point under consideration is too close to an existent node to be
+            set based on distance*/
+            could_be_used=0;
+        }
+        
+        for(j=0;j<gg.get_dim();j++){
+            midpt.set(j,0.5*(gg.get_pt(inode,j)+gg.get_pt(dex,j)));
+        }
+        
+        ggWrap.evaluate(midpt,&ftrial);
+        
+        if(ftrial<strad.get_target()){
+            use_it=0;
+        }
+    }
+    
+    if(iclosest>=0){
+        if(nodes(iclosest)->get_n_associates()<100)could_be_used=0;
+    }
+    
+    if(use_it==0 && could_be_used==1){
+        use_it=1;
+    }
+    
+    if(use_it==1){
+        nodes.add(dex,dice,&ggWrap);
+        i=nodes.get_dim()-1;
+        if(iclosest>=0){
+            nodes(i)->set_farthest_associate(nodes(iclosest)->get_farthest_associate());
+        }
+    }
+}

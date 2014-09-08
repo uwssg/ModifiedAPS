@@ -13,34 +13,8 @@
 #include "kd.h"
 #include "gaussian_process.h"
 #include "chisq.h"
-
-class straddle_parameter{
-    /*
-    This class is meant to store both the target value of chisquared_lim and
-    the calculation of the S statistic from equation (1) of the paper.
-    
-    If the user wanted to try a different combination of sigma, mu, and
-    chisquared_lim than equation(1), she should alter the code in the 
-    operator () of this class.
-    */
-
-public:
-    ~straddle_parameter();
-    straddle_parameter();
-    
-    /*set the value of chisquared_lim*/
-    void set_target(double);
-    
-    /*return the value of chisquared_lim*/
-    double get_target();
-    
-    /*accept mu and sigma and return S (equation 1 of the paper)*/
-    double operator()(double,double) const;
-
-
-private:
-    double target;
-};
+#include "gp_wrapper.h"
+#include "node.h"
 
 
 class aps{
@@ -158,7 +132,7 @@ public:
     /*
     Perform the simplex search
     */
-    void simplex_search();
+    int simplex_search();
     
     /*
     Sample chisquared at the point specified by the array_1d
@@ -252,6 +226,7 @@ private:
     it is ``added to the Gaussian Process.''
     */
     gp gg;
+    gpWrapper ggWrap;
     
     /*
     aps_wide() carries out a ``traditional'' APS, seeking to maximize the S statistic (equation 1 of the
@@ -263,7 +238,7 @@ private:
     which seeks to maximize S.  This simplex search is run by simplex_strad() and simplex_strad_metric()
     below.
     */
-    void aps_wide();
+    int aps_wide();
     
     /*
     aps_focus() runs the focused search (steps 1B-5B in the paper) about known centers of
@@ -299,67 +274,6 @@ private:
     the line connecting that center to the proposed point.
     */
     void bisection(array_1d<double>&,double);
-    
-    /*
-    The functions evaluate() below are how APS actually calls the chisquared function.
-    
-    There are two risks involved in just calling the operator() to the provided chisquared
-    function:
-    
-    1) There is no obvious mechanism in APS preventing APS from calling points outside of the
-    allowed bounds of parameter space
-    
-    2) There is no mechanism preventing APS from calling points that are infinitesimally
-    close to points that are already sampled and thus choking the Gaussian Process with neighbor
-    points that are essentially identical.
-    
-    evaluate() fixes these problems.  Whenever a point is proposed for chisquared evaluation,
-    evaluate first tests that it is in the bounds allowed by the chisquared function.  If not,
-    evaluate returns chisquared = 2 x 10^30 and does not add the point to the Gaussian Process
-    (if points with absurdly high values of chisquared are kept in the Gaussian Process, our
-    attempts to predict chisquared using the Gaussian Process will become invalid near the boundaries
-    of parameter space).
-    
-    If the point passes that test, evaluate() searches for the nearest neighbor to the proposed point.
-    If that neighbor is closer than a (normalized) distance of 1.0 x 10^-8 in parameter space,
-    evaluate returns the chisquared value of the nearest neighbor and, again, does not add the
-    new point to the Gaussian Process.
-    
-    The arguments to evaluate are
-    
-    array_1d<double> -- the point to be evaluated
-    
-    double* -- a pointer to store the chisquared value of the point
-    
-    int* -- a pointer to store the index of the point, assuming it is added to the Gaussina Process
-    (this is set to -1 if the point is not added to the Gaussian Process)
-    
-    There are some cases in which APS may evaluate the validity of a point before calling evaluate.
-    In that case, one can pass the value 1 as a final int and evaluate() will dispense with
-    the validity tests described above.
-    
-    */
-    void evaluate(array_1d<double>&,double*,int*,int);
-    void evaluate(array_1d<double>&,double*,int*);
-    void evaluate(array_1d<double>&,double*);
-    
-    /*
-    The function add_pt() actually adds a point to the Gaussian Process.
-    
-    The arguments are
-    
-    array_1d<double> -- the point to be added
-    double -- the chisquared value associated with that point
-    
-    the function will return the index of the point, once it is added to the
-    Gaussian Process
-    
-    add_pt() will also assess whether or not the point improves upon chisquared_min
-    or is a "good" point (i.e. whether chisquared<=chisquared_im)
-    */
-    int add_pt(array_1d<double>&,double);
-
-
 
     /*
     The function find_global_minimum() will take the list of indices stored in the array_1d<int>
@@ -369,7 +283,7 @@ private:
     The simplex search will run until it has made 200 calls to chisquared
     without improving upon its discovered local minimum in chisquared.
     */
-    void find_global_minimum(array_1d<int>&);
+    int find_global_minimum(array_1d<int>&);
     
     /*
     These are wrappers of the function evaluate() specifically designed
@@ -424,15 +338,6 @@ private:
     void simplex_too_few_candidates(array_1d<int>&);
     
     /*
-    set_chimin() will set the minimum value of chisquared, the point at which that minimum occurred
-    and the index by which that point is stored in the Gaussian Process
-    
-    If chisquared_lim is set relative to chisquared_min, this method will also update
-    the value of chisquared_lim
-    */
-    void set_chimin(double,array_1d<double>&,int);
-    
-    /*
     Determine whether or not the point stored by the index passed as int is a candidate
     for seeding a simplex search.  Return 1 if so.  Return 0 if not.
     */
@@ -471,30 +376,7 @@ private:
     and normalized by the array_1d<double> of ranges.
     */
     double distance(int,int,array_1d<double>&);
-    
-    /*
-    determine whether or not the specified point is within the bounds allowed
-    by the chisquard funciton (return 1 if so; return 0 if not)
-    */
-    int in_bounds(array_1d<double>&);
-    
-    /*
-    Do all of the validity checks required by evaluate(), i.e.
-    
-    1) is the point inside of the bounds allowed by the chisquared function
-    
-    2) is the point farther than a normalized parameter space distance of 10^-8
-    from its nearest neighbor
-    
-    If so return 1.  If not, return 0.
-    
-    The optional double* will store the chisquared value associated with the nearest
-    neighbor, if the nearest neighbor is too close.  If the first test failed, this
-    pointer will store an absurdly high value (2 x 10^30) 
-    */
-    int is_valid(array_1d<double>&);
-    int is_valid(array_1d<double>&, double*);
-    
+        
     /*
     Find the nearest center of a low-chisquared region.
     
@@ -512,39 +394,26 @@ private:
     /*the pseudo random number generator used by APS*/
     Ran *dice;
     
-    /*a pointer to the chisquared function*/
-    chisquared *chisq;
-    
     /*
     write_every is the number of calls APS makes to chisquared between calls to write_pts()
     
     n_printed is the number points that have been printed
-    
-    ngood is the number of points with chisquared<=chisquared_lim
-    
+
     dim is the dimensionality of parameter space
     
     last_optimized is the number of points chosen by aps_wide after the last time
     that optimize() was called
     */
-    int write_every,n_printed,ngood,dim,last_optimized;
+    int write_every,n_printed,dim,last_optimized;
     
     /*
-    global_mindex is the index of the minimum point in chisquared
-    
     mindex_is_candidate will be set to unity if the minimum point was set by a search other than simplex_search
     (in which case, a simplex search should probably start from that point to make sure it actually
     is a minimum in chisquared)
     
     do_bisection = 1 if bisection is allowed; 0 otherwise
     */
-    int global_mindex,mindex_is_candidate,do_bisection;
-    
-    /*
-    target_asserted = 1 if chisquared_lim was set by hand; 0 if it is allowed to
-    change as chisquared_min changes
-    */
-    int target_asserted;
+    int mindex_is_candidate,do_bisection;
     
     /*the names of the output files*/
     char outname[letters],timingname[letters];
@@ -563,7 +432,7 @@ private:
     these arrays store the indexes of points found by aps_wide, aps_focus,
     and points that satisfy chisquared<=chisquared_lim, respectively
     */
-    array_1d<int> wide_pts,focus_pts,good_pts;
+    array_1d<int> wide_pts,focus_pts;
     
     /*the characteristic lengths of dimensions in parameter space*/
     array_1d<double> characteristic_length;
@@ -572,37 +441,18 @@ private:
     mu_storage stores the values mu predicted by the Gaussian Process for points sampled by aps_wide
     
     sig_storage stores the uncertainties sigma in mu for points sampled by aps_wide
-    
-    good_max and good_min store the maximum and minimum values of each parameter associated
-    with chisquared<=chisquared_lim points
     */
-    array_1d<double> mu_storage,sig_storage,good_max,good_min;
-    
-    /*
-    minpt is the minimum chisquared point in parameter space
-    */
-    array_1d<double> minpt;
+    array_1d<double> mu_storage,sig_storage;
     
     /*
     The minimum and maximum allowed values of each parameter
     */
     array_1d<double> range_max,range_min;
-    
-    /*a list of the points which are centers of low chisquared regions*/
-    array_2d<double> centers;
-    
+
     /*
-    center_dexes stores the indexes of points that are centers of low chisquared regions
-    */
-    array_1d<int> center_dexes;
-    
-    /*
-    boundary_pts stores the indexes of all of the boundary points associated with each center of
-    a low-chisquared region
-    
     refined_simplex stores the seeds used by refine_center() for each low-chisquared center
     */
-    asymm_array_2d<int> boundary_pts,refined_simplex;
+    asymm_array_2d<int> refined_simplex;
     
     /*
     These are variables used by simplex_strad to keep track of
@@ -632,14 +482,9 @@ private:
     double global_threshold,sphere_threshold;
     
     /*global variables
-    
-    chimin is the absolute minimum chisquared value discovered
-    
-    delta_chisquared is used for setting chisquared_lim=chimin+delta_chisquared
-    
-    grat is the G parameter from equation (4) of the paper
+     grat is the G parameter from equation (4) of the paper
     */
-    double chimin,delta_chisquared,grat;
+    double grat;
     
     /*the object that stores the target value of chisquared and calculates the S statistic*/
     straddle_parameter strad;
@@ -662,7 +507,6 @@ private:
     surrounding their low-chisquared centers.  This is used for determining when to do
     bisection on points discovered by aps_wide()
     */
-    kd_tree *unitSpheres;
     array_1d<double> ddUnitSpheres;
     
     /*
@@ -673,6 +517,9 @@ private:
     */
     void project_to_unit_sphere(int, array_1d<double>&, array_1d<double>&);
     
+    arrayOfNodes nodes;
+    void assess_node(int);
+    double ddNodeRatio;
 };
 
 
