@@ -228,7 +228,7 @@ void chisquared::make_centersNonRandom(){
 	    if(acceptable==1){
 	        for(i=0;i<dim;i++){
 		    centers.set(ii,i,trial_center.get_data(i));
-		    widths.set(ii,i,fabs(normal_deviate(dice,3.0-(1.8/21.0)*double(dim),0.1))+0.1);
+		    widths.set(ii,i,fabs(normal_deviate(dice,3.0-(1.8/21.0)*double(dim),0.05))+0.05);
 	        }
 	    }
 	    else ii--;
