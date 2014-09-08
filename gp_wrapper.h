@@ -172,7 +172,6 @@ class gpWrapper{
         
         double call_chisq(array_1d<double>&);
         int get_chisq_dim();
-        int get_chisq_called();
         double get_chisq_time();
         
         int get_global_mindex();

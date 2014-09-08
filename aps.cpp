@@ -265,7 +265,7 @@ void aps::initialize(int npts, array_1d<double> &min, array_1d<double> &max,
         sig_storage.add(-2.0);
     }
     
-    int before_grad=ggWrap.get_chisq_called();
+    int before_grad=ggWrap.get_called();
         
     double nn;
     for(i=0;i<gg.get_pts();i++){
@@ -536,7 +536,7 @@ int aps::find_global_minimum(array_1d<int> &neigh){
         exit(1);
     }
     
-    int i_before=ggWrap.get_chisq_called();
+    int i_before=ggWrap.get_called();
 
     array_1d<double> vv;
     array_1d<int> simplex_candidates;
@@ -982,7 +982,7 @@ int aps::get_ct_simplex(){
 }
 
 int aps::get_called(){
-    return ggWrap.get_chisq_called();
+    return ggWrap.get_called();
 }
 
 int aps::get_n_pts(){
@@ -1035,12 +1035,12 @@ double aps::get_pt(int dex, array_1d<double> &output){
 void aps::guess(array_1d<double> &pt){
 
     double chitrue;
-    int ibefore=ggWrap.get_chisq_called();
+    int ibefore=ggWrap.get_called();
     int actually_added;
 
     ggWrap.evaluate(pt,&chitrue);
 
-    ct_aps+=ggWrap.get_chisq_called()-ibefore;
+    ct_aps+=ggWrap.get_called()-ibefore;
 }
 
 void aps::search(){
@@ -1073,7 +1073,6 @@ void aps::search(){
 
 int aps::aps_wide(){
     
-    called_wide++;
     double sig;
     
     /*
@@ -1650,7 +1649,6 @@ void aps::aps_focus(){
    int ic;
    
    for(ic=0;ic<nodes.get_dim();ic++){
-       called_focus++;
        nodes(ic)->search();
    }
    
@@ -1965,19 +1963,22 @@ void aps::bisection(array_1d<double> &inpt, double chi_in){
 void aps::aps_search(){
 
     double before=double(time(NULL));
-    int ibefore=ggWrap.get_chisq_called(),i_wide;
- 
-    if(called_focus<called_wide){
+    int ibefore=ggWrap.get_called(),i_wide;
+    
+    
+    if(nodes.get_dim()>0 && called_focus/nodes.get_dim()<called_wide){
         aps_focus();
+        called_focus+=ggWrap.get_called()-ibefore;
     }
     else{
         ggWrap.set_iWhere(iAPS);
         i_wide=aps_wide();
         assess_node(i_wide);
+        called_wide+=ggWrap.get_called()-ibefore;
     }
 
     time_aps+=double(time(NULL))-before;
-    ct_aps+=ggWrap.get_chisq_called()-ibefore;
+    ct_aps+=ggWrap.get_called()-ibefore;
     set_where("nowhere");
     
 }
@@ -2002,7 +2003,7 @@ int aps::simplex_search(){
     set_where("simplex_search");
   
     double before=double(time(NULL));
-    int ibefore=ggWrap.get_chisq_called();
+    int ibefore=ggWrap.get_called();
     
     int ix,i,j,imin,iout=-1;
     
@@ -2026,7 +2027,7 @@ int aps::simplex_search(){
         }
         
     
-        ct_simplex+=ggWrap.get_chisq_called()-ibefore;
+        ct_simplex+=ggWrap.get_called()-ibefore;
         time_simplex+=double(time(NULL))-before;
         return -1;
     }
@@ -2143,7 +2144,7 @@ int aps::simplex_search(){
     
     mindex_is_candidate=0;
     
-    ct_simplex+=ggWrap.get_chisq_called()-ibefore;
+    ct_simplex+=ggWrap.get_called()-ibefore;
     time_simplex+=double(time(NULL))-before;
     
     set_where("nowhere");
@@ -2405,10 +2406,10 @@ void aps::write_pts(){
     double per_chisq,per_total,overhead;
     
     /*how much clock time is spent per call to chisquared just calling chisquared*/
-    per_chisq=ggWrap.get_chisq_time()/ggWrap.get_chisq_called();
+    per_chisq=ggWrap.get_chisq_time()/ggWrap.get_called();
     
     /*how much clock time is spent per call to chisquared on all of the calculations*/
-    per_total=(double(time(NULL))-start_time)/ggWrap.get_chisq_called();
+    per_total=(double(time(NULL))-start_time)/ggWrap.get_called();
     
     /*how much extra clock time has been added to each chisquared call
     by all of the extra calculations involved in APS*/
@@ -2581,9 +2582,9 @@ void aps::write_pts(){
    
     output=fopen(timingname,"a");
     fprintf(output,"%d %d %e %e %e %e -- ",
-    gg.get_pts(),ggWrap.get_chisq_called(),ggWrap.get_chisq_time(),
-    ggWrap.get_chisq_time()/double(ggWrap.get_chisq_called()),time_now-start_time,
-    (time_now-start_time)/double(ggWrap.get_chisq_called()));
+    gg.get_pts(),ggWrap.get_called(),ggWrap.get_chisq_time(),
+    ggWrap.get_chisq_time()/double(ggWrap.get_called()),time_now-start_time,
+    (time_now-start_time)/double(ggWrap.get_called()));
     
     fprintf(output,"%d %e -- ",ct_aps,time_aps);
     fprintf(output,"%d %e -- ",ct_simplex,time_simplex);

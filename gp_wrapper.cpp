@@ -325,14 +325,6 @@ int gpWrapper::get_chisq_dim(){
     return chisq->get_dim();
 }
 
-int gpWrapper::get_chisq_called(){
-    if(chisq==NULL){
-        printf("WARNING chisq is NULL but you just called get_chisq_called()\n");
-        exit(1);
-    }
-    
-    return chisq->get_called();
-}
 
 double gpWrapper::get_chisq_time(){
     if(chisq==NULL){

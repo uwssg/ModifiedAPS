@@ -41,6 +41,7 @@ class node{
         int get_n_boundary();
         int get_boundary(int);
         
+        
     private:
         
         array_1d<int> associates,boundaryPoints;
