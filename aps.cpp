@@ -2486,20 +2486,21 @@ void aps::write_pts(){
     int focus_dex=0;
     aps_dex=0;
     for(i=0;i<gg.get_pts();i++){
+        lling=ggWrap.get_whereFrom(i);
         if(aps_dex<wide_pts.get_dim() && i==wide_pts.get_data(aps_dex)){
-            lling=0;
+
             mu=mu_storage.get_data(aps_dex);
             sig=sig_storage.get_data(aps_dex);
             aps_dex++;
         }
         else if(focus_dex<focus_pts.get_dim() && i==focus_pts.get_data(focus_dex)){
-            lling=2;
+
             mu=-2.0;
             sig=-2.0;
             focus_dex++;
         }
         else{
-            lling=1;
+
             mu=-2.0;
             sig=-2.0;
         }

@@ -41,6 +41,9 @@ gpWrapper::gpWrapper(){
     good_pts.set_name("good_pts");
     
     whereCt.set_name("gp_wrapper_whereCt");
+    whereFrom.set_name("gp_wrapper_whereFrom");
+    
+    whereCt.set_name("gp_wrapper_whereCt");
     whereCt.set(iAPS,0);
     whereCt.set(iSimplex,0);
     whereCt.set(iCoulomb,0);
@@ -77,6 +80,13 @@ int gpWrapper::get_iWhere(){
 
 int gpWrapper::get_whereCt(int i){
     return whereCt.get_data(i);
+}
+
+int gpWrapper::get_whereFrom(int i){
+    if(i>=whereFrom.get_dim()){
+        return 0;
+    }
+    return whereFrom.get_data(i);
 }
 
 void gpWrapper::set_chisq(chisquared *cc){
@@ -209,6 +219,7 @@ void gpWrapper::evaluate(array_1d<double> &pt, double *chiout, int *dex, int val
             add_pt(pt,chiout[0]);
             dex[0]=gg->get_pts()-1;
             
+            whereFrom.set(dex[0],iWhere);
             whereCt.add_val(iWhere,1);
             
         }

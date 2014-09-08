@@ -210,6 +210,7 @@ class gpWrapper{
         int set_iWhere(int);
         int get_iWhere();
         int get_whereCt(int);
+        int get_whereFrom(int);
         //////////
         
     private:
@@ -227,7 +228,7 @@ class gpWrapper{
         
         ///////code for diagnostic testing
         int iWhere;
-        array_1d<int> whereCt;
+        array_1d<int> whereCt,whereFrom;
         
         ///////
 
