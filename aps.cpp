@@ -2638,17 +2638,17 @@ void aps::assess_node(int dex){
         }
     }
     
-    int could_be_used,use_it;
+    int used_because_distance,use_it;
     
-    /*could_be_used allows us to accept node candidates based on their
+    /*used_because_distance allows us to accept node candidates based on their
     distance from the nearest node*/
-    could_be_used=0;
+    used_because_distance=0;
     
-    for(i=0;i<nodes.get_dim() && could_be_used==0;i++){
+    for(i=0;i<nodes.get_dim() && used_because_distance==0;i++){
         if(nodes(i)->get_farthest_associate()>0.0 && 
            nodes(i)->get_n_associates()>100){
            
-               could_be_used=1;   
+               used_because_distance=1;   
         }
     }
     
@@ -2658,7 +2658,7 @@ void aps::assess_node(int dex){
     int j,itrial,inode,iclosest=-1;
     
     use_it=1;
-    for(i=0;i<nodes.get_dim() && (use_it==1 || could_be_used==1);i++){
+    for(i=0;i<nodes.get_dim() && (use_it==1 || used_because_distance==1);i++){
         inode=nodes(i)->get_center();
         dd=gg.distance(inode,dex);
         if(i==0 || dd<ddmin){
@@ -2669,7 +2669,7 @@ void aps::assess_node(int dex){
         if(dd<ddNodeRatio*nodes(i)->get_farthest_associate() && ddNodeRatio>1.0e-10){
             /*the point under consideration is too close to an existent node to be
             set based on distance*/
-            could_be_used=0;
+            used_because_distance=0;
         }
         
         for(j=0;j<gg.get_dim();j++){
@@ -2684,14 +2684,11 @@ void aps::assess_node(int dex){
     }
     
     if(iclosest>=0){
-        if(nodes(iclosest)->get_n_associates()<100)could_be_used=0;
+        if(nodes(iclosest)->get_n_associates()<100)used_because_distance=0;
     }
     
-    if(use_it==0 && could_be_used==1){
-        use_it=1;
-    }
-    
-    if(use_it==1){
+    if(use_it==1 || used_because_distance==1){
+        printf("accepting node %d %d\n",use_it,used_because_distance);
         nodes.add(dex,dice,&ggWrap);
         i=nodes.get_dim()-1;
         if(iclosest>=0){
