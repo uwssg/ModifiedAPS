@@ -2613,6 +2613,9 @@ void aps::write_pts(){
     printf("Compass: %d\n",ggWrap.get_whereCt(iCompass));
     printf("Ricochet: %d\n",ggWrap.get_whereCt(iRicochet));
     printf("nodes: %d\n",nodes.get_dim());
+    for(i=0;i<nodes.get_dim();i++){
+        printf("node %d associates %d\n",i,nodes(i)->get_n_associates());
+    }
     printf("\n");
     
        

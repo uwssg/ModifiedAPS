@@ -39,7 +39,10 @@ printf("seed %d\n",seed);
 matern_covariance cv;
 
 //declare the chisquared function APS will be searching
-ellipses_integrable chisq(dim,ncenters);
+//ellipses_integrable chisq(dim,ncenters);
+
+ellipses chisq(dim,ncenters);
+
 
 //declare APS
 //the '20' below is the number of nearest neighbors to use when seeding the
@@ -56,7 +59,7 @@ aps_test.assign_chisquared(&chisq);
 aps_test.assign_covariogram(&cv);
 
 //how often will APS stop and write its output
-aps_test.set_write_every(300);
+aps_test.set_write_every(3000);
 
 //set the G parameter from equation (4) in the paper
 aps_test.set_grat(1.0);

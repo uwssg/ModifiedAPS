@@ -229,8 +229,9 @@ int node::bisection(int lowDex, int highDex, int asAssociates){
     int ct;
     
     iout=lowDex;
- 
-    while(ct<100 && dd>1.0e-6 && gg->get_target()-flow>bisection_tolerance){
+    double target=gg->get_target();
+    
+    while(ct<100 && dd>1.0e-6 && target-flow>bisection_tolerance){
         
         for(i=0;i<gg->get_dim();i++){
             trial.set(i,0.5*(lowball.get_data(i)+highball.get_data(i)));
@@ -725,7 +726,9 @@ void node::compass_search(int istart){
         return;
     }
     
-    gg->set_iWhere(iCompass);
+    if(gg->get_iWhere()!=iRicochet){
+        gg->set_iWhere(iCompass);
+    }
     
     int idim,i,iHigh;
     double ftrial,sgn,scale;
@@ -977,7 +980,9 @@ void node::find_bases(){
         }
     }
     
-    if(basis_associates.get_dim()<100 || basis_associates.get_dim()<last_nBasisAssociates+1000){
+    if(basis_associates.get_dim()<100 || 
+      (last_nBasisAssociates>0 && basis_associates.get_dim()<last_nBasisAssociates+1000)){
+      
         return;
     }
     
@@ -1009,8 +1014,9 @@ void node::find_bases(){
     
     array_1d<double> dx;
     dx.set_name("node_find_bases_dx");
-    
+
     while(aborted<max_abort && stdev>stdevlim && Ebest>0.01*Ebest0){
+
         ix=-1;
         while(ix>=gg->get_dim() || ix<0){
             ix=dice->int32()%gg->get_dim();
