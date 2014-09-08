@@ -2603,6 +2603,17 @@ void aps::write_pts(){
     fprintf(output,"\n");
     
     fclose(output);
+    
+    printf("\n");
+    printf("APS: %d\n",ggWrap.get_whereCt(iAPS));
+    printf("Simplex: %d\n",ggWrap.get_whereCt(iSimplex));
+    printf("Bisection: %d\n",ggWrap.get_whereCt(iBisect));
+    printf("Coulomb: %d\n",ggWrap.get_whereCt(iCoulomb));
+    printf("Compass: %d\n",ggWrap.get_whereCt(iCompass));
+    printf("Ricochet: %d\n",ggWrap.get_whereCt(iRicochet));
+    printf("nodes: %d\n",nodes.get_dim());
+    printf("\n");
+    
        
     set_where("nowhere");
     time_writing+=double(time(NULL))-before;

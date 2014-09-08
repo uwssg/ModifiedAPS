@@ -18,6 +18,7 @@ node::node(){
     center_dex=-1;
     
     farthest_associate=0.0;
+    time_penalty=0.5;
     
     gg=NULL;
     dice=NULL;
@@ -42,6 +43,7 @@ void node::copy(const node &in){
     time_coulomb=in.time_coulomb;
     time_search=in.time_search;
     time_bases=in.time_bases;
+    time_penalty=in.time_penalty;
     
     int i,j;
     
@@ -268,6 +270,8 @@ int node::coulomb_search(){
     
     int iout=-1;
     double before=double(time(NULL));
+    int ibefore=gg->get_called();
+    
     double eps=1.0e-6,tol=1.0;
     
     gg->reset_cache(); //so that results of previous GP interpolation are not carried over
@@ -362,6 +366,7 @@ int node::coulomb_search(){
             
             evaluateNoAssociate(walker,&nn,&iout);
             time_coulomb+=double(time(NULL))-before;
+            time_coulomb+=time_penalty*(gg->get_called()-ibefore);
             return iout;
             
         }
@@ -477,6 +482,7 @@ int node::coulomb_search(){
     evaluate(walker,&nn,&iout);
     
     time_coulomb+=double(time(NULL))-before;
+    time_coulomb+=time_penalty*(gg->get_called()-ibefore);
     return iout;
 }
 
@@ -486,6 +492,7 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     */
     
     double before=double(time(NULL));
+    int ibefore=gg->get_called();
     
     array_1d<double> gradient,trial;
     gradient.set_name("node_ricochet_gradient");
@@ -511,6 +518,7 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     catch(int iex){
         printf("    ricochet gradient calculatio failed\n");
         time_ricochet+=double(time(NULL))-before;
+        time_ricochet+=time_penalty*(gg->get_called()-ibefore);
         return -1;
     }
     
@@ -554,6 +562,7 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     
     if(ct>=20){
         time_ricochet+=double(time(NULL))-before;
+        time_ricochet+=time_penalty*(gg->get_called()-ibefore);
         return -1;
     }
     
@@ -575,6 +584,7 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     
     if(ct>=20){
         time_ricochet+=double(time(NULL))-before;
+        time_ricochet+=time_penalty*(gg->get_called()-ibefore);
         return -1;
     }
     
@@ -586,6 +596,7 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     }
     
     time_ricochet+=double(time(NULL))-before;
+    time_ricochet+=time_penalty*(gg->get_called()-ibefore);
     return iout;
 }
 
@@ -967,6 +978,8 @@ void node::find_bases(){
     last_nBasisAssociates=basis_associates.get_dim();
     
     double before=double(time(NULL));
+    int ibefore=gg->get_called();
+    
     array_2d<double> bases_best,bases_trial;
     bases_best.set_name("node_find_bases_bases_best");
     bases_trial.set_name("node_find_bases_bases_trial");
@@ -1047,6 +1060,7 @@ void node::find_bases(){
     }
     
     time_bases+=double(time(NULL))-before;
+    time_bases+=time_penalty*(gg->get_called()-ibefore);
 }
 
 int node::search(){
@@ -1072,6 +1086,7 @@ int node::search(){
     }
     
     double before=double(time(NULL));
+    int ibefore=gg->get_called();
     
     int iCoulomb;
     
@@ -1174,6 +1189,7 @@ int node::search(){
     }
     
     time_search+=double(time(NULL))-before;
+    time_search+=time_penalty*(gg->get_called()-ibefore);
     
 }
 

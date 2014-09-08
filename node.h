@@ -48,7 +48,7 @@ class node{
         
         int center_dex,last_nBasisAssociates,last_nAssociates;
         double time_ricochet,time_coulomb,time_search,time_bases;
-        double farthest_associate;
+        double farthest_associate,time_penalty;
         
         gpWrapper *gg;
         Ran *dice;
