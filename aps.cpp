@@ -41,6 +41,9 @@ aps::aps(int dim_in, int kk, double dd, int seed){
     ddUnitSpheres.set_name("ddUnitSpheres");
     refined_simplex.set_name("refined_simplex");
     
+    _last_ff.set_name("find_global_min_last_ff");
+    _last_simplex.set_name("find_global_min_last_simplex");
+    
     write_every=1000;
     n_printed=0;
     do_bisection=1;
@@ -551,6 +554,7 @@ int aps::find_global_minimum(array_1d<int> &neigh){
     array_1d<double> pbar,ff,pstar,pstarstar;
     array_1d<double> min,max,true_var,length;
     
+    vv.set_name("find_global_min_vv");
     pts.set_name("find_global_min_pts");
     pbar.set_name("find_global_min_pbar");
     ff.set_name("find_global_min_ff");
@@ -559,6 +563,7 @@ int aps::find_global_minimum(array_1d<int> &neigh){
     min.set_name("find_global_min_min");
     max.set_name("find_global_min_max");
     true_var.set_name("find_global_min_true_var");
+    length.set_name("find_global_min_length");
     
     double fstar,fstarstar,dx;
     int ih,il,i,j,k,actually_added;
@@ -632,11 +637,21 @@ int aps::find_global_minimum(array_1d<int> &neigh){
     
     array_1d<double> p_min,p_max,step,deviation;
     array_1d<int> ix_candidates;
+    
+    p_min.set_name("find_global_min_p_min");
+    p_max.set_name("find_global_min_p_max");
+    step.set_name("find_global_min_step");
+    deviation.set_name("find_global_min_deviation");
+    ix_candidates.set_name("find_global_min_ix_candidates");
+    
     int ix;
     double theta;
     
     array_1d<double> trial,gradient;
     double mu1,mu2,x1,x2,mean_value;
+    
+    trial.set_name("find_global_min_trial");
+    gradient.set_name("find_global_min_gradient");
     
     int delta_max=0;
     
@@ -951,6 +966,8 @@ int aps::find_global_minimum(array_1d<int> &neigh){
     int ic,acutally_added,use_it,inode;
     array_1d<double> midpt;
     double chimid;
+    
+    midpt.set_name("find_global_min_midpt");
     
     /*
     Now we must assess whether the point to which this simplex search converged is an
