@@ -811,7 +811,7 @@ int aps::find_global_minimum(array_1d<int> &neigh){
         mean_value=mean_value/double(dim);
         
         
-        if(spread<1.0e-2*mean_value || _min_ct-_last_found>100){
+        if(spread<1.0e-1){
             /*
             If it appears that the simplex is converging into a valley in chisquared, 
             try a modified gradient descent from the current minimum point of the simplex, 
