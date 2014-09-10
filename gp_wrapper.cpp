@@ -183,7 +183,7 @@ int gpWrapper::is_valid(array_1d<double> &pt, double *chiout){
     gg->nn_srch(pt,1,neigh,ddneigh);
     if(ddneigh.get_data(0)<=1.0e-8){
         chiout[0]=gg->get_fn(neigh.get_data(0));
-        return -1*neigh.get_data(0);
+        return 0;
     }
     
     return 1;
@@ -211,8 +211,7 @@ void gpWrapper::evaluate(array_1d<double> &pt, double *chiout, int *dex, int val
         validity=is_valid(pt,chiout);
     }
     
-    if(validity<=0){
-        dex[0]=validity-1;
+    if(validity==0){
         return;
     }
     else{
