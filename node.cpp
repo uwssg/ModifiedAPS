@@ -188,8 +188,8 @@ int node::bisection(int lowDex, int highDex, int asAssociates){
     array_1d<double> lowball,highball;
     double flow,fhigh;
     
-    lowball.set_name("bisection_lowball");
-    highball.set_name("bisection_highball");
+    lowball.set_name("node_bisection(int)_lowball");
+    highball.set_name("node_bisection(int)_highball");
     
     int i;
     for(i=0;i<gg->get_dim();i++){
@@ -208,14 +208,28 @@ int node::bisection(array_1d<double> &ll, double l, array_1d<double> &hh, double
     return bisection(ll,l,hh,h,0);
 }
 
-int node::bisection(array_1d<double> &lowball, double flow, 
-array_1d<double> &highball, double fhigh, int asAssociates){
+int node::bisection(array_1d<double> &lowball_in, double flow_in, 
+array_1d<double> &highball_in, double fhigh_in, int asAssociates){
     
     /*
     lowDex and highDex are the indices of the initial highball and lowball poitns
     
     will return the best point it found
     */
+    
+    int i;
+    array_1d<double> lowball,highball;
+    double flow,fhigh;
+    
+    lowball.set_name("node_bisection_lowball");
+    highball.set_name("node_bisection_highball");
+    
+    fhigh=fhigh_in;
+    flow=flow_in;
+    for(i=0;i<gg->get_dim();i++){
+        lowball.set(i,lowball_in.get_data(i));
+        highball.set(i,highball_in.get_data(i));
+    }
     
     
     if(flow>gg->get_target()){
@@ -237,7 +251,6 @@ array_1d<double> &highball, double fhigh, int asAssociates){
     }
     
     int iout;
-    int i;
     double bisection_tolerance=0.1*gg->get_delta_chisquared();
     
     array_1d<double> trial;
@@ -751,9 +764,16 @@ void node::compass_search(int istart){
     }
     
     int idim,i,iHigh;
-    double ftrial,sgn,scale;
-    array_1d<double> trial;
+    double ftrial,sgn,scale,flow;
+    array_1d<double> trial,lowball;
+    
     trial.set_name("node_compass_trial");
+    lowball.set_name("node_compass_lowball");
+    
+    for(i=0;i<gg->get_dim();i++){
+        lowball.set(i,gg->get_pt(istart,i));
+    }
+    flow=gg->get_fn(istart);
     
     for(idim=0;idim<gg->get_dim();idim++){
         for(sgn=-1.0;sgn<1.5;sgn+=2.0){
@@ -770,7 +790,7 @@ void node::compass_search(int istart){
                 evaluateNoAssociate(trial,&ftrial,&iHigh);
             }
             
-            bisection(istart,iHigh);
+            bisection(lowball,flow,trial,ftrial);
             
         }//loop over sign (direction along basisVector)
     }//loop over dimension (which basisVector we are bisecting along)
