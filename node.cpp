@@ -208,6 +208,11 @@ int node::bisection(array_1d<double> &ll, double l, array_1d<double> &hh, double
     return bisection(ll,l,hh,h,0);
 }
 
+int node::bisectionAssociate(array_1d<double> &ll, double l,
+array_1d<double> &hh, double h){
+    return bisection(ll,l,hh,h,1);
+}
+
 int node::bisection(array_1d<double> &lowball_in, double flow_in, 
 array_1d<double> &highball_in, double fhigh_in, int asAssociates){
     

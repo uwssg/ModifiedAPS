@@ -60,6 +60,7 @@ class node{
         int bisection(array_1d<double>&,double,array_1d<double>&,double,int);
         int bisection(array_1d<double>&,double,array_1d<double>&,double);
         int bisectionAssociate(int,int);
+        int bisectionAssociate(array_1d<double>&,double,array_1d<double>&,double);
         int bisection(int,int,int);
         int coulomb_search();
         void ricochet_search(int,array_1d<double>&);
