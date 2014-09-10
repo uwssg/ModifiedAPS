@@ -976,6 +976,8 @@ double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_ass
 void node::find_bases(){
     /*find best basis vectors for this node*/
     
+    printf("finding bases\n");
+    
     gg->set_iWhere(iCompass);
     
     if(dice==NULL){
