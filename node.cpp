@@ -185,7 +185,26 @@ int node::bisection(int lowDex, int highDex, int asAssociates){
     */
     
     if(lowDex<0 || highDex<0){
-        return -1;
+        /*return -1;*/
+        
+        if(lowDex<0){
+           lowDex+=1;
+           lowDex*=-1;
+        }
+        
+        if(highDex<0){
+            highDex+=1;
+            highDex*=-1;
+        }
+        
+        if(lowDex>=gg->get_pts() || highDex>=gg->get_pts()){
+           return -1;
+        }
+        
+        if(gg->get_fn(lowDex)>gg->get_target() || gg->get_fn(highDex)<gg->get_target()){
+            return -1;
+        }
+        
     }
     
     if(gg->get_fn(lowDex)>gg->get_target()){
@@ -956,6 +975,8 @@ double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_ass
 
 void node::find_bases(){
     /*find best basis vectors for this node*/
+    
+    gg->set_iWhere(iCompass);
     
     if(dice==NULL){
         printf("WARNING cannot call node::find_bases; dice is null\n");

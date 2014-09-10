@@ -205,6 +205,7 @@ class gpWrapper{
         void actual_gradient(array_1d<double>&,array_1d<double>&);
         
         int get_called();
+        int get_pts();
         
         /////////code for diagnostic testing
         int set_iWhere(int);
