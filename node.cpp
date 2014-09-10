@@ -177,6 +177,39 @@ int node::bisectionAssociate(int low, int high){
 }
 
 int node::bisection(int lowDex, int highDex, int asAssociates){
+    if(lowDex<0 || lowDex>=gg->get_pts()){
+        return -1;
+    }
+    
+    if(highDex<0 || highDex>=gg->get_pts()){
+        return -1;
+    }
+    
+    array_1d<double> lowball,highball;
+    double flow,fhigh;
+    
+    lowball.set_name("bisection_lowball");
+    highball.set_name("bisection_highball");
+    
+    int i;
+    for(i=0;i<gg->get_dim();i++){
+        lowball.set(i,gg->get_pt(lowDex,i));
+        highball.set(i,gg->get_pt(highDex,i));
+    }
+    
+    flow=gg->get_fn(lowDex);
+    fhigh=gg->get_fn(highDex);
+    
+    return bisection(lowball,flow,highball,fhigh,asAssociates);
+    
+}
+
+int node::bisection(array_1d<double> &ll, double l, array_1d<double> &hh, double h){
+    return bisection(ll,l,hh,h,0);
+}
+
+int node::bisection(array_1d<double> &lowball, double flow, 
+array_1d<double> &highball, double fhigh, int asAssociates){
     
     /*
     lowDex and highDex are the indices of the initial highball and lowball poitns
@@ -184,39 +217,17 @@ int node::bisection(int lowDex, int highDex, int asAssociates){
     will return the best point it found
     */
     
-    if(lowDex<0 || highDex<0){
-        /*return -1;*/
-        
-        if(lowDex<0){
-           lowDex+=1;
-           lowDex*=-1;
-        }
-        
-        if(highDex<0){
-            highDex+=1;
-            highDex*=-1;
-        }
-        
-        if(lowDex>=gg->get_pts() || highDex>=gg->get_pts()){
-           return -1;
-        }
-        
-        if(gg->get_fn(lowDex)>gg->get_target() || gg->get_fn(highDex)<gg->get_target()){
-            return -1;
-        }
-        
-    }
     
-    if(gg->get_fn(lowDex)>gg->get_target()){
+    if(flow>gg->get_target()){
         printf("WARNING in node bisection target %e but flow %e\n",
-        gg->get_target(),gg->get_fn(lowDex));
+        gg->get_target(),flow);
         
         exit(1);
     }
     
-    if(gg->get_fn(highDex)<gg->get_target()){
+    if(fhigh<gg->get_target()){
         printf("WARNING in node bisection target %e but fhigh %e\n",
-        gg->get_target(),gg->get_fn(highDex));
+        gg->get_target(),fhigh);
         
         exit(1);
     }
@@ -226,18 +237,8 @@ int node::bisection(int lowDex, int highDex, int asAssociates){
     }
     
     int iout;
-    double flow,fhigh;
-    array_1d<double> lowball,highball;
-    lowball.set_name("node_bisection_lowball");
-    highball.set_name("node_bisection_highball");
-    
     int i;
     double bisection_tolerance=0.1*gg->get_delta_chisquared();
-    
-    flow=gg->get_fn(lowDex);
-    for(i=0;i<gg->get_dim();i++)lowball.set(i,gg->get_pt(lowDex,i));
-    fhigh=gg->get_fn(highDex);
-    for(i=0;i<gg->get_dim();i++)highball.set(i,gg->get_pt(highDex,i));
     
     array_1d<double> trial;
     double ftrial;
@@ -247,7 +248,7 @@ int node::bisection(int lowDex, int highDex, int asAssociates){
     double dd=gg->distance(lowball,highball);
     int ct;
     
-    iout=lowDex;
+    iout=-1;
     double target=gg->get_target();
     
     while(ct<100 && dd>1.0e-6 && target-flow>bisection_tolerance){
@@ -277,7 +278,7 @@ int node::bisection(int lowDex, int highDex, int asAssociates){
         dd*=0.5;
     }
 
-    if(iout!=lowDex)add_as_boundary(iout);
+    if(iout>=0)add_as_boundary(iout);
     
     return iout;
 }

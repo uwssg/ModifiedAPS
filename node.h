@@ -57,6 +57,8 @@ class node{
         
         void set_names();
         int bisection(int,int);
+        int bisection(array_1d<double>&,double,array_1d<double>&,double,int);
+        int bisection(array_1d<double>&,double,array_1d<double>&,double);
         int bisectionAssociate(int,int);
         int bisection(int,int,int);
         int coulomb_search();
