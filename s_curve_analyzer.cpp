@@ -1,16 +1,20 @@
 #include "chisq.h"
+#include "aps_extractor.h"
 
 main(int iargc, char *argv[]){
 
 char inputName[letters],word[letters];
 
 int dim,ncenters;
+double delta_chi;
 
 dim=22;
 ncenters=3;
+delta_chi=33.93;
 
-if(iargc>1)dim=atoi(argv[1]);
-if(iargc>2)ncenters=atoi(argv[2]);
+if(iargc>1)ncenters=atoi(argv[1]);
+if(iargc>2)dim=atoi(argv[2]);
+if(iargc>3)delta_chi=atof(argv[3]);
 
 array_2d<double> data;
 array_1d<double> chisq,vv,vvprojected,mu,sig;
@@ -72,6 +76,9 @@ while(fscanf(input,"%le",&nn)>0){
 fclose(input);
 fclose(output);
 
+aps_extractor apsExtractor;
+apsExtractor.set_filename("outputFiles/s_curve_projected.sav");
+apsExtractor.set_delta_chi(delta_chi);
 
 
 }

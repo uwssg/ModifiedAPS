@@ -16,8 +16,8 @@ dim=22;
 ncenters=3;
 
 if(iargc>1)seed=atoi(argv[1]);
-if(iargc>2)dim=atoi(argv[2]);
-if(iargc>3)ncenters=atoi(argv[3]);
+if(iargc>2)ncenters=atoi(argv[2]);
+if(iargc>3)dim=atoi(argv[3]);
 
 if(iargc>4){
     nsamples=atoi(argv[4]);

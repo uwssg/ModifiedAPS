@@ -104,9 +104,9 @@ s_curve: aps_runner_s_curve.cpp aps.o chisq.o
 	goto_tools.o containers.o kd.o eigen_wrapper.o gaussian_process.o \
 	gp_wrapper.o chisq.o aps.o node.o $(LIBRARIES) $(INCLUDE)
 
-s_curve_analysis: s_curve_analyzer.cpp chisq.o
+s_curve_analysis: s_curve_analyzer.cpp chisq.o aps_extractor.o
 	$(gg) -o s_curve_analysis s_curve_analyzer.cpp \
-	goto_tools.o containers.o kd.o \
+	goto_tools.o containers.o kd.o aps_extractor.o \
 	chisq.o $(LIBRARIES) $(INCLUDE)
 
 all:
