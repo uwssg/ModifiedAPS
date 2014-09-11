@@ -264,7 +264,7 @@ array_1d<double> &highball_in, double fhigh_in, int asAssociates){
     trial.set_name("node_bisection_trial");
     
     double dd=gg->distance(lowball,highball);
-    int ct;
+    int ct=0;
     
     iout=-1;
     double target=gg->get_target();
@@ -1002,8 +1002,6 @@ double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_ass
 void node::find_bases(){
     /*find best basis vectors for this node*/
     
-    printf("finding bases\n");
-    
     gg->set_iWhere(iCompass);
     
     if(dice==NULL){
@@ -1034,6 +1032,8 @@ void node::find_bases(){
       
         return;
     }
+    
+    printf("finding bases\n");
     
     last_nBasisAssociates=basis_associates.get_dim();
     

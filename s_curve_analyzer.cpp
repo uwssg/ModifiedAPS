@@ -81,13 +81,23 @@ apsExtractor.set_filename("outputFiles/s_curve_projected.sav");
 apsExtractor.set_delta_chi(delta_chi);
 
 char outname[letters];
-for(i=0;i<2;i++){
-    for(j=i+1;j<3;j++){
-        sprintf(outname,"processedFiles/s_curve_d%d_c%d_%d_%d_frequentist.sav",dim,ncenters,i,j);
-        apsExtractor.write_good_points(outname,i,j);
+array_1d<int> ix,iy;
+
+ix.set(0,0);
+ix.set(1,0);
+ix.set(2,14);
+
+iy.set(0,1);
+iy.set(1,2);
+iy.set(2,17);
+
+for(i=0;i<ix.get_dim();i++){
+
+    sprintf(outname,"processedFiles/s_curve_d%d_c%d_%d_%d_frequentist.sav",dim,ncenters,ix.get_data(i),iy.get_data(i));
+    apsExtractor.write_good_points(outname,ix.get_data(i),iy.get_data(i));
         
-        sprintf(outname,"processedFiles/s_curve_d%d_c%d_%d_%d_bayesian.sav",dim,ncenters,i,j);
-        apsExtractor.draw_bayesian_bounds(outname,i,j,0.95);
-    }
+    sprintf(outname,"processedFiles/s_curve_d%d_c%d_%d_%d_bayesian.sav",dim,ncenters,ix.get_data(i),iy.get_data(i));
+    apsExtractor.draw_bayesian_bounds(outname,ix.get_data(i),iy.get_data(i),0.95);
+
 }
 }
