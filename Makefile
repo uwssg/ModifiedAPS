@@ -106,7 +106,7 @@ s_curve: aps_runner_s_curve.cpp aps.o chisq.o
 
 s_curve_analysis: s_curve_analyzer.cpp chisq.o
 	$(gg) -o s_curve_analysis s_curve_analyzer.cpp \
-	goto_tools.o containers.o kd.o eigen_wrapper.o gaussian_process.o \
+	goto_tools.o containers.o kd.o \
 	chisq.o $(LIBRARIES) $(INCLUDE)
 
 all:

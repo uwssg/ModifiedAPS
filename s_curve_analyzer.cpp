@@ -2,4 +2,76 @@
 
 main(int iargc, char *argv[]){
 
+char inputName[letters],word[letters];
+
+int dim,ncenters;
+
+dim=22;
+ncenters=3;
+
+if(iargc>1)dim=atoi(argv[1]);
+if(iargc>2)ncenters=atoi(argv[2]);
+
+array_2d<double> data;
+array_1d<double> chisq,vv,vvprojected,mu,sig;
+array_1d<int> ling;
+
+int i,j;
+double nn;
+
+data.set_name("main_data");
+chisq.set_name("main_chisq");
+ling.set_name("main_ling");
+vv.set_name("main_vv");
+mu.set_name("main_mu");
+sig.set_name("main_sig");
+vvprojected.set_name("main_vvprojected");
+
+s_curve chifn(dim,ncenters);
+
+sprintf(inputName,"outputFiles/s_curve_d%d_c%d_output.sav",dim,ncenters);
+FILE *input,*output;
+
+output=fopen("outputFiles/s_curve_projected.sav","w");
+input=fopen(inputName,"r");
+for(i=0;i<dim+5;i++){
+    fscanf(input,"%s",word);
+    fprintf(output,"%s ",word);
+}
+fprintf(output,"\n");
+while(fscanf(input,"%le",&nn)>0){
+    vv.set(0,nn);
+    for(i=1;i<dim;i++){
+        fscanf(input,"%le",&nn);
+        vv.set(i,nn);
+    }
+    
+    
+    fscanf(input,"%le",&nn);
+    chisq.add(nn);
+    fscanf(input,"%le",&nn);
+    mu.add(nn);
+    fscanf(input,"%le",&nn);
+    sig.add(nn);
+    fscanf(input,"%d",&j);
+    ling.add(j);
+    
+    for(i=0;i<dim;i++){
+        vvprojected.set(i,chifn.project_to_basis(i,vv));
+    }
+    
+    for(i=0;i<dim;i++)fprintf(output,"%le ",vvprojected.get_data(i));
+    fprintf(output,"%le %le %le %d\n",
+        chisq.get_data(chisq.get_dim()-1),
+        mu.get_data(mu.get_dim()-1),
+        sig.get_data(sig.get_dim()-1),
+        ling.get_data(ling.get_dim()-1));
+
+}
+
+fclose(input);
+fclose(output);
+
+
+
 }
