@@ -741,10 +741,8 @@ void node::ricochet_search(int iStart, array_1d<double> &dir){
     }//loop on ii
     
     printf("ending Ricochet %d %e %e\n",ii,dir.get_square_norm(),dotproduct);
-    printf("points visited %d\n",pts_visited.get_dim());
-    for(i=0;i<pts_visited.get_dim();i++){
-        printf("    %e\n",distance_traveled.get_data(i));
-    }
+    printf("points visited %d -- %e\n",
+    pts_visited.get_dim(),distance_traveled.get_data(distance_traveled.get_dim()-1));
     printf("number of points %d\n\n",gg->get_whereCt(iRicochet));
         
     if(pts_visited.get_dim()>1){
