@@ -256,7 +256,7 @@ array_1d<double> &highball_in, double fhigh_in, int asAssociates){
     }
     
     int iout;
-    double bisection_tolerance=0.1*gg->get_delta_chisquared();
+    double bisection_tolerance=1.0;
     
     array_1d<double> trial;
     double ftrial;
@@ -648,7 +648,7 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     //iout=bisection(lowball,flow,highball,fhigh);spock
     
     /*implement independent bisection because need different tolerance*/
-    for(ii=0;ii<20;ii++){
+    for(ii=0;ii<15;ii++){
         for(i=0;i<gg->get_dim();i++){
             trial.set(i,0.5*(lowball.get_data(i)+highball.get_data(i)));
         }
@@ -666,6 +666,8 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
         }
         
     }
+    
+    if(iout>=0)add_as_boundary(iout);
     
     for(i=0;i<gg->get_dim();i++){
         vout.set(i,velocity.get_data(i));
