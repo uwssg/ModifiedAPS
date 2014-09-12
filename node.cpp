@@ -531,6 +531,8 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     returns the index of the point found
     */
     
+    if(istart<0)return -1;
+    
     double before=double(time(NULL));
     int ibefore=gg->get_called();
     
@@ -580,56 +582,65 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     
     double speed=velocity.normalize(),ss,chibest=2.0*chisq_exception;
     double ftrial=2.0*chisq_exception,flow,fhigh;
+    array_1d<double> lowball,highball;
     int iLow,iHigh;
     
+    lowball.set_name("ricochet_driver_lowball");
+    highball.set_name("ricochet_driver_highball");
+    
     /*try to find seeds for bisection along the reflected direction*/
-    flow=2.0*chisq_exception;
-    ss=2.0*speed;
+    
+    flow=gg->get_fn(istart);
+    for(i=0;i<gg->get_dim();i++){
+        lowball.set(i,gg->get_pt(istart,i));
+    }
+    
+    ss=0.5*speed;
     int ct=0;
     while(flow>=gg->get_target() && ct<20){
         for(i=0;i<gg->get_dim();i++){
-            trial.set(i,gg->get_pt(istart,i)+ss*velocity.get_data(i));
+            lowball.set(i,gg->get_pt(istart,i)-ss*velocity.get_data(i));
         }
         
-        evaluateNoAssociate(trial,&flow,&iLow);
+        evaluateNoAssociate(lowball,&flow,&iLow);
         
-        if(flow>=gg->get_target()){
-            ss*=0.5;
-        }
+        ss+=0.5*speed;
         
         ct++;
     }
     
     if(ct>=20){
+        printf("could not find iLow\n");
         time_ricochet+=double(time(NULL))-before;
         time_ricochet+=time_penalty*(gg->get_called()-ibefore);
         return -1;
     }
     
     ct=0;
-    ss+=0.5*speed;
+    ss=0.5*speed;
     fhigh=-2.0*chisq_exception;
+    
     while(fhigh<=gg->get_target() && ct<20){
+        
         for(i=0;i<gg->get_dim();i++){
-            trial.set(i,gg->get_pt(istart,i)+ss*velocity.get_data(i));
+            highball.set(i,lowball.get_data(i)+ss*velocity.get_data(i));
         }
         
-        evaluateNoAssociate(trial,&fhigh,&iHigh);
+        evaluateNoAssociate(highball,&fhigh,&iHigh);
         
-        /*if(fhigh<=gg->get_target()){
-            ss*=2.0;
-        }*/
+        ss+=0.5*speed;
         ct++;
     }
     
     if(ct>=20){
+        printf("could not find iHigh %e\n",fhigh);
         time_ricochet+=double(time(NULL))-before;
         time_ricochet+=time_penalty*(gg->get_called()-ibefore);
         return -1;
     }
     
     int iout;
-    iout=bisection(iLow,iHigh);
+    iout=bisection(lowball,flow,highball,fhigh);
     
     for(i=0;i<gg->get_dim();i++){
         vout.set(i,velocity.get_data(i));
@@ -675,6 +686,7 @@ void node::ricochet_search(int iStart, array_1d<double> &dir){
             iEnd=ricochet_driver(iStart,dir,vout);
         }
         catch (int iex){
+            printf("ending Ricochet because of exception\n");
             ii=10*gg->get_dim()+1;
         }
         
@@ -693,10 +705,15 @@ void node::ricochet_search(int iStart, array_1d<double> &dir){
             iStart=iEnd;
         }
         else{
+            printf("ending Ricochet because iEnd %d\n",iEnd);
             ii=10*gg->get_dim()+1;
         }
 
     }//loop on ii
+    
+    printf("ending Ricochet %d %e %e\n",ii,dir.get_square_norm(),dotproduct);
+    printf("points visited %d\n",pts_visited.get_dim());
+    printf("number of points %d\n\n",gg->get_whereCt(iRicochet));
         
     if(pts_visited.get_dim()>1){
         /*
@@ -1246,7 +1263,7 @@ int node::search(){
         }
     
 
-        ricochet_search(iStart,dir);
+        if(iStart>=0)ricochet_search(iStart,dir);
     }
     
     time_search+=double(time(NULL))-before;
