@@ -45,13 +45,14 @@ class node{
         double get_time_coulomb();
         double get_time_bases();
         double get_time_ricochet();
+        int get_called();
         
     private:
         
         array_1d<int> associates,boundaryPoints;
         array_2d<double> basisVectors;
         
-        int center_dex,last_nBasisAssociates,last_nAssociates;
+        int center_dex,last_nBasisAssociates,last_nAssociates,called;
         double time_ricochet,time_coulomb,time_search,time_bases;
         double farthest_associate,time_penalty;
         

@@ -2648,6 +2648,12 @@ void aps::write_pts(){
     for(i=0;i<nodes.get_dim();i++){
         printf("node %d associates %d\n",i,nodes(i)->get_n_associates());
     }
+    printf("called time_tot coulomb ricochet bases\n");
+    for(i=0;i<nodes.get_dim();i++){
+        printf("%d %e %e %e %e\n",nodes(i)->get_called(),
+        nodes(i)->get_time(),nodes(i)->get_time_coulomb(),nodes(i)->get_time_ricochet(),
+        nodes(i)->get_time_bases());
+    }
     printf("\n");
     
        

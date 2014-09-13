@@ -16,6 +16,7 @@ node::node(){
     last_nAssociates=0;
     last_nBasisAssociates=0;
     center_dex=-1;
+    called=0;
     
     farthest_associate=0.0;
     time_penalty=0.5;
@@ -44,6 +45,7 @@ void node::copy(const node &in){
     time_search=in.time_search;
     time_bases=in.time_bases;
     time_penalty=in.time_penalty;
+    called=in.called;
     
     int i,j;
     
@@ -1165,7 +1167,7 @@ void node::find_bases(){
 }
 
 int node::search(){
-
+    
     if(gg==NULL){
         printf("WARNING cannot call node search; gpWrapper is null\n");
         exit(1);
@@ -1289,8 +1291,13 @@ int node::search(){
         if(iStart>=0)ricochet_search(iStart,dir);
     }
     
+    called+=gg->get_called()-ibefore;
     time_search+=double(time(NULL))-before;
     time_search+=time_penalty*(gg->get_called()-ibefore);
+}
+
+int node::get_called(){
+    return called;
 }
 
 double node::get_time(){
