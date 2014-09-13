@@ -572,7 +572,7 @@ const{
         }
         
         for(i=0;i<cached_kk;i++){
-            for(j=0;j<cached_kk;j++){
+            for(j=0;j<kptr->get_dim();j++){
                 if(i==0 || bptr->get_pt(cached_neigh.get_data(i),j)<cached_pmin.get_data(j)){
                     cached_pmin.set(j,bptr->get_pt(cached_neigh.get_data(i),j));
                 }
