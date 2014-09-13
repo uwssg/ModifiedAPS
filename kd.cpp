@@ -41,6 +41,22 @@ void kd_tree::set_search_time(double nn){
     search_time=nn;
 }
 
+int kd_tree::get_search_ct_solo(){
+    return search_ct_solo;
+}
+
+double kd_tree::get_search_time_solo(){
+    return search_time_solo;
+}
+
+void kd_tree::set_search_ct_solo(int ii){
+    search_ct_solo=ii;
+}
+
+void kd_tree::set_search_time_solo(double nn){
+    search_time_solo=nn;
+}
+
 void kd_tree::build_tree(array_2d<double> &mm){
     
     array_1d<double> i_min,i_max;
@@ -69,6 +85,9 @@ void kd_tree::build_tree(array_2d<double> &mm,
     
     search_time=0.0;
     search_ct=0;
+    
+    search_ct_solo=0;
+    search_time_solo=0.0;
     
     data.reset();
     tree.reset();
@@ -856,9 +875,14 @@ array_1d<double> &dd){
     if(tree.get_data(node,1)>=0)neigh_check(v,kk,neigh,dd,tree.get_data(node,1),node);
     if(tree.get_data(node,2)>=0)neigh_check(v,kk,neigh,dd,tree.get_data(node,2),node);
     
-    
-    search_time+=double(time(NULL))-before;
-    search_ct++;
+    if(kk>1){
+        search_time+=double(time(NULL))-before;
+        search_ct++;
+    }
+    else{
+        search_time_solo+=double(time(NULL))-before;
+        search_ct_solo++;
+    }
 }
 
 void kd_tree::remove(int target){
