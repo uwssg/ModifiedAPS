@@ -351,11 +351,12 @@ void gp::add_pt(array_1d<double> &newpt, double newfn){
   fn.add(newfn);
   
   kptr->add(newpt);
+  bptr->add_pt(newpt);
   pts++;
   
-  if(pts!=kptr->get_pts()){
-      printf("WARNING in gp add_pt pts %d kptr_pts %d\n",
-      pts,kptr->get_pts());
+  if(pts!=kptr->get_pts() || pts!=bptr->get_pts()){
+      printf("WARNING in gp add_pt pts %d kptr_pts %d bptr_pts %d\n",
+      pts,kptr->get_pts(),bptr->get_pts());
       
       exit(1);
   }
