@@ -70,6 +70,26 @@ void gpWrapper::set_gp(gp *gg_in){
     minpt.set_dim(gg->get_dim());
 }
 
+int gpWrapper::get_search_ct_box(){
+    if(gg==NULL) return 0;
+    return gg->get_search_ct_box();
+}
+
+double gpWrapper::get_search_time_box(){
+    if(gg==NULL) return 0;
+    return gg->get_search_time_box();
+}
+
+int gpWrapper::get_biggest_box(){
+    if(gg==NULL) return 0;
+    return gg->get_biggest_box();
+}
+
+int gpWrapper::get_smallest_box(){
+    if(gg==NULL) return 0;
+    return gg->get_smallest_box();
+}
+
 int gpWrapper::get_search_ct(){
     if(gg==NULL){
         return 0;
