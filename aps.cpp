@@ -2657,6 +2657,7 @@ void aps::write_pts(){
     printf("search time %e search_ct %d -- %e\n",
     ggWrap.get_search_time(),ggWrap.get_search_ct(),
     ggWrap.get_search_time()/double(ggWrap.get_search_ct()));
+    printf("total time %e\n",time_now-start_time);
     printf("\n");
     
        
