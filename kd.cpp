@@ -25,10 +25,29 @@ kd_tree::kd_tree(array_2d<double> &mm, array_1d<double> &nmin, array_1d<double> 
     build_tree(mm,nmin,nmax);
 }
 
+double kd_tree::get_search_time(){
+    return search_time;
+}
+
+int kd_tree::get_search_ct(){
+    return search_ct;
+}
+
+void kd_tree::set_search_ct(int ii){
+    search_ct=ii;
+}
+
+void kd_tree::set_search_time(double nn){
+    search_time=nn;
+}
+
 void kd_tree::build_tree(array_2d<double> &mm){
     
     array_1d<double> i_min,i_max;
     int i;
+    
+    search_time=0;
+    search_ct=0;
     
     for(i=0;i<mm.get_cols();i++){
         i_min.set(i,0.0);
@@ -778,6 +797,8 @@ array_1d<double> &dd){
     nearest neighbors
     */
     
+    double before=double(time(NULL));
+    
     int i,j,k,l,node,where,behind;
     double ddnode,ddtry;
    
@@ -834,7 +855,10 @@ array_1d<double> &dd){
     if(tree.get_data(node,3)>=0)neigh_check(v,kk,neigh,dd,tree.get_data(node,3),node);
     if(tree.get_data(node,1)>=0)neigh_check(v,kk,neigh,dd,tree.get_data(node,1),node);
     if(tree.get_data(node,2)>=0)neigh_check(v,kk,neigh,dd,tree.get_data(node,2),node);
-  
+    
+    
+    search_time+=double(time(NULL))-before;
+    search_ct++;
 }
 
 void kd_tree::remove(int target){

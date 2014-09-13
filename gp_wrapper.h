@@ -207,6 +207,9 @@ class gpWrapper{
         int get_called();
         int get_pts();
         
+        int get_search_ct();
+        double get_search_time();
+        
         /////////code for diagnostic testing
         int set_iWhere(int);
         int get_iWhere();

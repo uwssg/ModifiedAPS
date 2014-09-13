@@ -2654,6 +2654,9 @@ void aps::write_pts(){
         nodes(i)->get_time(),nodes(i)->get_time_coulomb(),nodes(i)->get_time_ricochet(),
         nodes(i)->get_time_bases());
     }
+    printf("search time %e search_ct %d -- %e\n",
+    ggWrap.get_search_time(),ggWrap.get_search_ct(),
+    ggWrap.get_search_time()/double(ggWrap.get_search_ct()));
     printf("\n");
     
        

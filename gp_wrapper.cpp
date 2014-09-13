@@ -70,6 +70,22 @@ void gpWrapper::set_gp(gp *gg_in){
     minpt.set_dim(gg->get_dim());
 }
 
+int gpWrapper::get_search_ct(){
+    if(gg==NULL){
+        return 0;
+    }
+    
+    return gg->get_search_ct();
+}
+
+double gpWrapper::get_search_time(){
+    if(gg==NULL){
+        return 0.0;
+    }
+    
+    return gg->get_search_time();
+}
+
 int gpWrapper::set_iWhere(int i){
     iWhere=i;
 }

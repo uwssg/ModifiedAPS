@@ -36,6 +36,22 @@ gp::~gp(){
 
 }
 
+int gp::get_search_ct(){
+    if(kptr==NULL){
+       return 0;
+    }
+    
+    return kptr->get_search_ct();
+}
+
+double gp::get_search_time(){
+    if(kptr==NULL){
+        return 0.0;
+    }
+    
+    return kptr->get_search_time();
+}
+
 void gp::set_hyper_parameters(array_1d<double> &hh){
     covariogram->set_hyper_parameters(hh);
 }
@@ -262,6 +278,9 @@ void gp::refactor(){
     min.set_dim(dim);
     buffer.set_dim(pts,dim);
     
+    int sct=kptr->get_search_ct();
+    double st=kptr->get_search_time();
+    
     int i;
     
     for(i=0;i<dim;i++){
@@ -279,6 +298,8 @@ void gp::refactor(){
    
 
     kptr=new kd_tree(buffer,min,max);
+    kptr->set_search_ct(sct);
+    kptr->set_search_time(st);
    
     after=double(time(NULL));
     delete neighbor_storage;
