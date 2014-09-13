@@ -534,9 +534,6 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     
     if(istart<0)return -1;
     
-    double before=double(time(NULL));
-    int ibefore=gg->get_called();
-    
     array_1d<double> gradient,trial;
     gradient.set_name("node_ricochet_gradient");
     trial.set_name("node_ricochet_trial");
@@ -560,8 +557,6 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     }
     catch(int iex){
         printf("    ricochet gradient calculation failed\n");
-        time_ricochet+=double(time(NULL))-before;
-        time_ricochet+=time_penalty*(gg->get_called()-ibefore);
         return -1;
     }
     
@@ -616,8 +611,6 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     
     if(ct>=20){
         printf("could not find iLow\n");
-        time_ricochet+=double(time(NULL))-before;
-        time_ricochet+=time_penalty*(gg->get_called()-ibefore);
         return -1;
     }
     
@@ -639,8 +632,6 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     
     if(ct>=20){
         printf("could not find iHigh %e\n",fhigh);
-        time_ricochet+=double(time(NULL))-before;
-        time_ricochet+=time_penalty*(gg->get_called()-ibefore);
         return -1;
     }
     
@@ -673,14 +664,14 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
         vout.set(i,velocity.get_data(i));
     }
     
-    time_ricochet+=double(time(NULL))-before;
-    time_ricochet+=time_penalty*(gg->get_called()-ibefore);
-    
     return iout;
 }
 
 
 void node::ricochet_search(int iStart, array_1d<double> &dir){
+    
+    int ibefore=gg->get_called();
+    double before=double(time(NULL));
     
     gg->set_iWhere(iRicochet);
     
@@ -789,7 +780,9 @@ void node::ricochet_search(int iStart, array_1d<double> &dir){
         }
             
     }
-        
+    
+    time_ricochet+=double(time(NULL))-before;
+    time_ricochet+=(gg->get_called()-ibefore)*time_penalty;   
 }
 
 void node::compass_search(int istart){
@@ -1302,6 +1295,18 @@ int node::search(){
 
 double node::get_time(){
     return time_search;
+}
+
+double node::get_time_coulomb(){
+    return time_coulomb;
+}
+
+double node::get_time_ricochet(){
+    return time_ricochet;
+}
+
+double node::get_time_bases(){
+    return time_bases;
 }
 
 Ran* node::get_Ran(){

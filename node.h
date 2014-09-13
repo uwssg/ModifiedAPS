@@ -42,6 +42,9 @@ class node{
         int get_boundary(int);
         
         double get_time();
+        double get_time_coulomb();
+        double get_time_bases();
+        double get_time_ricochet();
         
     private:
         
