@@ -2662,6 +2662,12 @@ void aps::write_pts(){
     ggWrap.get_search_time_solo(),ggWrap.get_search_ct_solo(),
     ggWrap.get_search_time_solo()/double(ggWrap.get_search_ct_solo()));
     
+    printf("search time box %e ct %d -- %e\n",
+    ggWrap.get_search_time_box(),ggWrap.get_search_ct_box(),
+    ggWrap.get_search_time_box()/double(ggWrap.get_search_ct_box()));
+    printf("smallest box %d\n",ggWrap.get_smallest_box());
+    printf("biggest box %d\n",ggWrap.get_biggest_box());
+    
     printf("total time %e\n",time_now-start_time);
     printf("\n");
     
