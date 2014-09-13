@@ -46,9 +46,6 @@ void kd_tree::build_tree(array_2d<double> &mm){
     array_1d<double> i_min,i_max;
     int i;
     
-    search_time=0;
-    search_ct=0;
-    
     for(i=0;i<mm.get_cols();i++){
         i_min.set(i,0.0);
         i_max.set(i,1.0);
@@ -69,7 +66,10 @@ void kd_tree::build_tree(array_2d<double> &mm,
         printf("WARNING nmax dim %d cols %d\n",nmax.get_dim(),mm.get_cols());
         throw -1;
     } 
-   
+    
+    search_time=0.0;
+    search_ct=0;
+    
     data.reset();
     tree.reset();
    
