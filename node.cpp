@@ -16,7 +16,11 @@ node::node(){
     last_nAssociates=0;
     last_nBasisAssociates=0;
     center_dex=-1;
-    called=0;
+    
+    ct_search=0;
+    ct_ricochet=0;
+    ct_coulomb=0;
+    ct_bases=0;
     
     farthest_associate=0.0;
     time_penalty=0.5;
@@ -45,7 +49,11 @@ void node::copy(const node &in){
     time_search=in.time_search;
     time_bases=in.time_bases;
     time_penalty=in.time_penalty;
-    called=in.called;
+    
+    ct_search=in.ct_search;
+    ct_ricochet=in.ct_ricochet;
+    ct_coulomb=in.ct_coulomb;
+    ct_bases=in.ct_bases;
     
     int i,j;
     
@@ -409,7 +417,7 @@ int node::coulomb_search(){
             
             evaluateNoAssociate(walker,&nn,&iout);
             time_coulomb+=double(time(NULL))-before;
-            time_coulomb+=time_penalty*(gg->get_called()-ibefore);
+            ct_coulomb+=gg->get_called()-ibefore;
             return iout;
             
         }
@@ -525,7 +533,7 @@ int node::coulomb_search(){
     evaluate(walker,&nn,&iout);
     
     time_coulomb+=double(time(NULL))-before;
-    time_coulomb+=time_penalty*(gg->get_called()-ibefore);
+    ct_coulomb+=gg->get_called()-ibefore;
     return iout;
 }
 
@@ -784,7 +792,7 @@ void node::ricochet_search(int iStart, array_1d<double> &dir){
     }
     
     time_ricochet+=double(time(NULL))-before;
-    time_ricochet+=(gg->get_called()-ibefore)*time_penalty;   
+    ct_ricochet+=gg->get_called()-ibefore;
 }
 
 void node::compass_search(int istart){
@@ -1163,7 +1171,7 @@ void node::find_bases(){
     }
     
     time_bases+=double(time(NULL))-before;
-    time_bases+=time_penalty*(gg->get_called()-ibefore);
+    ct_bases+=gg->get_called()-ibefore;
 }
 
 int node::search(){
@@ -1251,7 +1259,7 @@ int node::search(){
     that is closest to chisq_limit as the point where we will begin our ricochet search
     */
     int iStart;
-    if(time_ricochet<0.5*time_search && associates.get_dim()>100){
+    if(time_ricochet+ct_ricochet*time_penalty<0.5*(time_search+ct_search*time_penalty) && associates.get_dim()>100){
         if(iBisection<0 || fabs(gg->get_fn(iCoulomb)-gg->get_target())<fabs(gg->get_fn(iBisection)-gg->get_target())){
             iStart=iCoulomb;
         }
@@ -1291,13 +1299,24 @@ int node::search(){
         if(iStart>=0)ricochet_search(iStart,dir);
     }
     
-    called+=gg->get_called()-ibefore;
+    ct_search+=gg->get_called()-ibefore;
     time_search+=double(time(NULL))-before;
-    time_search+=time_penalty*(gg->get_called()-ibefore);
 }
 
-int node::get_called(){
-    return called;
+int node::get_ct_search(){
+    return ct_search;
+}
+
+int node::get_ct_ricochet(){
+    return ct_ricochet;
+}
+
+int node::get_ct_coulomb(){
+    return ct_coulomb;
+}
+
+int node::get_ct_bases(){
+    return ct_bases;
 }
 
 double node::get_time(){

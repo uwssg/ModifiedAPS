@@ -2650,7 +2650,7 @@ void aps::write_pts(){
     }
     printf("called time_tot coulomb ricochet bases\n");
     for(i=0;i<nodes.get_dim();i++){
-        printf("%d %e %e %e %e\n",nodes(i)->get_called(),
+        printf("%d %e %e %e %e\n",nodes(i)->get_ct_search(),
         nodes(i)->get_time(),nodes(i)->get_time_coulomb(),nodes(i)->get_time_ricochet(),
         nodes(i)->get_time_bases());
     }
