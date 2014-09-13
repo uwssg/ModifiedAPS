@@ -6,7 +6,7 @@
 #include <time.h>
 
 #define box_exception -1
-#define min_pts_per_box 2
+#define min_pts_per_box 10
 
 class box{
 
