@@ -24,6 +24,7 @@ gp::gp(){
   covariogram=NULL;
   neighbor_storage=NULL;
   kptr=NULL;
+  bptr=NULL;
   
   hhbest.set_name("gp_hhbest");
   
