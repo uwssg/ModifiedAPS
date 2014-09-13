@@ -31,7 +31,9 @@ private:
     double time_add_srch,time_split;
     
     double split_error(array_1d<int>&,int,int*,int*);
-
+    
+    double time_search;
+    int ct_search;
     
 public:
     
@@ -43,6 +45,9 @@ public:
     ~box();
     
     void set_pts_per(int);
+    
+    int get_ct_search();
+    double get_time_search();
     
     double distance(array_1d<double>&,array_1d<double>&);
     double distance(int,array_1d<double>&);

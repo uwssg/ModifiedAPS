@@ -23,6 +23,9 @@ box::box(array_2d<double> &data_in, int pp_per_box, array_1d<double> &min_in, ar
 void box::initialize(array_2d<double> &data_in, int pp_per_box, 
 array_1d<double> &min_in, array_1d<double> &max_in){
     
+    ct_search=0;
+    time_search=0.0;
+    
     int i,j;
     
     if(max_in.get_dim()!=min_in.get_dim() || max_in.get_dim()!=data_in.get_cols()){
@@ -104,6 +107,14 @@ array_1d<double> &min_in, array_1d<double> &max_in){
     
     //printf("data is %d %d %p\n",data.get_rows(),data.get_cols(),&data);
     
+}
+
+double box::get_time_search(){
+    return time_search;
+}
+
+int box::get_ct_search(){
+    return ct_search;
 }
 
 double box::distance(int dex, array_1d<double> &p2){
@@ -1273,6 +1284,8 @@ void box::nn_srch(array_1d<double> &pt, array_1d<int> &neigh, array_1d<double> &
 	exit(1);
     }
     
+    double before=double(time(NULL));
+    
     int i_box,i_tree,dir;
     i_box=find_box(pt,&i_tree,&dir);
     
@@ -1304,7 +1317,10 @@ void box::nn_srch(array_1d<double> &pt, array_1d<int> &neigh, array_1d<double> &
     }
     
     sort_and_check(dd_raw,dd,neigh);
-
+    
+    time_search+=double(time(NULL))-before;
+    ct_search++;
+    
 }
 
 array_1d<int>* box::get_box(int dex){
