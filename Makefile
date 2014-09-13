@@ -74,7 +74,7 @@ test_eigen: test_eigen.cpp eigen_wrapper.o
 	eigen_wrapper.o $(LIBRARIES) $(INCLUDE) -Wno-deprecated
 
 gaussian_process.o: gaussian_process.cpp gaussian_process.h kd.o goto_tools.o \
-eigen_wrapper.o containers.o
+eigen_wrapper.o containers.o box.o
 	$(gg) -c gaussian_process.cpp goto_tools.o kd.o eigen_wrapper.o \
 	containers.o \
 	$(LIBRARIES) $(INCLUDE)

@@ -250,7 +250,9 @@ void gp::initialize(array_2d<double> &seed, array_1d<double> &seedfn,\
     kptr=new kd_tree(seed,mn,mx);//store data points in a kd tree
     
     kptr->check_tree(-1);//make sure kd tree is properly constructed
-
+    
+    bptr=new box(seed,kk,mn,mx);
+    
     if(kptr->get_diagnostic()!=1){
         printf("WARNING: did not properly construct tree\n");
         exit(1);

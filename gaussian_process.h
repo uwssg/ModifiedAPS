@@ -5,6 +5,7 @@
 #include "eigen_wrapper.h"
 #include "containers.h"
 #include "kd.h"
+#include "box.h"
 
 class covariance_function{
     /*
@@ -584,6 +585,8 @@ class gp{
         the points in parameter space corresponding to the known function 
         values in fn*/
         kd_tree *kptr;
+        
+        box *bptr;
         
         /*optional maximum value for uncertainty on interpolated function values*/
         double sigcap;

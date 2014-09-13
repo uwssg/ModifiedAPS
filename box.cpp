@@ -12,15 +12,16 @@ box::box(array_2d<double> &data_in, int pp_per_box){
 	mn.set(i,0.0);
     }
     
-    initialize(data_in,pp_per_box,mx,mn);
+    initialize(data_in,pp_per_box,mn,mx);
         
 }
 
-box::box(array_2d<double> &data_in, int pp_per_box, array_1d<double> &max_in, array_1d<double> &min_in){
-    initialize(data_in,pp_per_box,max_in,min_in);
+box::box(array_2d<double> &data_in, int pp_per_box, array_1d<double> &min_in, array_1d<double> &max_in){
+    initialize(data_in,pp_per_box,min_in,max_in);
 }
 
-void box::initialize(array_2d<double> &data_in, int pp_per_box, array_1d<double> &max_in, array_1d<double> &min_in){
+void box::initialize(array_2d<double> &data_in, int pp_per_box, 
+array_1d<double> &min_in, array_1d<double> &max_in){
     
     int i,j;
     
