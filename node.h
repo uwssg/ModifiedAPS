@@ -41,21 +41,34 @@ class node{
         int get_n_boundary();
         int get_boundary(int);
         
+        double get_time();
+        double get_time_coulomb();
+        double get_time_bases();
+        double get_time_ricochet();
+        int get_ct_search();
+        int get_ct_ricochet();
+        int get_ct_coulomb();
+        int get_ct_bases();
+        
     private:
         
         array_1d<int> associates,boundaryPoints;
         array_2d<double> basisVectors;
         
+        int ct_search,ct_coulomb,ct_bases,ct_ricochet;
         int center_dex,last_nBasisAssociates,last_nAssociates;
         double time_ricochet,time_coulomb,time_search,time_bases;
-        double farthest_associate;
+        double farthest_associate,time_penalty;
         
         gpWrapper *gg;
         Ran *dice;
         
         void set_names();
         int bisection(int,int);
+        int bisection(array_1d<double>&,double,array_1d<double>&,double,int);
+        int bisection(array_1d<double>&,double,array_1d<double>&,double);
         int bisectionAssociate(int,int);
+        int bisectionAssociate(array_1d<double>&,double,array_1d<double>&,double);
         int bisection(int,int,int);
         int coulomb_search();
         void ricochet_search(int,array_1d<double>&);

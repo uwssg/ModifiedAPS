@@ -560,7 +560,10 @@ class gp{
         
         /*return a pointer to the covariogram*/
         covariance_function* get_covariogram();
-
+        
+        double get_search_time();
+        int get_search_ct();
+        
     private:
     
         /*this object will keep track of the results of nearest neighbor searches

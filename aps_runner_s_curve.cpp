@@ -12,9 +12,12 @@ int seed=99;
 int dim,ncenters;
 int nsamples=10000;
 
-seed=atoi(argv[1]);
-dim=atoi(argv[2]);
-ncenters=atoi(argv[3]);
+dim=22;
+ncenters=3;
+
+if(iargc>1)seed=atoi(argv[1]);
+if(iargc>2)ncenters=atoi(argv[2]);
+if(iargc>3)dim=atoi(argv[3]);
 
 if(iargc>4){
     nsamples=atoi(argv[4]);
@@ -23,10 +26,10 @@ if(iargc>4){
 char timingname[letters],outname[letters];
 
 //what is the name of the file where APS will store its timing information
-sprintf(timingname,"timingFiles/ellipse_d%d_c%d_timing.sav",dim,ncenters);
+sprintf(timingname,"timingFiles/s_curve_d%d_c%d_timing.sav",dim,ncenters);
 
 //what is the name of the file where APS will output the points it sampled
-sprintf(outname,"outputFiles/ellipse_d%d_c%d_output.sav",dim,ncenters);
+sprintf(outname,"outputFiles/s_curve_d%d_c%d_output.sav",dim,ncenters);
 
 
 if(seed<0){
@@ -41,7 +44,7 @@ matern_covariance cv;
 //declare the chisquared function APS will be searching
 //ellipses_integrable chisq(dim,ncenters);
 
-ellipses chisq(dim,ncenters);
+s_curve chisq(dim,ncenters);
 
 
 //declare APS
@@ -50,7 +53,7 @@ ellipses chisq(dim,ncenters);
 //
 //the '11.0' is the \Delta\chi^2 corresponding to a 95% confidence limit
 //on a 5-dimensional parameter space
-aps aps_test(dim,20,11.0,seed);
+aps aps_test(dim,20,33.9,seed);
 
 //pass chisq to the aps object
 aps_test.assign_chisquared(&chisq);
@@ -85,7 +88,7 @@ aps_test.set_outname(outname);
 
 //initialize aps with 1000 random samples
 printf("time to initialize\n");
-aps_test.initialize(100,min,max);
+aps_test.initialize(1000,min,max);
 
 double chival,chivaltest,err;
 

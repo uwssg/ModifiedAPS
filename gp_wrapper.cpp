@@ -41,11 +41,15 @@ gpWrapper::gpWrapper(){
     good_pts.set_name("good_pts");
     
     whereCt.set_name("gp_wrapper_whereCt");
+    whereFrom.set_name("gp_wrapper_whereFrom");
+    
+    whereCt.set_name("gp_wrapper_whereCt");
     whereCt.set(iAPS,0);
     whereCt.set(iSimplex,0);
     whereCt.set(iCoulomb,0);
     whereCt.set(iCompass,0);
     whereCt.set(iBisect,0);
+    whereCt.set(iNodeBisect,0);
     whereCt.set(iRicochet,0);
     iWhere=iAPS;
     
@@ -66,6 +70,22 @@ void gpWrapper::set_gp(gp *gg_in){
     minpt.set_dim(gg->get_dim());
 }
 
+int gpWrapper::get_search_ct(){
+    if(gg==NULL){
+        return 0;
+    }
+    
+    return gg->get_search_ct();
+}
+
+double gpWrapper::get_search_time(){
+    if(gg==NULL){
+        return 0.0;
+    }
+    
+    return gg->get_search_time();
+}
+
 int gpWrapper::set_iWhere(int i){
     iWhere=i;
 }
@@ -76,6 +96,17 @@ int gpWrapper::get_iWhere(){
 
 int gpWrapper::get_whereCt(int i){
     return whereCt.get_data(i);
+}
+
+void gpWrapper::set_whereFrom(int dex, int i){
+    whereFrom.set(dex,i);
+}
+
+int gpWrapper::get_whereFrom(int i){
+    if(i>=whereFrom.get_dim()){
+        return 0;
+    }
+    return whereFrom.get_data(i);
 }
 
 void gpWrapper::set_chisq(chisquared *cc){
@@ -103,6 +134,10 @@ double gpWrapper::get_max(int dex){
 }
 
 double gpWrapper::distance(int i, int j){
+    if(i<0 || j<0 || i>=gg->get_pts() || j>=gg->get_pts()){
+        printf("    iWhere %d\n",iWhere);
+        printf("    int int\n");
+    }
     return gg->distance(i,j);
 }
 
@@ -111,10 +146,19 @@ double gpWrapper::distance(array_1d<double> &x, array_1d<double> &y){
 }
 
 double gpWrapper::distance(array_1d<double> &x, int i){
+    if(i<0 || i>=gg->get_pts()){
+        printf("    iWhere %d\n",iWhere);
+        printf("    pt, int\n");
+    }
+
     return gg->distance(x,i);
 }
 
 double gpWrapper::distance(int i, array_1d<double> &x){
+    if(i<0 || i>=gg->get_pts()){
+        printf("    iWhere %d\n",iWhere);
+        printf("    int, pt\n");
+    }
     return gg->distance(i,x);
 }
 
@@ -195,6 +239,7 @@ void gpWrapper::evaluate(array_1d<double> &pt, double *chiout, int *dex, int val
             add_pt(pt,chiout[0]);
             dex[0]=gg->get_pts()-1;
             
+            whereFrom.set(dex[0],iWhere);
             whereCt.add_val(iWhere,1);
             
         }
@@ -311,14 +356,6 @@ int gpWrapper::get_chisq_dim(){
     return chisq->get_dim();
 }
 
-int gpWrapper::get_chisq_called(){
-    if(chisq==NULL){
-        printf("WARNING chisq is NULL but you just called get_chisq_called()\n");
-        exit(1);
-    }
-    
-    return chisq->get_called();
-}
 
 double gpWrapper::get_chisq_time(){
     if(chisq==NULL){
@@ -463,4 +500,8 @@ void gpWrapper::actual_gradient(int x, array_1d<double> &y){
 
 int gpWrapper::get_called(){
     return chisq->get_called();
+}
+
+int gpWrapper::get_pts(){
+    return gg->get_pts();
 }

@@ -89,10 +89,25 @@ chisq.o containers.o gp_wrapper.o node.o
 	chisq.o containers.o gp_wrapper.o node.o $(LIBRARIES) \
 	$(INCLUDE) -Wno-deprecated
 
+s_control: s_curve_control.cpp chisq.o
+	$(gg) -o s_control s_curve_control.cpp containers.o goto_tools.o \
+	kd.o chisq.o \
+	$(LIBRARIES) $(INCLUDE)
+
 ellipse: aps_runner_ellipses.cpp aps.o chisq.o
 	$(gg) -o ellipse aps_runner_ellipses.cpp \
 	goto_tools.o containers.o kd.o eigen_wrapper.o gaussian_process.o \
 	chisq.o aps.o gp_wrapper.o node.o $(LIBRARIES) $(INCLUDE)
+
+s_curve: aps_runner_s_curve.cpp aps.o chisq.o
+	$(gg) -o s_curve aps_runner_s_curve.cpp \
+	goto_tools.o containers.o kd.o eigen_wrapper.o gaussian_process.o \
+	gp_wrapper.o chisq.o aps.o node.o $(LIBRARIES) $(INCLUDE)
+
+s_curve_analysis: s_curve_analyzer.cpp chisq.o aps_extractor.o
+	$(gg) -o s_curve_analysis s_curve_analyzer.cpp \
+	goto_tools.o containers.o kd.o aps_extractor.o \
+	chisq.o $(LIBRARIES) $(INCLUDE)
 
 all:
 	make test_containers
@@ -100,6 +115,9 @@ all:
 	make test_eigen
 	make ellipse
 	make aps_extract
+	make s_control
+	make s_curve
+	make s_curve_analysis
 clean:
 	rm *.o test_containers test_kd test_eigen ellipse \
-	aps_extract
+	aps_extract s_curve s_control s_curve_analysis

@@ -8,10 +8,11 @@ p 509
 (1975)
 */
 
-#include "containers.h"
-
 #ifndef KD_H
 #define KD_H
+
+#include "time.h"
+#include "containers.h"
 
 class kd_tree{
     /*
@@ -157,9 +158,18 @@ class kd_tree{
         space*/
         double get_max(int);
         double get_min(int);
-
+        
+        double get_search_time();
+        int get_search_ct();
+        
+        void set_search_ct(int);
+        void set_search_time(double);
+        
     private:
-    
+        
+        double search_time;
+        int search_ct;
+        
         /*a global variable logging whether or not the tree was properly
         constructed; diagnostic=1 if the tree is correct; diagnostic=0 if not*/
         int diagnostic;

@@ -15,7 +15,7 @@
 #include "chisq.h"
 
 ////////////code for diagnostic testing
-enum{iAPS,iSimplex,iCoulomb,iCompass,iBisect,iRicochet};
+enum{iAPS,iSimplex,iCoulomb,iCompass,iBisect,iNodeBisect,iRicochet};
 ///////////////
 
 
@@ -172,7 +172,6 @@ class gpWrapper{
         
         double call_chisq(array_1d<double>&);
         int get_chisq_dim();
-        int get_chisq_called();
         double get_chisq_time();
         
         int get_global_mindex();
@@ -206,11 +205,17 @@ class gpWrapper{
         void actual_gradient(array_1d<double>&,array_1d<double>&);
         
         int get_called();
+        int get_pts();
+        
+        int get_search_ct();
+        double get_search_time();
         
         /////////code for diagnostic testing
         int set_iWhere(int);
         int get_iWhere();
         int get_whereCt(int);
+        int get_whereFrom(int);
+        void set_whereFrom(int,int);
         //////////
         
     private:
@@ -228,7 +233,7 @@ class gpWrapper{
         
         ///////code for diagnostic testing
         int iWhere;
-        array_1d<int> whereCt;
+        array_1d<int> whereCt,whereFrom;
         
         ///////
 

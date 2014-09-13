@@ -17,7 +17,13 @@ node::node(){
     last_nBasisAssociates=0;
     center_dex=-1;
     
+    ct_search=0;
+    ct_ricochet=0;
+    ct_coulomb=0;
+    ct_bases=0;
+    
     farthest_associate=0.0;
+    time_penalty=0.5;
     
     gg=NULL;
     dice=NULL;
@@ -42,6 +48,12 @@ void node::copy(const node &in){
     time_coulomb=in.time_coulomb;
     time_search=in.time_search;
     time_bases=in.time_bases;
+    time_penalty=in.time_penalty;
+    
+    ct_search=in.ct_search;
+    ct_ricochet=in.ct_ricochet;
+    ct_coulomb=in.ct_coulomb;
+    ct_bases=in.ct_bases;
     
     int i,j;
     
@@ -128,7 +140,7 @@ void node::evaluate(array_1d<double> &pt, double *chiout, int *dexout, int doAss
     gg->evaluate(pt,chiout,dexout);
     
     double dd;
-    if(chiout[0]<gg->get_target() && doAssociate==1){
+    if(chiout[0]<gg->get_target() && doAssociate==1 && dexout[0]>=0){
         associates.add(dexout[0]);
         dd=gg->distance(dexout[0],center_dex);
         if(dd>farthest_associate){
@@ -175,6 +187,44 @@ int node::bisectionAssociate(int low, int high){
 }
 
 int node::bisection(int lowDex, int highDex, int asAssociates){
+    if(lowDex<0 || lowDex>=gg->get_pts()){
+        return -1;
+    }
+    
+    if(highDex<0 || highDex>=gg->get_pts()){
+        return -1;
+    }
+    
+    array_1d<double> lowball,highball;
+    double flow,fhigh;
+    
+    lowball.set_name("node_bisection(int)_lowball");
+    highball.set_name("node_bisection(int)_highball");
+    
+    int i;
+    for(i=0;i<gg->get_dim();i++){
+        lowball.set(i,gg->get_pt(lowDex,i));
+        highball.set(i,gg->get_pt(highDex,i));
+    }
+    
+    flow=gg->get_fn(lowDex);
+    fhigh=gg->get_fn(highDex);
+    
+    return bisection(lowball,flow,highball,fhigh,asAssociates);
+    
+}
+
+int node::bisection(array_1d<double> &ll, double l, array_1d<double> &hh, double h){
+    return bisection(ll,l,hh,h,0);
+}
+
+int node::bisectionAssociate(array_1d<double> &ll, double l,
+array_1d<double> &hh, double h){
+    return bisection(ll,l,hh,h,1);
+}
+
+int node::bisection(array_1d<double> &lowball_in, double flow_in, 
+array_1d<double> &highball_in, double fhigh_in, int asAssociates){
     
     /*
     lowDex and highDex are the indices of the initial highball and lowball poitns
@@ -182,36 +232,41 @@ int node::bisection(int lowDex, int highDex, int asAssociates){
     will return the best point it found
     */
     
-    if(lowDex<0 || highDex<0){
-        return -1;
-    }
-    
-    if(gg->get_fn(lowDex)>gg->get_target()){
-        printf("WARNING in node bisection target %e but flow %e\n",
-        gg->get_target(),gg->get_fn(lowDex));
-        
-        exit(1);
-    }
-    
-    if(gg->get_fn(highDex)<gg->get_target()){
-        printf("WARNING in node bisection target %e but fhigh %e\n",
-        gg->get_target(),gg->get_fn(highDex));
-        
-        exit(1);
-    }
-    
-    int iout;
-    double flow,fhigh;
+    int i;
     array_1d<double> lowball,highball;
+    double flow,fhigh;
+    
     lowball.set_name("node_bisection_lowball");
     highball.set_name("node_bisection_highball");
     
-    int i;
+    fhigh=fhigh_in;
+    flow=flow_in;
+    for(i=0;i<gg->get_dim();i++){
+        lowball.set(i,lowball_in.get_data(i));
+        highball.set(i,highball_in.get_data(i));
+    }
     
-    flow=gg->get_fn(lowDex);
-    for(i=0;i<gg->get_dim();i++)lowball.set(i,gg->get_pt(lowDex,i));
-    fhigh=gg->get_fn(highDex);
-    for(i=0;i<gg->get_dim();i++)highball.set(i,gg->get_pt(highDex,i));
+    
+    if(flow>gg->get_target()){
+        printf("WARNING in node bisection target %e but flow %e\n",
+        gg->get_target(),flow);
+        
+        exit(1);
+    }
+    
+    if(fhigh<gg->get_target()){
+        printf("WARNING in node bisection target %e but fhigh %e\n",
+        gg->get_target(),fhigh);
+        
+        exit(1);
+    }
+    
+    if(gg->get_iWhere()==iCoulomb){
+        gg->set_iWhere(iNodeBisect);
+    }
+    
+    int iout;
+    double bisection_tolerance=1.0;
     
     array_1d<double> trial;
     double ftrial;
@@ -219,11 +274,12 @@ int node::bisection(int lowDex, int highDex, int asAssociates){
     trial.set_name("node_bisection_trial");
     
     double dd=gg->distance(lowball,highball);
-    int ct;
+    int ct=0;
     
-    iout=lowDex;
+    iout=-1;
+    double target=gg->get_target();
     
-    while(ct<100 && dd>1.0e-6){
+    while(ct<100 && dd>1.0e-6 && target-flow>bisection_tolerance){
         
         for(i=0;i<gg->get_dim();i++){
             trial.set(i,0.5*(lowball.get_data(i)+highball.get_data(i)));
@@ -237,6 +293,7 @@ int node::bisection(int lowDex, int highDex, int asAssociates){
         }
         
         if(ftrial<gg->get_target()){
+            //printf("changing lowball\n");
             if(itrial>=0)iout=itrial;
             flow=ftrial;
             for(i=0;i<gg->get_dim();i++)lowball.set(i,trial.get_data(i));
@@ -249,8 +306,8 @@ int node::bisection(int lowDex, int highDex, int asAssociates){
         ct++;
         dd*=0.5;
     }
-    
-    if(iout!=lowDex)add_as_boundary(iout);
+
+    if(iout>=0)add_as_boundary(iout);
     
     return iout;
 }
@@ -259,8 +316,13 @@ int node::coulomb_search(){
     /*
     will return the index of the best point it found
     */
+    
+    gg->set_iWhere(iCoulomb);
+    
     int iout=-1;
     double before=double(time(NULL));
+    int ibefore=gg->get_called();
+    
     double eps=1.0e-6,tol=1.0;
     
     gg->reset_cache(); //so that results of previous GP interpolation are not carried over
@@ -355,6 +417,7 @@ int node::coulomb_search(){
             
             evaluateNoAssociate(walker,&nn,&iout);
             time_coulomb+=double(time(NULL))-before;
+            ct_coulomb+=gg->get_called()-ibefore;
             return iout;
             
         }
@@ -470,6 +533,7 @@ int node::coulomb_search(){
     evaluate(walker,&nn,&iout);
     
     time_coulomb+=double(time(NULL))-before;
+    ct_coulomb+=gg->get_called()-ibefore;
     return iout;
 }
 
@@ -478,7 +542,7 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     returns the index of the point found
     */
     
-    double before=double(time(NULL));
+    if(istart<0)return -1;
     
     array_1d<double> gradient,trial;
     gradient.set_name("node_ricochet_gradient");
@@ -502,8 +566,7 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
         gg->actual_gradient(istart,gradient);
     }
     catch(int iex){
-        printf("    ricochet gradient calculatio failed\n");
-        time_ricochet+=double(time(NULL))-before;
+        printf("    ricochet gradient calculation failed\n");
         return -1;
     }
     
@@ -525,65 +588,102 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     
     double speed=velocity.normalize(),ss,chibest=2.0*chisq_exception;
     double ftrial=2.0*chisq_exception,flow,fhigh;
+    array_1d<double> lowball,highball;
     int iLow,iHigh;
     
+    lowball.set_name("ricochet_driver_lowball");
+    highball.set_name("ricochet_driver_highball");
+    
     /*try to find seeds for bisection along the reflected direction*/
-    flow=2.0*chisq_exception;
-    ss=2.0*speed;
+    
+    flow=gg->get_fn(istart);
+    for(i=0;i<gg->get_dim();i++){
+        lowball.set(i,gg->get_pt(istart,i));
+    }
+  
+    
+    double startingSpeed=vstart.normalize();
+    
+    ss=0.01*startingSpeed;
+    
     int ct=0;
     while(flow>=gg->get_target() && ct<20){
         for(i=0;i<gg->get_dim();i++){
-            trial.set(i,gg->get_pt(istart,i)+ss*velocity.get_data(i));
+            lowball.set(i,gg->get_pt(istart,i)-ss*vstart.get_data(i));
         }
         
-        evaluateNoAssociate(trial,&flow,&iLow);
+        evaluateNoAssociate(lowball,&flow,&iLow);
         
-        if(flow>=gg->get_target()){
-            ss*=0.5;
-        }
+        ss+=0.01*startingSpeed;
         
         ct++;
     }
     
     if(ct>=20){
-        time_ricochet+=double(time(NULL))-before;
+        printf("could not find iLow\n");
         return -1;
     }
     
     ct=0;
-    ss+=0.5*speed;
+    ss=2.0*speed;
     fhigh=-2.0*chisq_exception;
+    
     while(fhigh<=gg->get_target() && ct<20){
+        
         for(i=0;i<gg->get_dim();i++){
-            trial.set(i,gg->get_pt(istart,i)+ss*velocity.get_data(i));
+            highball.set(i,lowball.get_data(i)+ss*velocity.get_data(i));
         }
         
-        evaluateNoAssociate(trial,&fhigh,&iHigh);
+        evaluateNoAssociate(highball,&fhigh,&iHigh);
         
-        /*if(fhigh<=gg->get_target()){
-            ss*=2.0;
-        }*/
+        ss*=2.0;
         ct++;
     }
     
     if(ct>=20){
-        time_ricochet+=double(time(NULL))-before;
+        printf("could not find iHigh %e\n",fhigh);
         return -1;
     }
     
-    int iout;
-    iout=bisection(iLow,iHigh);
+    int iout=-1,ii;
+    //iout=bisection(lowball,flow,highball,fhigh);spock
+    
+    /*implement independent bisection because need different tolerance*/
+    for(ii=0;ii<15;ii++){
+        for(i=0;i<gg->get_dim();i++){
+            trial.set(i,0.5*(lowball.get_data(i)+highball.get_data(i)));
+        }
+        
+        evaluateNoAssociate(trial,&ftrial,&j);
+        if(ftrial<=gg->get_target()){
+            for(i=0;i<gg->get_dim();i++)lowball.set(i,trial.get_data(i));
+            flow=ftrial;
+            if(j>=0)iout=j;
+           
+        }
+        else{
+            for(i=0;i<gg->get_dim();i++)highball.set(i,trial.get_data(i));
+            
+        }
+        
+    }
+    
+    if(iout>=0)add_as_boundary(iout);
     
     for(i=0;i<gg->get_dim();i++){
         vout.set(i,velocity.get_data(i));
     }
     
-    time_ricochet+=double(time(NULL))-before;
     return iout;
 }
 
 
 void node::ricochet_search(int iStart, array_1d<double> &dir){
+    
+    int ibefore=gg->get_called();
+    double before=double(time(NULL));
+    
+    gg->set_iWhere(iRicochet);
     
     double ftrial;
     array_1d<double> trial;
@@ -613,25 +713,38 @@ void node::ricochet_search(int iStart, array_1d<double> &dir){
     for(ii=0;ii<10*gg->get_dim() && dir.get_square_norm()>1.0e-20 && dotproduct>0.0; ii++){
         try{
             iEnd=ricochet_driver(iStart,dir,vout);
+            
         }
         catch (int iex){
+            printf("ending Ricochet because of exception\n");
             ii=10*gg->get_dim()+1;
         }
+        
+        if(iEnd>=0){    
+            i=distance_traveled.get_dim();
+            distance_traveled.add(distance_traveled.get_data(i-1)+gg->distance(iStart,iEnd));
+            pts_visited.add(iEnd);
             
-        i=distance_traveled.get_dim();
-        distance_traveled.add(distance_traveled.get_data(i-1)+gg->distance(iStart,iEnd));
-        pts_visited.add(iEnd);
+            dotproduct=0.0;
+            for(i=0;i<gg->get_dim();i++){
+                /*can this ever be negative...?*/
+                dotproduct+=vout.get_data(i)*(gg->get_pt(iEnd,i)-gg->get_pt(center_dex,i));
+                dir.set(i,gg->get_pt(iEnd,i)-gg->get_pt(iStart,i));
+            }
             
-        dotproduct=0.0;
-        for(i=0;i<gg->get_dim();i++){
-            /*can this ever be negative...?*/
-            dotproduct+=vout.get_data(i)*(gg->get_pt(iEnd,i)-gg->get_pt(center_dex,i));
-            dir.set(i,gg->get_pt(iEnd,i)-gg->get_pt(iStart,i));
+            iStart=iEnd;
         }
-            
-        iStart=iEnd;
+        else{
+            printf("ending Ricochet because iEnd %d\n",iEnd);
+            ii=10*gg->get_dim()+1;
+        }
 
     }//loop on ii
+    
+    printf("ending Ricochet %d %e %e\n",ii,dir.get_square_norm(),dotproduct);
+    printf("points visited %d -- %e\n",
+    pts_visited.get_dim(),distance_traveled.get_data(distance_traveled.get_dim()-1));
+    printf("number of points %d\n\n",gg->get_whereCt(iRicochet));
         
     if(pts_visited.get_dim()>1){
         /*
@@ -677,7 +790,9 @@ void node::ricochet_search(int iStart, array_1d<double> &dir){
         }
             
     }
-        
+    
+    time_ricochet+=double(time(NULL))-before;
+    ct_ricochet+=gg->get_called()-ibefore;
 }
 
 void node::compass_search(int istart){
@@ -699,10 +814,21 @@ void node::compass_search(int istart){
         return;
     }
     
+    if(gg->get_iWhere()!=iRicochet){
+        gg->set_iWhere(iCompass);
+    }
+    
     int idim,i,iHigh;
-    double ftrial,sgn,scale;
-    array_1d<double> trial;
+    double ftrial,sgn,scale,flow;
+    array_1d<double> trial,lowball;
+    
     trial.set_name("node_compass_trial");
+    lowball.set_name("node_compass_lowball");
+    
+    for(i=0;i<gg->get_dim();i++){
+        lowball.set(i,gg->get_pt(istart,i));
+    }
+    flow=gg->get_fn(istart);
     
     for(idim=0;idim<gg->get_dim();idim++){
         for(sgn=-1.0;sgn<1.5;sgn+=2.0){
@@ -719,7 +845,7 @@ void node::compass_search(int istart){
                 evaluateNoAssociate(trial,&ftrial,&iHigh);
             }
             
-            bisection(istart,iHigh);
+            bisection(lowball,flow,trial,ftrial);
             
         }//loop over sign (direction along basisVector)
     }//loop over dimension (which basisVector we are bisecting along)
@@ -926,6 +1052,8 @@ double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_ass
 void node::find_bases(){
     /*find best basis vectors for this node*/
     
+    gg->set_iWhere(iCompass);
+    
     if(dice==NULL){
         printf("WARNING cannot call node::find_bases; dice is null\n");
         exit(1);
@@ -949,13 +1077,19 @@ void node::find_bases(){
         }
     }
     
-    if(basis_associates.get_dim()<100 || basis_associates.get_dim()<last_nBasisAssociates+1000){
+    if(basis_associates.get_dim()<100 || 
+      (last_nBasisAssociates>0 && basis_associates.get_dim()<last_nBasisAssociates+1000)){
+      
         return;
     }
+    
+    printf("finding bases\n");
     
     last_nBasisAssociates=basis_associates.get_dim();
     
     double before=double(time(NULL));
+    int ibefore=gg->get_called();
+    
     array_2d<double> bases_best,bases_trial;
     bases_best.set_name("node_find_bases_bases_best");
     bases_trial.set_name("node_find_bases_bases_trial");
@@ -979,8 +1113,9 @@ void node::find_bases(){
     
     array_1d<double> dx;
     dx.set_name("node_find_bases_dx");
-    
+
     while(aborted<max_abort && stdev>stdevlim && Ebest>0.01*Ebest0){
+
         ix=-1;
         while(ix>=gg->get_dim() || ix<0){
             ix=dice->int32()%gg->get_dim();
@@ -1036,9 +1171,11 @@ void node::find_bases(){
     }
     
     time_bases+=double(time(NULL))-before;
+    ct_bases+=gg->get_called()-ibefore;
 }
 
 int node::search(){
+    
     if(gg==NULL){
         printf("WARNING cannot call node search; gpWrapper is null\n");
         exit(1);
@@ -1061,6 +1198,7 @@ int node::search(){
     }
     
     double before=double(time(NULL));
+    int ibefore=gg->get_called();
     
     int iCoulomb;
     
@@ -1078,7 +1216,6 @@ int node::search(){
         }
         evaluate(trial,&ftrial,&iCoulomb);
     }
-    
     
     if(gg->get_fn(iCoulomb)<gg->get_target()){
         iLow=iCoulomb;
@@ -1122,7 +1259,7 @@ int node::search(){
     that is closest to chisq_limit as the point where we will begin our ricochet search
     */
     int iStart;
-    if(time_ricochet<0.5*time_search && associates.get_dim()>100){
+    if(time_ricochet+ct_ricochet*time_penalty<0.5*(time_search+ct_search*time_penalty) && associates.get_dim()>100){
         if(iBisection<0 || fabs(gg->get_fn(iCoulomb)-gg->get_target())<fabs(gg->get_fn(iBisection)-gg->get_target())){
             iStart=iCoulomb;
         }
@@ -1159,11 +1296,43 @@ int node::search(){
         }
     
 
-        ricochet_search(iStart,dir);
+        if(iStart>=0)ricochet_search(iStart,dir);
     }
     
+    ct_search+=gg->get_called()-ibefore;
     time_search+=double(time(NULL))-before;
-    
+}
+
+int node::get_ct_search(){
+    return ct_search;
+}
+
+int node::get_ct_ricochet(){
+    return ct_ricochet;
+}
+
+int node::get_ct_coulomb(){
+    return ct_coulomb;
+}
+
+int node::get_ct_bases(){
+    return ct_bases;
+}
+
+double node::get_time(){
+    return time_search;
+}
+
+double node::get_time_coulomb(){
+    return time_coulomb;
+}
+
+double node::get_time_ricochet(){
+    return time_ricochet;
+}
+
+double node::get_time_bases(){
+    return time_bases;
 }
 
 Ran* node::get_Ran(){
