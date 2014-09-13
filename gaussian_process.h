@@ -625,7 +625,12 @@ class gp{
         Note that this function takes as an argument an array of ln(hyperparameters)
         */    
         double optimization_error(array_1d<double>&);
-
+        
+        ////////////////
+        mutable array_2d<double> cached_ggin;
+        mutable array_1d<int> cached_neigh;
+        mutable array_1d<double> cached_pmin,cached_pmax;
+        mutable int cached_ibox,cached_kk;
     
 };
 
