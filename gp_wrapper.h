@@ -210,6 +210,9 @@ class gpWrapper{
         int get_search_ct();
         double get_search_time();
         
+        int get_search_ct_solo();
+        double get_search_time_solo();
+        
         /////////code for diagnostic testing
         int set_iWhere(int);
         int get_iWhere();

@@ -86,6 +86,23 @@ double gpWrapper::get_search_time(){
     return gg->get_search_time();
 }
 
+
+int gpWrapper::get_search_ct_solo(){
+    if(gg==NULL){
+        return 0;
+    }
+    
+    return gg->get_search_ct_solo();
+}
+
+double gpWrapper::get_search_time_solo(){
+    if(gg==NULL){
+        return 0.0;
+    }
+    
+    return gg->get_search_time_solo();
+}
+
 int gpWrapper::set_iWhere(int i){
     iWhere=i;
 }
