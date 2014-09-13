@@ -43,6 +43,16 @@ gp::~gp(){
 
 }
 
+int gp::get_biggest_box(){
+    if(bptr==NULL) return 0;
+    return bptr->get_biggest_box();
+}
+
+int gp::get_smallest_box(){
+    if(bptr==NULL) return 0;
+    return bptr->get_smallest_box();
+}
+
 int gp::get_search_ct_box(){
     if(bptr==NULL){
         return 0;

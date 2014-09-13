@@ -571,6 +571,9 @@ class gp{
         double get_search_time_box();
         int get_search_ct_box();
         
+        int get_biggest_box();
+        int get_smallest_box();
+        
     private:
     
         /*this object will keep track of the results of nearest neighbor searches
