@@ -40,6 +40,9 @@ goto_tools.o: goto_tools.h goto_tools.cpp containers.o
 test_containers: containers.o test_containers.cpp goto_tools.o
 	$(gg) -o test_containers test_containers.cpp containers.o goto_tools.o
 
+box.o: box.cpp box.h goto_tools.o
+	$(gg) -c box.cpp
+
 kd.o: kd.cpp kd.h goto_tools.o containers.o
 	$(gg) -c kd.cpp goto_tools.o containers.o $(LIBRARIES) $(INCLUDE) \
          -Wno-deprecated
@@ -83,7 +86,7 @@ node.o: node.cpp node.h gp_wrapper.o
 	$(gg) -c node.cpp
 
 aps.o: aps.h aps.cpp kd.o goto_tools.o eigen_wrapper.o gaussian_process.o \
-chisq.o containers.o gp_wrapper.o node.o
+chisq.o containers.o gp_wrapper.o node.o box.o
 	$(gg) -c aps.cpp goto_tools.o \
 	eigen_wrapper.o kd.o gaussian_process.o \
 	chisq.o containers.o gp_wrapper.o node.o $(LIBRARIES) \
@@ -97,12 +100,14 @@ s_control: s_curve_control.cpp chisq.o
 ellipse: aps_runner_ellipses.cpp aps.o chisq.o
 	$(gg) -o ellipse aps_runner_ellipses.cpp \
 	goto_tools.o containers.o kd.o eigen_wrapper.o gaussian_process.o \
-	chisq.o aps.o gp_wrapper.o node.o $(LIBRARIES) $(INCLUDE)
+	chisq.o aps.o gp_wrapper.o node.o box.o \
+	$(LIBRARIES) $(INCLUDE)
 
 s_curve: aps_runner_s_curve.cpp aps.o chisq.o
 	$(gg) -o s_curve aps_runner_s_curve.cpp \
 	goto_tools.o containers.o kd.o eigen_wrapper.o gaussian_process.o \
-	gp_wrapper.o chisq.o aps.o node.o $(LIBRARIES) $(INCLUDE)
+	gp_wrapper.o chisq.o aps.o node.o box.o \
+	$(LIBRARIES) $(INCLUDE)
 
 s_curve_analysis: s_curve_analyzer.cpp chisq.o aps_extractor.o
 	$(gg) -o s_curve_analysis s_curve_analyzer.cpp \
