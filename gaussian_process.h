@@ -564,6 +564,9 @@ class gp{
         double get_search_time();
         int get_search_ct();
         
+        double get_search_time_solo();
+        int get_search_ct_solo();
+        
     private:
     
         /*this object will keep track of the results of nearest neighbor searches
