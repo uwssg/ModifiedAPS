@@ -43,6 +43,22 @@ gp::~gp(){
 
 }
 
+int gp::get_search_ct_box(){
+    if(bptr==NULL){
+        return 0;
+    }
+    
+    return bptr->get_ct_search();
+}
+
+double gp::get_search_time_box(){
+    if(bptr==NULL){
+        return 0.0;
+    }
+    
+    return bptr->get_time_search();
+}
+
 int gp::get_search_ct(){
     if(kptr==NULL){
        return 0;
