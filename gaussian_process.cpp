@@ -550,6 +550,8 @@ const{
     }
     
     
+    double beforeInversion;
+    
     if(dosrch==1){
         /*do a new nearest neighbor search*/
         
@@ -607,6 +609,8 @@ const{
         gg.set_cols(cached_kk);
         cached_ggin.set_cols(cached_kk);
         
+        beforeInversion=double(time(NULL));
+        
         /*
         If we had to do a new nearest neighbor search, we will have calculate gg and ggin from
         scratch
@@ -633,6 +637,8 @@ const{
             printf("WARNING inversion err %e\n",nn);
             exit(1);
         }
+        
+        bptr->add_to_search_time(double(time(NULL))-beforeInversion);
         
         ct_search++;
         time_search+=double(time(NULL))-nn;

@@ -95,6 +95,8 @@ public:
     array_1d<int>* get_box(int);
     void refactor();
     
+    void add_to_search_time(double);
+    
     void get_tree_cts(array_1d<int>&);
     void get_avg_box_bounds(array_1d<double>&,array_1d<double>&,
         array_1d<double>&,array_1d<double>&);

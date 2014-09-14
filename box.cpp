@@ -1323,6 +1323,10 @@ void box::nn_srch(array_1d<double> &pt, array_1d<int> &neigh, array_1d<double> &
     
 }
 
+void box::add_to_search_time(double nn){
+    time_search+=nn;
+}
+
 array_1d<int>* box::get_box(int dex){
     if(dex<0 || dex>=box_contents.get_rows()){
         printf("WARNING asking for box %d but only have %d\n",
