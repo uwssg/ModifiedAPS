@@ -19,6 +19,7 @@ node::node(){
     last_nBasisAssociates=0;
     center_dex=-1;
     last_expanded=0;
+    activity=1;
     
     ct_search=0;
     ct_ricochet=0;
@@ -59,6 +60,7 @@ void node::copy(const node &in){
     ct_bases=in.ct_bases;
     
     last_expanded=in.last_expanded;
+    activity=in.activity;
     
     int i,j;
     
@@ -1347,9 +1349,17 @@ int node::search(){
     if(vend>vstart*(1.00001)){
         last_expanded=ct_search;
     }
-    
+    else{
+        if(ct_search-last_expanded>gg->get_dim()*100){
+            activity=0;
+        }
+    }
     
     time_search+=double(time(NULL))-before;
+}
+
+int node::is_it_active(){
+    return activity;
 }
 
 int node::get_ct_search(){
