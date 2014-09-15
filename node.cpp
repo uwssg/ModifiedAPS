@@ -4,6 +4,8 @@ void node::set_names(){
     associates.set_name("node_associates");
     boundaryPoints.set_name("node_boundaryPoints");
     basisVectors.set_name("node_basisVectors");
+    range_max.set_name("node_range_max");
+    range_min.set_name("node_range_min");
 }
 
 node::node(){
@@ -58,6 +60,14 @@ void node::copy(const node &in){
     int i,j;
     
     farthest_associate=in.farthest_associate;
+    
+    for(i=0;i<in.range_max.get_dim();i++){
+        range_max.set(i,in.range_max.get_data(i));
+    }
+    
+    for(i=0;i<range_min.get_dim();i++){
+        range_min.set(i,in.range_min.get_data(i));
+    }
     
     for(i=0;i<in.associates.get_dim();i++){
         associates.add(in.associates.get_data(i));
@@ -145,6 +155,20 @@ void node::evaluate(array_1d<double> &pt, double *chiout, int *dexout, int doAss
         dd=gg->distance(dexout[0],center_dex);
         if(dd>farthest_associate){
             farthest_associate=dd;
+        }
+    }
+    
+    int i;
+    if(chiout[0]<gg->get_target()){
+        for(i=0;i<gg->get_dim();i++){
+            if(i>=range_max.get_dim() || pt.get_data(i)>range_max.get_data(i)){
+                range_max.set(i,pt.get_data(i));
+            }
+            
+            if(i>=range_min.get_dim() || pt.get_data(i)<range_min.get_data(i)){
+                range_min.set(i,pt.get_data(i));
+            }
+            
         }
     }
     

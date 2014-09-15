@@ -54,6 +54,7 @@ class node{
         
         array_1d<int> associates,boundaryPoints;
         array_2d<double> basisVectors;
+        array_1d<double> range_max,range_min;
         
         int ct_search,ct_coulomb,ct_bases,ct_ricochet;
         int center_dex,last_nBasisAssociates,last_nAssociates;
