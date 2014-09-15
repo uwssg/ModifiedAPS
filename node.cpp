@@ -18,6 +18,7 @@ node::node(){
     last_nAssociates=0;
     last_nBasisAssociates=0;
     center_dex=-1;
+    last_expanded=0;
     
     ct_search=0;
     ct_ricochet=0;
@@ -56,6 +57,8 @@ void node::copy(const node &in){
     ct_ricochet=in.ct_ricochet;
     ct_coulomb=in.ct_coulomb;
     ct_bases=in.ct_bases;
+    
+    last_expanded=in.last_expanded;
     
     int i,j;
     
@@ -1198,6 +1201,19 @@ void node::find_bases(){
     ct_bases+=gg->get_called()-ibefore;
 }
 
+double node::volume(){
+    if(range_max.get_dim()==0 || range_min.get_dim()==0)return 0.0;
+    
+    double ans=1.0;
+    int i;
+    
+    for(i=0;i<range_max.get_dim();i++){
+        ans*=range_max.get_data(i)-range_min.get_data(i);
+    }
+    
+    return ans;
+}
+
 int node::search(){
     
     if(gg==NULL){
@@ -1223,6 +1239,7 @@ int node::search(){
     
     double before=double(time(NULL));
     int ibefore=gg->get_called();
+    double vstart=volume();
     
     int iCoulomb;
     
@@ -1324,6 +1341,14 @@ int node::search(){
     }
     
     ct_search+=gg->get_called()-ibefore;
+    
+    double vend=volume();
+    
+    if(vend>vstart*(1.00001)){
+        last_expanded=ct_search;
+    }
+    
+    
     time_search+=double(time(NULL))-before;
 }
 

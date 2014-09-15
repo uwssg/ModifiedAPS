@@ -57,6 +57,7 @@ class node{
         array_1d<double> range_max,range_min;
         
         int ct_search,ct_coulomb,ct_bases,ct_ricochet;
+        int last_expanded;
         int center_dex,last_nBasisAssociates,last_nAssociates;
         double time_ricochet,time_coulomb,time_search,time_bases;
         double farthest_associate,time_penalty;
@@ -78,6 +79,7 @@ class node{
         void find_bases();
         int perturb_bases(array_2d<double>&,int,array_1d<double>&,array_2d<double>&);
         double basis_error(array_2d<double>&,array_1d<int>&);
+        double volume();
 
 };
 
