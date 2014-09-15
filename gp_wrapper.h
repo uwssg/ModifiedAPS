@@ -210,6 +210,14 @@ class gpWrapper{
         int get_search_ct();
         double get_search_time();
         
+        int get_search_ct_solo();
+        double get_search_time_solo();
+        
+        int get_search_ct_box();
+        double get_search_time_box();
+        int get_smallest_box();
+        int get_biggest_box();
+        
         /////////code for diagnostic testing
         int set_iWhere(int);
         int get_iWhere();

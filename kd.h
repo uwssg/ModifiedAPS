@@ -162,13 +162,19 @@ class kd_tree{
         double get_search_time();
         int get_search_ct();
         
+        int get_search_ct_solo();
+        double get_search_time_solo();
+        
         void set_search_ct(int);
         void set_search_time(double);
         
+        void set_search_ct_solo(int);
+        void set_search_time_solo(double);
+        
     private:
         
-        double search_time;
-        int search_ct;
+        double search_time,search_time_solo;
+        int search_ct,search_ct_solo;
         
         /*a global variable logging whether or not the tree was properly
         constructed; diagnostic=1 if the tree is correct; diagnostic=0 if not*/

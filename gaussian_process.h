@@ -5,6 +5,7 @@
 #include "eigen_wrapper.h"
 #include "containers.h"
 #include "kd.h"
+#include "box.h"
 
 class covariance_function{
     /*
@@ -564,6 +565,15 @@ class gp{
         double get_search_time();
         int get_search_ct();
         
+        double get_search_time_solo();
+        int get_search_ct_solo();
+        
+        double get_search_time_box();
+        int get_search_ct_box();
+        
+        int get_biggest_box();
+        int get_smallest_box();
+        
     private:
     
         /*this object will keep track of the results of nearest neighbor searches
@@ -581,6 +591,8 @@ class gp{
         the points in parameter space corresponding to the known function 
         values in fn*/
         kd_tree *kptr;
+        
+        box *bptr;
         
         /*optional maximum value for uncertainty on interpolated function values*/
         double sigcap;
@@ -619,7 +631,12 @@ class gp{
         Note that this function takes as an argument an array of ln(hyperparameters)
         */    
         double optimization_error(array_1d<double>&);
-
+        
+        ////////////////
+        mutable array_2d<double> cached_ggin;
+        mutable array_1d<int> cached_neigh;
+        mutable array_1d<double> cached_pmin,cached_pmax;
+        mutable int cached_ibox,cached_kk;
     
 };
 

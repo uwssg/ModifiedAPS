@@ -24,8 +24,15 @@ gp::gp(){
   covariogram=NULL;
   neighbor_storage=NULL;
   kptr=NULL;
+  bptr=NULL;
   
   hhbest.set_name("gp_hhbest");
+  
+  cached_ggin.set_name("gp_cached_ggin");
+  cached_pmin.set_name("gp_cached_pmin");
+  cached_pmax.set_name("gp_cached_pmax");
+  cached_neigh.set_name("gp_cached_neigh");
+  cached_ibox=-1;
   
 }
 
@@ -34,6 +41,32 @@ gp::~gp(){
   if(kptr!=NULL) delete kptr;
   if(neighbor_storage!=NULL) delete neighbor_storage;
 
+}
+
+int gp::get_biggest_box(){
+    if(bptr==NULL) return 0;
+    return bptr->get_biggest_box();
+}
+
+int gp::get_smallest_box(){
+    if(bptr==NULL) return 0;
+    return bptr->get_smallest_box();
+}
+
+int gp::get_search_ct_box(){
+    if(bptr==NULL){
+        return 0;
+    }
+    
+    return bptr->get_ct_search();
+}
+
+double gp::get_search_time_box(){
+    if(bptr==NULL){
+        return 0.0;
+    }
+    
+    return bptr->get_time_search();
 }
 
 int gp::get_search_ct(){
@@ -50,6 +83,22 @@ double gp::get_search_time(){
     }
     
     return kptr->get_search_time();
+}
+
+int gp::get_search_ct_solo(){
+    if(kptr==NULL){
+       return 0;
+    }
+    
+    return kptr->get_search_ct_solo();
+}
+
+double gp::get_search_time_solo(){
+    if(kptr==NULL){
+        return 0.0;
+    }
+    
+    return kptr->get_search_time_solo();
 }
 
 void gp::set_hyper_parameters(array_1d<double> &hh){
@@ -234,7 +283,9 @@ void gp::initialize(array_2d<double> &seed, array_1d<double> &seedfn,\
     kptr=new kd_tree(seed,mn,mx);//store data points in a kd tree
     
     kptr->check_tree(-1);//make sure kd tree is properly constructed
-
+    
+    bptr=new box(seed,kk,mn,mx);
+    
     if(kptr->get_diagnostic()!=1){
         printf("WARNING: did not properly construct tree\n");
         exit(1);
@@ -281,6 +332,9 @@ void gp::refactor(){
     int sct=kptr->get_search_ct();
     double st=kptr->get_search_time();
     
+    int sct0=kptr->get_search_ct_solo();
+    double st0=kptr->get_search_time_solo();
+    
     int i;
     
     for(i=0;i<dim;i++){
@@ -300,6 +354,9 @@ void gp::refactor(){
     kptr=new kd_tree(buffer,min,max);
     kptr->set_search_ct(sct);
     kptr->set_search_time(st);
+    
+    kptr->set_search_ct_solo(sct0);
+    kptr->set_search_time_solo(st0);
    
     after=double(time(NULL));
     delete neighbor_storage;
@@ -321,11 +378,12 @@ void gp::add_pt(array_1d<double> &newpt, double newfn){
   fn.add(newfn);
   
   kptr->add(newpt);
+  bptr->add_pt(newpt);
   pts++;
   
-  if(pts!=kptr->get_pts()){
-      printf("WARNING in gp add_pt pts %d kptr_pts %d\n",
-      pts,kptr->get_pts());
+  if(pts!=kptr->get_pts() || pts!=bptr->get_pts()){
+      printf("WARNING in gp add_pt pts %d kptr_pts %d bptr_pts %d\n",
+      pts,kptr->get_pts(),bptr->get_pts());
       
       exit(1);
   }
@@ -419,13 +477,8 @@ const{
         exit(1);
     }
   
-    if(kptr==NULL){
-        printf("WARNING in user predict kptr is null\n");
-        exit(1);
-    }
-  
-    if(neighbor_storage==NULL){
-        printf("WARNING in user predict neighbor storage is null\n");
+    if(bptr==NULL){
+        printf("WARNING in user predict bptr is null\n");
         exit(1);
     }
   
@@ -445,11 +498,8 @@ const{
     before=double(time(NULL));
     ct_predict++;
   
-    array_1d<int> neigh;;
-    neigh.set_name("gp_user_predict_neigh");
-  
-    array_1d<double> dd,pmin,pmax,grad,ggq;
-    array_2d<double> gg,ggin;
+    array_1d<double> dd,grad,ggq;
+    array_2d<double> gg;
     
     /*
     pmin and pmax will be the bounds in parameter space set by the nearest neighbors;
@@ -470,124 +520,106 @@ const{
     */
     
     dd.set_name("gp_user_predict_dd");
-    pmin.set_name("gp_user_predict_pmin");
-    pmax.set_name("gp_user_predict_pmax");
     grad.set_name("gp_user_predict_grad");
     ggq.set_name("gp_user_predict_ggq");
     gg.set_name("gp_user_predict_gg");
-    ggin.set_name("gp_user_predict_ggin");
-
    
     double fbar;
-  
-    dd.set_dim(kk);
-    neigh.set_dim(kk);
-    ggq.set_dim(kk);
-    pmin.set_dim(dim);
-    pmax.set_dim(dim);
     grad.set_dim(dim);
-    ggin.set_dim(kk,kk);
     
     /*
     First we must determine whether we need to do a new nearest neighbor search,
     or whether the results from the last nearest neighbor search will suffice
     */
-    int dosrch;
-    dosrch=neighbor_storage->compare(pt,kk);
-
+    int dosrch,ibox;
+    array_1d<int> tree_stats;
+    tree_stats.set_name("gp_predict_tree_stats");
+    
+    if(cached_ibox<0 || cached_ggin.get_cols()==0 || cached_ggin.get_rows()==0 ||
+    cached_neigh.get_dim()==0 || cached_pmin.get_dim()==0 ||
+    cached_pmax.get_dim()==0){
+        
+        dosrch=1;
+    }
+    else{
+        ibox=bptr->find_box(pt);
+        
+        if(ibox!=cached_ibox)dosrch=1;
+        
+        if(bptr->get_contents(ibox)!=cached_kk)dosrch=1;
+    }
+    
+    
+    double beforeInversion;
+    
     if(dosrch==1){
         /*do a new nearest neighbor search*/
         
         nn=double(time(NULL));
         
-        kptr->nn_srch(pt,kk,neigh,dd);//nearest neighbor search
-
-        neighbor_storage->set(pt,dd,neigh);
-        ct_search++;
-        time_search+=double(time(NULL))-nn;
-    }
-    else{
-        /*restore the results from the previous nearest neighbor search*/
+        cached_pmin.reset();
+        cached_pmax.reset();
+        cached_neigh.reset();
+        cached_ggin.reset();
+        bptr->nn_srch(pt,cached_neigh,dd,tree_stats);
         
-        for(i=0;i<kk;i++){
-              neigh.set(i,neighbor_storage->get_neigh(i));
-              dd.set(i,kptr->distance(pt,neigh.get_data(i)));   
-         }
-    }
-    after=double(time(NULL));
-    
-    for(i=0;i<kk;i++){
-        ffout.set(i,fn.get_data(neigh.get_data(i)));
-    }
-    
-    /*find the algebraic mean of the nearest neighbors*/
-    fbar=0.0;
-    for(i=0;i<kk;i++){
-        fbar+=fn.get_data(neigh.get_data(i));
-    }
-    fbar=fbar/double(kk);
-    
-    /*
-    Find the bounds in parameter space set by the nearest neighbors (and the sampled point)
-    */       
-    for(i=0;i<kk;i++){
-        for(j=0;j<dim;j++){
-            if(i==0 || kptr->get_pt(neigh.get_data(i),j)<pmin.get_data(j))pmin.set(j,kptr->get_pt(neigh.get_data(i),j));
-            if(i==0 || kptr->get_pt(neigh.get_data(i),j)>pmax.get_data(j))pmax.set(j,kptr->get_pt(neigh.get_data(i),j));
+        cached_ibox=tree_stats.get_data(0);
+        cached_kk=bptr->get_contents(cached_ibox);
+        
+        if(cached_kk != cached_neigh.get_dim()){
+            printf("WARNING cached_kk %d cached_neigh.dim %d\n",
+            cached_kk,cached_neigh.get_dim());
+            
+            exit(1);
         }
-    }
-  
-    for(j=0;j<dim;j++){
-        if(pt.get_data(j)<pmin.get_data(j))pmin.set(j,pt.get_data(j));
-        if(pt.get_data(j)>pmax.get_data(j))pmax.set(j,pt.get_data(j));
-    }
-    
-    /*
-    Expand the bounds just slightly.
-    */
-    for(i=0;i<dim;i++){
-        pmin.subtract_val(i,0.01*fabs(pmin.get_data(i)));
-        pmax.add_val(i,0.01*fabs(pmax.get_data(i)));
         
-        nn=fabs(get_max(i)-get_min(i));
-        
-        while(!(pmax.get_data(i)>pmin.get_data(i))){
-            /*
-            make sure that pmax is greater than pmin, since pmax-pmin will be used
-            to normalize parameter space distances
-            */
-
-            pmin.subtract_val(i,0.001*nn);
-            pmax.add_val(i,0.001*nn);
-
+        for(i=0;i<cached_kk;i++){
+            for(j=0;j<dim;j++){
+                if(i==0 || bptr->get_pt(cached_neigh.get_data(i),j)<cached_pmin.get_data(j)){
+                    cached_pmin.set(j,bptr->get_pt(cached_neigh.get_data(i),j));
+                }
+                
+                if(i==0 || bptr->get_pt(cached_neigh.get_data(i),j)>cached_pmax.get_data(j)){
+                    cached_pmax.set(j,bptr->get_pt(cached_neigh.get_data(i),j));
+                }
+            }
         }
-    }
-    
-    array_1d<double> vv,uu;
-   
-    vv.set_name("gp_user_predict_vv");
-    uu.set_name("gp_user_predict_uu");
-   
-    vv.set_dim(dim);
-    uu.set_dim(dim); 
+        
+        /*
+        Expand the bounds just slightly.
+        */
+        for(i=0;i<dim;i++){
+            cached_pmin.subtract_val(i,0.01*fabs(cached_pmin.get_data(i)));
+            cached_pmax.add_val(i,0.01*fabs(cached_pmax.get_data(i)));
+        
+            nn=fabs(get_max(i)-get_min(i));
+        
+            while(!(cached_pmax.get_data(i)>cached_pmin.get_data(i))){
+                /*
+                make sure that pmax is greater than pmin, since pmax-pmin will be used
+                to normalize parameter space distances
+                */
 
-    for(i=0;i<kk;i++){
-        /*set the values of the covariogram evaluated on the query point and each nearest neighbor*/
-        ggq.set(i,(*covariogram)((*kptr->data(neigh.get_data(i))),pt,pmin,pmax,grad,0));
-  
-    }
+                cached_pmin.subtract_val(i,0.001*nn);
+                cached_pmax.add_val(i,0.001*nn);
 
-    if(dosrch==1){
+            }
+        }
+        
+        gg.set_cols(cached_kk);
+        cached_ggin.set_cols(cached_kk);
+        
+        beforeInversion=double(time(NULL));
+        
         /*
         If we had to do a new nearest neighbor search, we will have calculate gg and ggin from
         scratch
         */
-        gg.set_dim(kk,kk);
-  
-        for(i=0;i<kk;i++){
+        
+        for(i=0;i<cached_kk;i++){
 
-            for(j=i;j<kk;j++){
-                gg.set(i,j,(*covariogram)((*kptr->data(neigh.get_data(i))),(*kptr->data(neigh.get_data(j))),pmin,pmax,grad,0));
+            for(j=i;j<cached_kk;j++){
+                gg.set(i,j,(*covariogram)((*bptr->get_pt(cached_neigh.get_data(i))),(*bptr->get_pt(cached_neigh.get_data(j))),cached_pmin,cached_pmax,grad,0));
                 if(j!=i){
                     gg.set(j,i,gg.get_data(i,j));
                 }
@@ -599,35 +631,51 @@ const{
             
         }
 
-        invert_lapack(gg,ggin,0);
-        nn=check_inversion(gg,ggin);
+        invert_lapack(gg,cached_ggin,0);
+        nn=check_inversion(gg,cached_ggin);
         if(nn>1.0e-5){
             printf("WARNING inversion err %e\n",nn);
             exit(1);
         }
         
-        /*
-        store ggin in the neighbor_storage buffer so that we can use it in the future
-        */
-        for(i=0;i<kk;i++){
-            for(j=0;j<kk;j++)neighbor_storage->set_ggin(i,j,ggin.get_data(i,j));
-           
-        }
-        gg.reset();
+        bptr->add_to_search_time(double(time(NULL))-beforeInversion);
         
+        ct_search++;
+        time_search+=double(time(NULL))-nn;
     }
-    else{
-        /*if we did not do a new nearest neighbor search, just read ggin from the stored value*/
-        for(i=0;i<kk;i++){
-            for(j=0;j<kk;j++)ggin.set(i,j,neighbor_storage->get_ggin(i,j));
-        }
+    
+    after=double(time(NULL));
+    
+    for(i=0;i<cached_kk;i++){
+        ffout.set(i,fn.get_data(cached_neigh.get_data(i)));
+    }
+    
+    /*find the algebraic mean of the nearest neighbors*/
+    fbar=0.0;
+    for(i=0;i<cached_kk;i++){
+        fbar+=fn.get_data(cached_neigh.get_data(i));
+    }
+    fbar=fbar/double(cached_kk);
+    
+    array_1d<double> vv,uu;
+   
+    vv.set_name("gp_user_predict_vv");
+    uu.set_name("gp_user_predict_uu");
+   
+    vv.set_dim(dim);
+    uu.set_dim(dim); 
+
+    for(i=0;i<cached_kk;i++){
+        /*set the values of the covariogram evaluated on the query point and each nearest neighbor*/
+        ggq.set(i,(*covariogram)((*bptr->get_pt(cached_neigh.get_data(i))),pt,cached_pmin,cached_pmax,grad,0));
+  
     }
     
     /*calculate the interpolated function value*/
     mu=fbar;
-    for(i=0;i<kk;i++){
-        for(j=0;j<kk;j++){
-             mu+=ggq.get_data(i)*ggin.get_data(i,j)*(fn.get_data(neigh.get_data(j))-fbar);
+    for(i=0;i<cached_kk;i++){
+        for(j=0;j<cached_kk;j++){
+             mu+=ggq.get_data(i)*cached_ggin.get_data(i,j)*(fn.get_data(cached_neigh.get_data(j))-fbar);
         }
     }
     
@@ -640,31 +688,31 @@ const{
         calculate the uncertainty in mu (if it was asked for)
         */
         sigout[0]=0.0;
-        for(i=0;i<kk;i++){
-            for(j=0;j<kk;j++){
-                sigout[0]+=ggq.get_data(i)*ggq.get_data(j)*ggin.get_data(i,j);
+        for(i=0;i<cached_kk;i++){
+            for(j=0;j<cached_kk;j++){
+                sigout[0]+=ggq.get_data(i)*ggq.get_data(j)*cached_ggin.get_data(i,j);
 
             }
         }
     
         nn=0.0;
-        for(i=0;i<kk;i++){
+        for(i=0;i<cached_kk;i++){
   
-              nn+=(fn.get_data(neigh.get_data(i))-fbar)*ggin.get_data(i,i)*(fn.get_data(neigh.get_data(i))-fbar);
+              nn+=(fn.get_data(cached_neigh.get_data(i))-fbar)*cached_ggin.get_data(i,i)*(fn.get_data(cached_neigh.get_data(i))-fbar);
          
-             for(j=i+1;j<kk;j++){
+             for(j=i+1;j<cached_kk;j++){
 
-                nn+=2.0*(fn.get_data(neigh.get_data(j))-fbar)*
-                (fn.get_data(neigh.get_data(i))-fbar)*ggin.get_data(i,j);
+                nn+=2.0*(fn.get_data(cached_neigh.get_data(j))-fbar)*
+                (fn.get_data(cached_neigh.get_data(i))-fbar)*cached_ggin.get_data(i,j);
               
             }
         }
         
         /*normalize the uncertainty in such a way that maximizes the likelihood of the nearest neighbor
         data*/
-        ikp=nn/double(kk);
+        ikp=nn/double(cached_kk);
 
-        sigout[0]=(*covariogram)(pt,pt,pmin,pmax,grad,0)-sigout[0];
+        sigout[0]=(*covariogram)(pt,pt,cached_pmin,cached_pmax,grad,0)-sigout[0];
         sigout[0]=(ikp)*(sigout[0]); 
      
         if(sigout[0]>0.0)sigout[0]=sqrt(sigout[0]);
@@ -678,12 +726,12 @@ const{
             sig_alg=0.0;
              
 
-            for(i=0;i<kk;i++){
-                sig_alg+=power(fbar-fn.get_data(neigh.get_data(i)),2);
+            for(i=0;i<cached_kk;i++){
+                sig_alg+=power(fbar-fn.get_data(cached_neigh.get_data(i)),2);
             }
-            sig_alg=sig_alg/double(kk);
+            sig_alg=sig_alg/double(cached_kk);
             
-            sig_alg*=dd.get_data(0)/dd.get_data(kk-1);
+            sig_alg*=dd.get_data(0)/dd.get_data(cached_kk-1);
             sig_alg=sqrt(sig_alg);
              
             sigout[0]=sig_alg;
@@ -698,15 +746,15 @@ const{
    
     if(isnan(mu)){
         printf("WARNING mu %e\n",mu);
-        for(i=0;i<kk;i++)printf("%d %e ggq%d %e\n",neigh.get_data(i),dd.get_data(i),i,ggq.get_data(i));
-        for(i=0;i<kk;i++){
-            for(j=0;j<kk;j++)printf("%e ",ggin.get_data(i,j));
+        for(i=0;i<cached_kk;i++)printf("%d %e ggq%d %e\n",cached_neigh.get_data(i),dd.get_data(i),i,ggq.get_data(i));
+        for(i=0;i<cached_kk;i++){
+            for(j=0;j<cached_kk;j++)printf("%e ",cached_ggin.get_data(i,j));
             printf("\n");
         }
         printf("fbar %e\n",fbar);
         exit(1);
     }
-    if(verbose==1)printf("mu %e fbar %e nn %e\n",mu,fbar,fn.get_data(neigh.get_data(0)));
+    if(verbose==1)printf("mu %e fbar %e nn %e\n",mu,fbar,fn.get_data(cached_neigh.get_data(0)));
   
     pt.set_where("nowhere");
     time_predict+=double(time(NULL))-before;
@@ -1564,6 +1612,12 @@ double neighbor_cache::get_ggin(int i, int j){
 
 void gp::reset_cache() const{
       neighbor_storage->reset();
+      
+      cached_ibox=-1;
+      cached_ggin.reset();
+      cached_neigh.reset();
+      cached_pmin.reset();
+      cached_pmax.reset();
 }
 
 void gp::set_sig_cap(double nn){
