@@ -1678,7 +1678,8 @@ void aps::aps_focus(){
    double ttmin;
    
    for(ic=0;ic<nodes.get_dim();ic++){
-       if(gg.get_fn(nodes(ic)->get_center())<strad.get_target() && 
+       if(gg.get_fn(nodes(ic)->get_center())<strad.get_target() &&
+           nodes(ic)->is_it_active()==1 && 
            (imin==-1 || nodes(ic)->get_time()<ttmin)){
        
            imin=ic;
@@ -1991,7 +1992,7 @@ void aps::aps_search(){
     
     int do_focus=0,i;
     for(i=0;i<nodes.get_dim() && do_focus==0;i++){
-        if(gg.get_fn(nodes(i)->get_center())<strad.get_target()){
+        if(gg.get_fn(nodes(i)->get_center())<strad.get_target() && nodes(i)->is_it_active()==1){
             do_focus=1;
         }
     }
