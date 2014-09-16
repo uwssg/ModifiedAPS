@@ -40,12 +40,12 @@ goto_tools.o: goto_tools.h goto_tools.cpp containers.o
 test_containers: containers.o test_containers.cpp goto_tools.o
 	$(gg) -o test_containers test_containers.cpp containers.o goto_tools.o
 
-box.o: box.cpp box.h goto_tools.o
-	$(gg) -c box.cpp
-
 kd.o: kd.cpp kd.h goto_tools.o containers.o
 	$(gg) -c kd.cpp goto_tools.o containers.o $(LIBRARIES) $(INCLUDE) \
          -Wno-deprecated
+
+box.o: box.cpp box.h goto_tools.o kd.o
+	$(gg) -c box.cpp
 
 test_kd: test_kd.cpp kd.o
 	$(gg) -o test_kd test_kd.cpp containers.o goto_tools.o kd.o

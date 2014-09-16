@@ -281,10 +281,8 @@ void gp::initialize(array_2d<double> &seed, array_1d<double> &seedfn,\
     for(i=0;i<seed.get_rows();i++)fn.set(i,seedfn.get_data(i));
 
     kptr=new kd_tree(seed,mn,mx);//store data points in a kd tree
-    
-    kptr->check_tree(-1);//make sure kd tree is properly constructed
-    
-    bptr=new box(seed,kk,mn,mx);
+    bptr=new box(&kptr->data,kk,mn,mx);
+    kptr->check_tree(-1);
     
     if(kptr->get_diagnostic()!=1){
         printf("WARNING: did not properly construct tree\n");
@@ -354,9 +352,17 @@ void gp::refactor(){
     kptr=new kd_tree(buffer,min,max);
     kptr->set_search_ct(sct);
     kptr->set_search_time(st);
-    
     kptr->set_search_ct_solo(sct0);
     kptr->set_search_time_solo(st0);
+    
+    delete bptr;
+    bptr=new box(&kptr->data,kk,min,max);
+    kptr->check_tree(-1);
+
+    if(kptr->get_diagnostic()!=1){
+        printf("WARNING kd_tree incorrect after refactoring\n");
+        exit(1);
+    }
    
     after=double(time(NULL));
     delete neighbor_storage;
@@ -378,7 +384,7 @@ void gp::add_pt(array_1d<double> &newpt, double newfn){
   fn.add(newfn);
   
   kptr->add(newpt);
-  bptr->add_pt(newpt);
+  bptr->add_pt();
   pts++;
   
   if(pts!=kptr->get_pts() || pts!=bptr->get_pts()){

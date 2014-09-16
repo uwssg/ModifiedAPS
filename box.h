@@ -17,8 +17,10 @@ private:
   
     asymm_array_2d<int> box_contents;
     
+    array_2d<double> *data;
+    
     array_1d<double> tree_values;
-    array_2d<double> data,box_min,box_max;
+    array_2d<double> box_min,box_max;
     array_1d<double> maxs,mins,norm_max,norm_min;
     
     array_1d<int> tree_ct;
@@ -37,10 +39,10 @@ private:
     
 public:
     
-    box(array_2d<double>&,int);
-    box(array_2d<double>&,int,array_1d<double>&,array_1d<double>&);
+    box(array_2d<double>*,int);
+    box(array_2d<double>*,int,array_1d<double>&,array_1d<double>&);
     
-    void initialize(array_2d<double>&,int,array_1d<double>&,array_1d<double>&);
+    void initialize(array_2d<double>*,int,array_1d<double>&,array_1d<double>&);
 
     ~box();
     
@@ -58,9 +60,7 @@ public:
     int find_box(array_1d<double>&);
     int find_box(array_1d<double>&,int*,int*);
     
-    int add_pt(array_1d<double>&);
-    int add_pt(array_1d<double>&,array_1d<int>&);
-    
+    int add_pt();
     int get_nboxes();
     int get_n_small_boxes();
     int get_n_optimal_boxes();

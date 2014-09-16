@@ -3,11 +3,11 @@
 box::~box(){
 }
 
-box::box(array_2d<double> &data_in, int pp_per_box){
+box::box(array_2d<double> *data_in, int pp_per_box){
     array_1d<double> mx,mn;
     
     int i;
-    for(i=0;i<data_in.get_cols();i++){
+    for(i=0;i<data_in->get_cols();i++){
         mx.set(i,1.0);
 	mn.set(i,0.0);
     }
@@ -16,11 +16,11 @@ box::box(array_2d<double> &data_in, int pp_per_box){
         
 }
 
-box::box(array_2d<double> &data_in, int pp_per_box, array_1d<double> &min_in, array_1d<double> &max_in){
+box::box(array_2d<double> *data_in, int pp_per_box, array_1d<double> &min_in, array_1d<double> &max_in){
     initialize(data_in,pp_per_box,min_in,max_in);
 }
 
-void box::initialize(array_2d<double> &data_in, int pp_per_box, 
+void box::initialize(array_2d<double> *data_in, int pp_per_box, 
 array_1d<double> &min_in, array_1d<double> &max_in){
     
     ct_search=0;
@@ -28,12 +28,13 @@ array_1d<double> &min_in, array_1d<double> &max_in){
     
     int i,j;
     
-    if(max_in.get_dim()!=min_in.get_dim() || max_in.get_dim()!=data_in.get_cols()){
+    if(max_in.get_dim()!=min_in.get_dim() || max_in.get_dim()!=data_in->get_cols()){
         printf("WARNING box inputs do not agree on dimensionality\n");
-	printf("%d %d %d\n",max_in.get_dim(),min_in.get_dim(),data_in.get_cols());
+	printf("%d %d %d\n",max_in.get_dim(),min_in.get_dim(),data_in->get_cols());
 	exit(1);
     }
     
+    data=data_in;
     
     box_min.set_cols(max_in.get_dim());
     box_max.set_cols(min_in.get_dim());
@@ -53,7 +54,7 @@ array_1d<double> &min_in, array_1d<double> &max_in){
     
     tree_ct.set_name("box_tree_ct");
     
-    tree_ct.set_dim(data.get_cols());
+    tree_ct.set_dim(data->get_cols());
     
     for(i=0;i<maxs.get_dim();i++){
         //maxs.set(i,max_in.get_data(i));
@@ -65,34 +66,20 @@ array_1d<double> &min_in, array_1d<double> &max_in){
 	tree_ct.set(i,0);
     }
     
-    for(i=0;i<data_in.get_rows();i++){
-        for(j=0;j<data_in.get_cols();j++){
-            if(i==0 || data_in.get_data(i,j)<mins.get_data(j)){
-                mins.set(j,data_in.get_data(i,j));
+    for(i=0;i<data->get_rows();i++){
+        for(j=0;j<data->get_cols();j++){
+            if(i==0 || data->get_data(i,j)<mins.get_data(j)){
+                mins.set(j,data_in->get_data(i,j));
             }
             
-            if(i==0 || data_in.get_data(i,j)>maxs.get_data(j)){
-                maxs.set(j,data_in.get_data(i,j));
+            if(i==0 || data->get_data(i,j)>maxs.get_data(j)){
+                maxs.set(j,data->get_data(i,j));
             }
         }
     }
     
     pts_per_box=pp_per_box;
-    data.set_dim(data_in.get_rows(),data_in.get_cols());
-    
-    data.set_name("box_data");
-    
-    for(i=0;i<data.get_rows();i++){
-        data.set_row(i,(*data_in(i)));
-    }
-    
-    /*array_1d<int> use;
-    
-    use.set_dim(data.get_rows());
-    for(i=0;i<data.get_rows();i++){
-        use.set(i,i);
-    }*/
-
+   
     tree_values.set_name("box_tree_values");
     tree.set_name("box_tree");
     
@@ -104,8 +91,6 @@ array_1d<double> &min_in, array_1d<double> &max_in){
     time_split=0.0;
     
     verify_tree();
-    
-    //printf("data is %d %d %p\n",data.get_rows(),data.get_cols(),&data);
     
 }
 
@@ -122,21 +107,21 @@ double box::distance(int dex, array_1d<double> &p2){
 }
 
 double box::distance(array_1d<double> &p1, int dex){
-    if(dex<0 || dex>=data.get_rows()){
+    if(dex<0 || dex>=data->get_rows()){
         printf("WARNING asking for distance to %d but pts %d\n",
-	dex,data.get_rows());
+	dex,data->get_rows());
 	
 	exit(1);
     }
     
-    return distance(p1,(*data(dex)));
+    return distance(p1,(*data[0](dex)));
     
 }
 
 double box::distance(array_1d<double> &p1, array_1d<double> &p2){
     int i;
     double ans=0.0;
-    for(i=0;i<data.get_cols();i++){
+    for(i=0;i<data->get_cols();i++){
         ans+=power((p1.get_data(i)-p2.get_data(i))/(norm_max.get_data(i)-norm_min.get_data(i)),2);
     }
     
@@ -147,63 +132,28 @@ double box::distance(array_1d<double> &p1, array_1d<double> &p2){
 
 void box::build_tree(){
     array_1d<int> use;
-    use.set_dim(data.get_rows());
+    use.set_dim(data->get_rows());
     int i,j;
-    for(i=0;i<data.get_rows();i++){
+    for(i=0;i<data->get_rows();i++){
         use.set(i,i);
     }
     
     array_1d<double> box_min_local,box_max_local;
     
-    for(i=0;i<data.get_cols();i++){
+    for(i=0;i<data->get_cols();i++){
         box_min_local.set(i,mins.get_data(i));
 	box_max_local.set(i,maxs.get_data(i));
     }
 
     
-    organize(use,0,data.get_rows(),-1,-1,box_min_local,box_max_local);
+    organize(use,0,data->get_rows(),-1,-1,box_min_local,box_max_local);
     
     for(i=0;i<box_contents.get_rows();i++){
         if(box_contents.get_cols(i)>pts_per_box){
 	    split_box(i,-1,-1);
 	}
     }
-    
-
-    
-    /*int i_empty=0;
-    
-    for(i=0;i<tree.get_rows();i++){
-        if(tree.get_data(i,4)*tree.get_data(i,5)<0)i_empty++;
-
-    }
-    
-    printf("i_empty %d\n",i_empty);
-    
-    use.reset();
-    for(i=0;i<data.get_rows();i++)use.set(i,0);
-    
-    for(i=0;i<box_contents.get_rows();i++){
-        for(j=0;j<box_contents.get_cols(i);j++){
-	    use.set(box_contents.get_data(i,j),1);
-	    
-	    if(box_contents.get_data(i,j)==0){
-	       printf("zero is in box %d\n",i);
-	    }
-	    
-	}
-    }
-    
-    i_empty=0;
-    for(i=0;i<data.get_rows();i++){
-        if(use.get_data(i)==0)i_empty++;
-    }
-    
-    printf("unassigned points %d\n",i_empty);*/
-    
-    /*for(i=0;i<box_contents.get_cols(111);i++){
-        printf("    %d\n",box_contents.get_data(111,i));
-    }*/
+   
     
 }
 
@@ -239,7 +189,7 @@ array_1d<double> &box_min_local,array_1d<double> &box_max_local)
     
     idim=0;
 
-    for(ii=0;ii<data.get_cols();ii++){
+    for(ii=0;ii<data->get_cols();ii++){
 
         val=split_error(use,ii,&iup,&idown);
 	if(iup<idown){
@@ -276,7 +226,7 @@ array_1d<double> &box_min_local,array_1d<double> &box_max_local)
     
     array_1d<int> b_up,b_down;
     for(i=0;i<ct;i++){
-        val=data.get_data(use.get_data(i),idim);
+        val=data->get_data(use.get_data(i),idim);
 	
 	if(val<valbest)b_down.add(use.get_data(i));
 	else{
@@ -325,8 +275,8 @@ array_1d<double> &box_min_local,array_1d<double> &box_max_local)
     j=0;
     for(i=0;i<i_med;i++){
         j++;
-        if(data.get_data(use.get_data(i),idim)>=valbest){
-	    printf("WARNING %e >= %e\n",data.get_data(use.get_data(i),idim),valbest);
+        if(data->get_data(use.get_data(i),idim)>=valbest){
+	    printf("WARNING %e >= %e\n",data->get_data(use.get_data(i),idim),valbest);
 	    
 	    exit(1);
 	}
@@ -334,9 +284,9 @@ array_1d<double> &box_min_local,array_1d<double> &box_max_local)
     
     for(i=i_med;i<ct;i++){
         j++;
-        if(data.get_data(use.get_data(i),idim)<valbest){
+        if(data->get_data(use.get_data(i),idim)<valbest){
 	    printf("WARNING %e < %e\n",
-	    data.get_data(use.get_data(i),idim),valbest);
+	    data->get_data(use.get_data(i),idim),valbest);
 	    
 	    exit(1);
 	}
@@ -383,13 +333,7 @@ array_1d<double> &box_min_local,array_1d<double> &box_max_local)
     tree_in.set(4,box_exception);
     tree_in.set(5,box_exception);
     tree.add_row(tree_in);
-    
-    /*printf("i_med %d idim %d var_best %e ct %d\n",i_med,idim,var_best,ct);
-    for(i=0;i<ct;i++){
-        printf("    %e\n",data.get_data(use.get_data(i),idim));
-    }*/
-    
-    
+
     if(tree.get_rows()!=tree_values.get_dim()){
         printf("WARNING in box organize: tree_rows %d tree_val_dim %d\n",
 	tree.get_rows(),tree_values.get_dim());
@@ -521,50 +465,36 @@ int box::find_box(array_1d<double> &pt, int *i_tree, int *dir){
     }
 }
 
-int box::add_pt(array_1d<double> &pt){
-    array_1d<int> stats;
-    return add_pt(pt,stats);
-}
 
-int box::add_pt(array_1d<double> &pt, array_1d<int> &tree_stats){
+int box::add_pt(){
     
-    if(pt.get_dim()!=data.get_cols()){
-        printf("WARNING trying to add point with %d dim to data with %d dim\n",
-	pt.get_dim(),data.get_cols());
-	
-	exit(1);
+    int i;
+    array_1d<double> pt;
+    for(i=0;i<data->get_cols();i++){
+        pt.set(i,data->get_data(data->get_rows()-1,i));
     }
-    
-    data.add_row(pt);
     
     double before=double(time(NULL));
     
     int i_box=-1,i_tree=-1,dir=-1;
-    if(tree_stats.get_dim()==3 && tree_stats.get_data(0)>=0){
-        i_box=tree_stats.get_data(0);
-	i_tree=tree_stats.get_data(1);
-	dir=tree_stats.get_data(2);
-    }
-    
-    
     double nn;
     
-    if(i_box<0){
-        nn=double(time(NULL));
-        i_box=find_box(pt,&i_tree,&dir);
-        time_add_srch+=double(time(NULL))-nn;
+    array_1d<int> tree_stats;
+
+    nn=double(time(NULL));
+    i_box=find_box(pt,&i_tree,&dir);
+    time_add_srch+=double(time(NULL))-nn;
 	
-	tree_stats.set_dim(3);
-	tree_stats.set(0,i_box);
-	tree_stats.set(1,i_tree);
-	tree_stats.set(2,dir);
+    tree_stats.set_dim(3);
+    tree_stats.set(0,i_box);
+    tree_stats.set(1,i_tree);
+    tree_stats.set(2,dir);
 	
-    }
     
-    box_contents.add(i_box,data.get_rows()-1);
     
-    int i;
-    for(i=0;i<data.get_cols();i++){
+    box_contents.add(i_box,data->get_rows()-1);
+    
+    for(i=0;i<data->get_cols();i++){
         if(pt.get_data(i)<box_min.get_data(i_box,i)){
             nn=pt.get_data(i)-0.01*(box_max.get_data(i_box,i)-box_min.get_data(i_box,i));
             box_min.set(i_box,i,nn);
@@ -584,7 +514,7 @@ int box::add_pt(array_1d<double> &pt, array_1d<int> &tree_stats){
         }
     }
     
-    for(i=0;i<data.get_cols();i++){
+    for(i=0;i<data->get_cols();i++){
         if(box_max.get_data(i_box,i)-box_min.get_data(i_box,i)<0.0){
             printf("WARNING in box add min %e max %e\n",
             box_min.get_data(i_box,i),box_max.get_data(i_box,i));
@@ -626,12 +556,12 @@ double box::split_error(array_1d<int> &use,int idim, int *iup, int *idown){
     npts=use.get_dim();
     
     for(i=0;i<npts;i++){
-        if(data.get_data(use.get_data(i),idim)<vmin || i==0){
-	    vmin=data.get_data(use.get_data(i),idim);
+        if(data->get_data(use.get_data(i),idim)<vmin || i==0){
+	    vmin=data->get_data(use.get_data(i),idim);
 	}
 	
-	if(data.get_data(use.get_data(i),idim)>vmax || i==0){
-	    vmax=data.get_data(use.get_data(i),idim);
+	if(data->get_data(use.get_data(i),idim)>vmax || i==0){
+	    vmax=data->get_data(use.get_data(i),idim);
 	}
     }
     
@@ -650,7 +580,7 @@ double box::split_error(array_1d<int> &use,int idim, int *iup, int *idown){
 	iuptrial=0;
 	idowntrial=0;
 	for(i=0;i<npts;i++){
-	    if(data.get_data(use.get_data(i),idim)<vtrial){
+	    if(data->get_data(use.get_data(i),idim)<vtrial){
 	        idowntrial++;
 	    }
 	    else{
@@ -758,7 +688,7 @@ int box::split_box(int i_box, int i_tree, int dir){
     double best_val,val,span,span_best;
     
     idim=0;
-    for(i=0;i<data.get_cols();i++){
+    for(i=0;i<data->get_cols();i++){
     
         val=split_error((*box_contents(i_box)),i,&iup,&idown);
 	
@@ -813,14 +743,14 @@ int box::split_box(int i_box, int i_tree, int dir){
     array_1d<double> box_max_local,box_min_local;
     double old_box_bound;
     
-    for(i=0;i<data.get_cols();i++){
+    for(i=0;i<data->get_cols();i++){
         box_max_local.set(i,box_max.get_data(i_box,i));
 	box_min_local.set(i,box_min.get_data(i_box,i));
     }
     
     
     for(i=0;i<use.get_dim();i++){
-        if(data.get_data(use.get_data(i),idim)<best_val){
+        if(data->get_data(use.get_data(i),idim)<best_val){
 	    use_below.add(use.get_data(i));
 	} 
 	else{
@@ -938,7 +868,7 @@ void box::verify_tree(){
     }
     
     for(i=0;i<box_max.get_rows();i++){
-        for(j=0;j<data.get_cols();j++){
+        for(j=0;j<data->get_cols();j++){
             if(box_max.get_data(i,j)-box_min.get_data(i,j)<0.0){
                 printf("WARNING %d %d max %e min %e\n",
                 i,j,box_max.get_data(i,j),box_min.get_data(i,j));
@@ -973,7 +903,7 @@ void box::verify_tree(){
 	}
     }
     
-    for(ii=0;ii<data.get_rows();ii++){
+    for(ii=0;ii<data->get_rows();ii++){
         
 	occurrences=0;
 	for(i=0;i<box_contents.get_rows();i++){
@@ -990,20 +920,20 @@ void box::verify_tree(){
 	    throw i_fail;
 	}
 	
-        i_box=find_box((*data(ii)),&i_tree,&dir);
+        i_box=find_box((*data[0](ii)),&i_tree,&dir);
 	
-	for(i=0;i<data.get_cols();i++){
-	    if(data.get_data(ii,i)<box_min.get_data(i_box,i)){
+	for(i=0;i<data->get_cols();i++){
+	    if(data->get_data(ii,i)<box_min.get_data(i_box,i)){
 	        printf("WARNING violated box_min %e < %e\n",
-		data.get_data(ii,i),box_min.get_data(i_box,i));
+		data->get_data(ii,i),box_min.get_data(i_box,i));
 		
 		i_fail=1;
 		throw i_fail;
 	    }
 	    
-	    if(data.get_data(ii,i)>box_max.get_data(i_box,i)){
+	    if(data->get_data(ii,i)>box_max.get_data(i_box,i)){
 	        printf("WARNING violated box_max %e > %e\n",
-		data.get_data(ii,i),box_max.get_data(i_box,i));
+		data->get_data(ii,i),box_max.get_data(i_box,i));
 		
 		i_fail=1;
 		throw i_fail;
@@ -1047,14 +977,14 @@ void box::verify_tree(){
 	     dex=tree.get_data(i_tree,0);
 	     
 	     if(dir==1){
-	         if(data.get_data(ii,dex)>=tree_values.get_data(i_tree)){
+	         if(data->get_data(ii,dex)>=tree_values.get_data(i_tree)){
 		     printf("WARNING relationship failed dir 1\n");
 		     i_fail=1;
 	             throw i_fail;
 		 }
 	     }
 	     else{
-	         if(data.get_data(ii,dex)<tree_values.get_data(i_tree)){
+	         if(data->get_data(ii,dex)<tree_values.get_data(i_tree)){
 		      printf("WARNING relationhip failed dir 2\n");
 		      i_fail=1;
 	              throw i_fail;
@@ -1082,8 +1012,8 @@ void box::verify_tree(){
         total_pts+=box_contents.get_cols(i);
     }
     
-    if(total_pts!=data.get_rows()){
-        printf("WARNING data pts %d but box pts %d\n",data.get_rows(),
+    if(total_pts!=data->get_rows()){
+        printf("WARNING data pts %d but box pts %d\n",data->get_rows(),
 	total_pts);
 	
 	i_fail=1;
@@ -1093,7 +1023,7 @@ void box::verify_tree(){
 }
 
 int box::get_dim(){
-    return data.get_cols();
+    return data->get_cols();
 }
 
 int box::get_nboxes(){
@@ -1125,7 +1055,7 @@ int box::get_ntree(){
 }
 
 int box::get_pts(){
-    return data.get_rows();
+    return data->get_rows();
 }
 
 int box::get_contents(int dex){
@@ -1178,28 +1108,28 @@ double box::get_mean_box(double *var){
 }
 
 array_1d<double>* box::get_pt(int dex){
-    if(dex<0 || dex>=data.get_rows()){
+    if(dex<0 || dex>=data->get_rows()){
         printf("WARNING asked box for pt %d but pts %d\n",
-	dex,data.get_rows());
+	dex,data->get_rows());
 	
 	exit(1);
     }
     
-    return data(dex);
+    return data[0](dex);
 }
 
 double box::get_pt(int ir, int ic) const{
 
-    return data.get_data(ir,ic);
+    return data->get_data(ir,ic);
 
 }
 
 void box::get_pt(int dex, array_1d<double> &output){
     int i;
     
-    output.set_dim(data.get_cols());
-    for(i=0;i<data.get_cols();i++){
-        output.set(i,data.get_data(dex,i));
+    output.set_dim(data->get_cols());
+    for(i=0;i<data->get_cols();i++){
+        output.set(i,data->get_data(dex,i));
     }
     
 }
@@ -1213,9 +1143,9 @@ double box::get_box_min(int i_box, int idim){
 }
 
 double box::get_max(int dex) const{
-    if(dex<0 || dex>=data.get_cols()){
+    if(dex<0 || dex>=data->get_cols()){
         printf("WARNING asked for max %d but dim %d\n",
-	dex,data.get_cols());
+	dex,data->get_cols());
 	
 	exit(1);
     }
@@ -1224,9 +1154,9 @@ double box::get_max(int dex) const{
 }
 
 double box::get_min(int dex) const{
-    if(dex<0 || dex>=data.get_cols()){
+    if(dex<0 || dex>=data->get_cols()){
         printf("WARNING asked for min %d but dim %d\n",
-	dex,data.get_cols());
+	dex,data->get_cols());
 	
 	exit(1);
     }
@@ -1235,36 +1165,36 @@ double box::get_min(int dex) const{
 }
 
 void box::nn_srch(int dex, array_1d<int> &neigh, array_1d<double> &dd){
-   if(dex<0 || dex>=data.get_rows()){
+   if(dex<0 || dex>=data->get_rows()){
        printf("WARNING asked for nearest neighbors to %d but pts %d\n",
-       dex,data.get_rows());
+       dex,data->get_rows());
        
        exit(1);
    }
    
    array_1d<int> tree_stats;
    
-   nn_srch((*data(dex)),neigh,dd,tree_stats);
+   nn_srch((*data[0](dex)),neigh,dd,tree_stats);
    
 }
 
 void box::nn_srch(int dex, array_1d<int> &neigh, array_1d<double> &dd, array_1d<int> &tree_stats){
-   if(dex<0 || dex>=data.get_rows()){
+   if(dex<0 || dex>=data->get_rows()){
        printf("WARNING asked for nearest neighbors to %d but pts %d\n",
-       dex,data.get_rows());
+       dex,data->get_rows());
        
        exit(1);
    }
    
-   nn_srch((*data(dex)),neigh,dd,tree_stats);
+   nn_srch((*data[0](dex)),neigh,dd,tree_stats);
    
 }
 
 void box::nn_srch(array_1d<double> &pt, array_1d<int> &neigh, array_1d<double> &dd){
 
-    if(pt.get_dim()!=data.get_cols()){
+    if(pt.get_dim()!=data->get_cols()){
         printf("WARNING trying to do nn_srch on pt with %d dim when data has %d\n",
-	pt.get_dim(),data.get_cols());
+	pt.get_dim(),data->get_cols());
 	
 	exit(1);
     }
@@ -1277,9 +1207,9 @@ void box::nn_srch(array_1d<double> &pt, array_1d<int> &neigh, array_1d<double> &
 
 void box::nn_srch(array_1d<double> &pt, array_1d<int> &neigh, array_1d<double> &dd, array_1d<int> &tree_stats){
 
-    if(pt.get_dim()!=data.get_cols()){
+    if(pt.get_dim()!=data->get_cols()){
         printf("WARNING trying to do nn_srch on pt with %d dim when data has %d\n",
-	pt.get_dim(),data.get_cols());
+	pt.get_dim(),data->get_cols());
 	
 	exit(1);
     }
@@ -1312,7 +1242,7 @@ void box::nn_srch(array_1d<double> &pt, array_1d<int> &neigh, array_1d<double> &
     for(i=0;i<box_contents.get_cols(i_box);i++){
         j=box_contents.get_data(i_box,i);
         neigh.set(i,j);
-	nn=distance(pt,(*data(j)));
+	nn=distance(pt,(*data[0](j)));
 	dd_raw.set(i,nn);
     }
     
@@ -1381,8 +1311,8 @@ void box::refactor(){
         box_contents_buffer.add_row((*box_contents(i)));
     }
     
-    box_min_buffer.set_cols(data.get_cols());
-    box_max_buffer.set_cols(data.get_cols());
+    box_min_buffer.set_cols(data->get_cols());
+    box_max_buffer.set_cols(data->get_cols());
     
     for(i=0;i<box_min.get_rows();i++){
         box_min_buffer.add_row((*box_min(i)));
@@ -1423,8 +1353,8 @@ void box::refactor(){
 	    box_contents.add_row((*box_contents_buffer(i)));
 	}
 	
-	box_min.set_cols(data.get_cols());
-	box_max.set_cols(data.get_cols());
+	box_min.set_cols(data->get_cols());
+	box_max.set_cols(data->get_cols());
 	for(i=0;i<box_min_buffer.get_rows();i++){
 	    box_min.add_row((*box_min_buffer(i)));
 	    box_max.add_row((*box_max_buffer(i)));
@@ -1489,65 +1419,29 @@ void box::refactor(){
 	}
 	
     }
-    
-    
-    
-    /*
-    double xx,nn;
-    int iu,id,k,l,split,splitbest;
-    
-    for(i=0;i<box_contents.get_rows();i++){
-        if(box_contents.get_cols(i)>pts_per_box){
-	    for(j=0;j<data.get_cols();j++){
-	        nn=split_error((*box_contents(i)),j,&k,&l);
-		
-		if(k>l)split=k-l;
-		else split=l-k;
-		
-		if(j==0 || split<splitbest){
-		    iu=k;
-		    id=l;
-		    splitbest=split;
-		    xx=nn;
-		}
-		 
-	    }
-	    
-	    printf("%d %d %d -- %e %d %d\n",i,box_contents.get_cols(i),worth_trying.get_data(i),
-	    xx,iu,id);
-	    
-	 
-	    
-	}
-    }
-    
-    exit(1);
-    */
+
     
     j=0;
     for(i=0;i<box_contents.get_rows();i++){
         j+=box_contents.get_cols(i);
     }
     
-    for(i=0;i<data.get_cols();i++)tree_ct.set(i,0);
+    for(i=0;i<data->get_cols();i++)tree_ct.set(i,0);
     
     for(i=0;i<tree.get_rows();i++){
-        if(tree.get_data(i,0)>=data.get_cols()){
+        if(tree.get_data(i,0)>=data->get_cols()){
 	    printf("WARNING tree dim %d\n",tree.get_data(i,0));
 	}
         tree_ct.add_val(tree.get_data(i,0),1);
     }
-    
-    //printf("pts %d rows %d\n",data.get_rows(),j);
-    //printf("done with refactor %d %d\n",get_smallest_box(),get_biggest_box());
 
 }
 
 void box::get_tree_cts(array_1d<int> &ct){
-    ct.set_dim(data.get_cols());
+    ct.set_dim(data->get_cols());
     
     int i;
-    for(i=0;i<data.get_cols();i++){
+    for(i=0;i<data->get_cols();i++){
         ct.set(i,tree_ct.get_data(i));
     }
 } 
@@ -1555,13 +1449,13 @@ void box::get_tree_cts(array_1d<int> &ct){
 void box::get_avg_box_bounds(array_1d<double> &minav,array_1d<double> &minvar,
      array_1d<double> &maxav,array_1d<double>&maxvar){
 
-    minav.set_dim(data.get_cols());
-    minvar.set_dim(data.get_cols());
-    maxav.set_dim(data.get_cols());
-    maxvar.set_dim(data.get_cols());
+    minav.set_dim(data->get_cols());
+    minvar.set_dim(data->get_cols());
+    maxav.set_dim(data->get_cols());
+    maxvar.set_dim(data->get_cols());
     
     int i;
-    for(i=0;i<data.get_cols();i++){
+    for(i=0;i<data->get_cols();i++){
         minav.set(i,0.0);
 	maxav.set(i,0.0);
 	minvar.set(i,0.0);
@@ -1570,20 +1464,20 @@ void box::get_avg_box_bounds(array_1d<double> &minav,array_1d<double> &minvar,
     
     int j;
     for(i=0;i<box_contents.get_rows();i++){
-        for(j=0;j<data.get_cols();j++){
+        for(j=0;j<data->get_cols();j++){
 	    minav.add_val(j,box_min.get_data(i,j));
 	    maxav.add_val(j,box_max.get_data(i,j));
 	}
     }
     
-    for(i=0;i<data.get_cols();i++){
+    for(i=0;i<data->get_cols();i++){
         minav.divide_val(i,double(box_contents.get_rows()));
 	maxav.divide_val(i,double(box_contents.get_rows()));
     }
     
     double nn;
     for(i=0;i<box_contents.get_rows();i++){
-        for(j=0;j<data.get_cols();j++){
+        for(j=0;j<data->get_cols();j++){
 	    nn=power(minav.get_data(j)-box_min.get_data(i,j),2);
 	    minvar.add_val(j,nn);
 	    
@@ -1592,7 +1486,7 @@ void box::get_avg_box_bounds(array_1d<double> &minav,array_1d<double> &minvar,
 	}
     }
     
-    for(i=0;i<data.get_cols();i++){
+    for(i=0;i<data->get_cols();i++){
         minvar.divide_val(i,double(box_contents.get_rows()));
 	maxvar.divide_val(i,double(box_contents.get_rows()));
     }

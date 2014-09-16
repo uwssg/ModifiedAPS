@@ -23,6 +23,7 @@ class kd_tree{
     /*this friend declaration makes it possible for the Gaussian Process class 
     to access the data stored in the tree*/
     friend class gp;
+    friend class box;
     
     public:
         int ktests;
