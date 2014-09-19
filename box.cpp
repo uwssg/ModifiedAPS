@@ -1067,6 +1067,24 @@ int box::get_contents(int dex){
     return box_contents.get_cols(dex);
 }
 
+int box::get_contents(int dex, int ii){
+    if(dex<0 || dex>=box_contents.get_rows()){
+        printf("WARNING asked for contents of box %d but only have %d\n",
+        dex,box_contents.get_rows());
+        printf("in get_contents(int,int)\n");
+        exit(1);
+    }
+    
+    if(ii<0 || ii>-box_contents.get_cols(dex)){
+        printf("WARNING asked for the %dth content of box %d but only have %d\n",
+        ii,box_contents.get_cols(dex));
+        
+        exit(1);
+    }
+    
+    return box_contents.get_data(dex,ii);
+}
+
 int box::get_smallest_box(){
     int j,i,min;
     for(i=0;i<box_contents.get_rows();i++){

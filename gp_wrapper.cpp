@@ -110,6 +110,15 @@ int gpWrapper::get_box_contents(int dex){
     return gg->get_box_contents(dex);
 }
 
+int gpWrapper::get_box_contents(int dex, int ii){
+    if(gg==NULL){
+        printf("WARNING asked for specific box contents, but gg is NULL\n");
+        exit(1);
+    }
+    
+    return gg->get_box_contents(dex,ii);
+}
+
 double gpWrapper::get_box_max(int dex, int idim){
     if(gg==NULL){
         printf("WARNING asked for box_max but gg is NULL\n");

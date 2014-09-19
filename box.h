@@ -69,6 +69,7 @@ public:
     double get_mean_box(double*);
     int get_ntree();
     int get_contents(int);
+    int get_contents(int,int);
     
     int get_pts();
     int get_dim();

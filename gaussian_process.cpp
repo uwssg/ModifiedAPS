@@ -82,6 +82,15 @@ int gp::get_box_contents(int dex){
     return bptr->get_contents(dex);
 }
 
+int gp::get_box_contents(int dex, int ii){
+    if(bptr==NULL){
+        printf("WARNING asked for specific box contents, but bptr is NULL\n");
+        exit(1);
+    }
+    
+    return bptr->get_contents(dex,ii);
+}
+
 double gp::get_box_max(int dex, int idim){
     if(bptr==NULL || dex<0 || dex>=bptr->get_nboxes()){
         printf("WARNING asked for max of box %d\n",dex);

@@ -222,6 +222,7 @@ class gpWrapper{
         
         int get_nboxes();
         int get_box_contents(int);
+        int get_box_contents(int,int);
         double get_box_max(int,int);
         double get_box_min(int,int);
         
