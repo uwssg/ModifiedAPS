@@ -53,6 +53,70 @@ int gp::get_smallest_box(){
     return bptr->get_smallest_box();
 }
 
+int gp::get_n_small_boxes(){
+    if(bptr==NULL) return 0;
+    return bptr->get_n_small_boxes();
+}
+
+int gp::get_n_optimal_boxes(){
+    if(bptr==NULL) return 0;
+    return bptr->get_n_optimal_boxes();
+}
+
+int gp::get_nboxes(){
+    if(bptr==NULL) return 0;
+    return bptr->get_nboxes();
+}
+
+int gp::get_box_contents(int dex){
+    if(bptr==NULL) return 0;
+    
+    if(dex<0 || dex>=bptr->get_nboxes()){
+        printf("WARNING asked for contenst of box %d but only %d\n",
+        dex, bptr->get_nboxes());
+        
+        exit(1);
+    }
+    
+    return bptr->get_contents(dex);
+}
+
+double gp::get_box_max(int dex, int idim){
+    if(bptr==NULL || dex<0 || dex>=bptr->get_nboxes()){
+        printf("WARNING asked for max of box %d\n",dex);
+        if(bptr==NULL)printf("but bptr NULL\n");
+        else printf("but only have %d\n",bptr->get_nboxes());
+        
+        exit(1);
+    }
+    
+    if(idim<0 || idim>=dim){
+        printf("WARNING asked for box max in dim %d but have %d\n",
+        idim,dim);
+        
+        exit(1);
+    }
+    
+    return bptr->get_box_max(dex,idim);
+}
+
+double gp::get_box_min(int dex, int idim){
+    if(bptr==NULL || dex<0 || dex>=bptr->get_nboxes()){
+        printf("WARNING asked for min of box %d\n",dex);
+        if(bptr==NULL)printf("but bptr NULL\n");
+        else printf("but only have %d\n",bptr->get_nboxes());
+        
+        exit(1);
+    }
+    
+    if(idim<0 || idim>=dim){
+        printf("WARNING asked for box min in dim %d but have %d\n",
+        idim,dim);
+        
+        exit(1);
+    }
+}
+
 int gp::get_search_ct_box(){
     if(bptr==NULL){
         return 0;

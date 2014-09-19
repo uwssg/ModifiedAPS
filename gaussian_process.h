@@ -574,6 +574,14 @@ class gp{
         int get_biggest_box();
         int get_smallest_box();
         
+        int get_n_small_boxes();
+        int get_n_optimal_boxes();
+        
+        int get_nboxes();
+        int get_box_contents(int);
+        double get_box_max(int,int);
+        double get_box_min(int,int);
+        
     private:
     
         /*this object will keep track of the results of nearest neighbor searches
