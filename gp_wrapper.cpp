@@ -90,6 +90,42 @@ int gpWrapper::get_smallest_box(){
     return gg->get_smallest_box();
 }
 
+int gpWrapper::get_n_small_boxes(){
+    if(gg==NULL) return 0;
+    return gg->get_n_small_boxes();
+}
+
+int gpWrapper::get_n_optimal_boxes(){
+    if(gg==NULL) return 0;
+    return gg->get_n_optimal_boxes();
+}
+
+int gpWrapper::get_nboxes(){
+    if(gg==NULL) return 0;
+    return gg->get_nboxes();
+}
+
+int gpWrapper::get_box_contents(int dex){
+    if(gg==NULL) return 0;
+    return gg->get_box_contents(dex);
+}
+
+double gpWrapper::get_box_max(int dex, int idim){
+    if(gg==NULL){
+        printf("WARNING asked for box_max but gg is NULL\n");
+        exit(1);
+    }
+    return gg->get_box_max(dex,idim);
+}
+
+double gpWrapper::get_box_min(int dex, int idim){
+    if(gg==NULL){
+        printf("WARNING asked for box_min but gg is NULL\n");
+        exit(1);
+    }
+    return gg->get_box_min(dex,idim);
+}
+
 int gpWrapper::get_search_ct(){
     if(gg==NULL){
         return 0;

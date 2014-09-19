@@ -217,6 +217,14 @@ class gpWrapper{
         double get_search_time_box();
         int get_smallest_box();
         int get_biggest_box();
+        int get_n_small_boxes();
+        int get_n_optimal_boxes();
+        
+        int get_nboxes();
+        int get_box_contents(int);
+        double get_box_max(int,int);
+        double get_box_min(int,int);
+        
         
         /////////code for diagnostic testing
         int set_iWhere(int);

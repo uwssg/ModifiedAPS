@@ -39,6 +39,7 @@ gp::gp(){
 gp::~gp(){
   
   if(kptr!=NULL) delete kptr;
+  if(bptr!=NULL) delete bptr;
   if(neighbor_storage!=NULL) delete neighbor_storage;
 
 }

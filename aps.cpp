@@ -2674,7 +2674,9 @@ void aps::write_pts(){
     ggWrap.get_search_time_box()/double(ggWrap.get_search_ct_box()));
     printf("smallest box %d\n",ggWrap.get_smallest_box());
     printf("biggest box %d\n",ggWrap.get_biggest_box());
-    
+    printf("n boxes %d\n",ggWrap.get_nboxes());
+    printf("n small boxes %d\n",ggWrap.get_n_small_boxes());
+    printf("n optimal boxes %d\n",ggWrap.get_n_optimal_boxes());
     printf("total time %e\n",time_now-start_time);
     printf("\n");
     
