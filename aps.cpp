@@ -1251,6 +1251,7 @@ int aps::aps_box_wide(){
     
     }
     
+    double smallestSeed=2.0*chisq_exception;
     if(chosenBox>=0){
         while(seed.get_dim()<ggWrap.get_dim()+1){
             
@@ -1262,11 +1263,20 @@ int aps::aps_box_wide(){
             
             ggWrap.evaluate(trial,&chitrial,&dex);
             
-            if(dex>=0)seed.add(dex);
-            
+            if(dex>=0){
+                if(chitrial<smallestSeed)smallestSeed=chitrial;
+                seed.add(dex);
+            }
         } 
     
-        find_global_minimum(seed);
+        i=find_global_minimum(seed);
+        
+        if(i>=0){
+            printf("    box found %e from %e\n",ggWrap.get_fn(i),smallestSeed);
+        }
+        else{
+            printf("    box found junk\n");
+        }
     }
     else{
         printf("\n\nThat's odd... chosenBox %d\n",chosenBox);
