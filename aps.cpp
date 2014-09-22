@@ -1103,7 +1103,7 @@ void aps::search(){
 }
 
 int aps::aps_box_wide(){
-
+    
     array_1d<int> acceptableBoxes;
     acceptableBoxes.set_name("aps_acceptableBoxes");
     
@@ -1132,9 +1132,140 @@ int aps::aps_box_wide(){
     
     n_box_wide++;
     
+    double pterm,pbest,ptotal,lpterm,volume;
+    int ibox,dex,chosenBox,ii,norm_is_set;
+    array_1d<int> seed;
+    array_1d<double> trial;
+    double chitrial,mu,sig,norm,x1,x2,y1,y2,stopping_point,dx;
     
     
-
+    seed.set_name("aps_box_search_seed");
+    trial.set_name("aps_box_search_trial");
+    
+    chosenBox=-1;
+    
+    if(acceptableBoxes.get_dim()==1){
+        chosenBox=acceptableBoxes.get_data(0);
+   
+    }//if there was only one box containing no good points
+    else{
+        pbest=2.0*chisq_exception;
+        
+        /*we will try to find the box with the smallest probability of 
+        not having a good point inside of it*/
+        
+        for(ii=0;ii<acceptableBoxes.get_dim();ii++){
+            ibox=acceptableBoxes.get_data(ii);
+            ggWrap.reset_cache();
+            ptotal=0.0;
+            for(i=0;i<1000;i++){
+                
+                for(j=0;j<ggWrap.get_dim();j++){
+                    trial.set(j,ggWrap.get_box_min(ibox,j)+
+                        dice->doub()*(ggWrap.get_box_max(ibox,j)-ggWrap.get_box_min(ibox,j)));
+                }
+                
+                mu=ggWrap.user_predict(trial,&sig);
+                
+                if(sig<=0.0){
+                    printf("WARNING in box_wide sig %e\n",sig);
+                    exit(1);
+                }
+                
+                norm_is_set=0;
+                if(mu>=3.0*sig){
+                    norm=sqrt(2.0*pi)*sig;
+                    stopping_point=ggWrap.get_target();
+                    norm_is_set=1;
+                }
+                else{
+                    norm=0.0;
+                    if(ggWrap.get_target()<mu+3.0*sig)stopping_point=mu+3.0*sig;
+                    else stopping_point=ggWrap.get_target();
+                    norm_is_set=0;
+                }
+                
+                dx=0.001*stopping_point;
+                pterm=0.0;
+                x1=0.0;
+                y1=exp(-0.5*power((x1-mu)/sig,2));
+                for(x2=dx;x2<stopping_point;x2+=dx){
+                    y2=exp(-0.5*power((x2-mu)/sig,2));
+                    
+                    if(x1<ggWrap.get_target()){
+                        pterm+=0.5*(y2+y1)*(x2-x1);
+                    }
+                    
+                    if(norm_is_set==0){
+                        norm+=0.5*(y2+y1)*(x2-x1);
+                    }
+                    
+                    x1=x2;
+                    y1=y2;
+                    
+                }
+                
+                pterm=pterm/norm;
+                if(pterm>=1.0){
+                    lpterm=-12.0;
+                }
+                else{
+                    lpterm=log(1.0-pterm);
+                }
+                /*lpterm is now the log of the probability that this point
+                is not a good point*/
+                
+                ptotal+=lpterm;  
+            }//loop over 1000 trial points in the box
+            
+            ptotal=ptotal/double(i+1);
+            
+            /*
+            ptotal is now the average log of the probability that a given
+            point in the box is not good
+            */
+            
+            volume=1.0;
+            for(i=0;i<ggWrap.get_dim();i++){
+                volume*=ggWrap.get_box_max(ibox,i)-ggWrap.get_box_min(ibox,i);
+            }
+            
+            /*multiply by the volume of the box and you get the probability that
+            there are no good points in the box*/
+            
+            ptotal*=volume;
+            
+            if(ii==0 || ptotal<pbest){
+                pbest=ptotal;
+                chosenBox=ibox;
+            }
+            
+        }//loop over the boxes
+    
+    }
+    
+    if(chosenBox>=0){
+        while(seed.get_dim()<ggWrap.get_dim()+1){
+            
+            for(i=0;i<ggWrap.get_dim();i++){
+               
+                trial.set(i,ggWrap.get_box_min(chosenBox,i)
+                    +dice->doub()*(ggWrap.get_box_max(chosenBox,i)-ggWrap.get_box_min(chosenBox,i)));
+            }
+            
+            ggWrap.evaluate(trial,&chitrial,&dex);
+            
+            if(dex>=0)seed.add(dex);
+            
+        } 
+    
+        find_global_minimum(seed);
+    }
+    else{
+        printf("\n\nThat's odd... chosenBox %d\n",chosenBox);
+    }
+    
+    
 }
 
 int aps::aps_wide(){
@@ -2069,7 +2200,9 @@ void aps::aps_search(){
     }
     else{
         ggWrap.set_iWhere(iAPS);
-        i_wide=aps_wide();
+        //i_wide=aps_wide();
+        
+        aps_box_wide();
         called_wide+=ggWrap.get_called()-ibefore;
     }
 
