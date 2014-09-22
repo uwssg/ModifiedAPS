@@ -100,4 +100,7 @@ for(i=0;i<ix.get_dim();i++){
     //apsExtractor.draw_bayesian_bounds(outname,ix.get_data(i),iy.get_data(i),0.95);
 
 }
+
+apsExtractor.write_good_points("processedFiles/s_curve_projected_good.sav");
+
 }
