@@ -2070,7 +2070,6 @@ void aps::aps_search(){
     else{
         ggWrap.set_iWhere(iAPS);
         i_wide=aps_wide();
-        assess_node(i_wide);
         called_wide+=ggWrap.get_called()-ibefore;
     }
 
