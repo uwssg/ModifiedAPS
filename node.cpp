@@ -478,12 +478,12 @@ int node::coulomb_search(){
         velocity.multiply_val(i,speed);
     }
     
-    int istep=0,step_max=100;
+    int istep=0,step_max=100,walker_in_bounds=1;
     double dtv,dta,dt,newmu,dx,distance_to_center;
-    
+ 
     delta=0.1;
     dx=1.0;
-    while(dx>1.0e-20 && delta>1.0e-10 && (gg->get_target()-mu>tol || istep<step_max)){
+    while(dx>1.0e-20 && delta>1.0e-10 && walker_in_bounds==1 && (gg->get_target()-mu>tol || istep<step_max)){
         istep++;
         
         for(i=0;i<gg->get_dim();i++){
@@ -533,11 +533,11 @@ int node::coulomb_search(){
         else{
             dt=eps;
         }
-        
+
         for(i=0;i<gg->get_dim();i++){
             newpt.set(i,walker.get_data(i)+dt*velocity.get_data(i));
         }
-        
+
         dx=gg->distance(walker,newpt);
         newmu=gg->user_predict(newpt);
         
@@ -545,12 +545,21 @@ int node::coulomb_search(){
         We do not want the coulomb search to carry us outside of the region
         where the GP predicts chisq<chisq_lim
         */
+        
         if(newmu<gg->get_target()){
             mu=newmu;
             for(i=0;i<gg->get_dim();i++){
                 walker.add_val(i,dt*velocity.get_data(i));
                 velocity.add_val(i,dt*acceleration.get_data(i));
             }
+            
+            for(i=0;i<gg->get_dim() && walker_in_bounds==1;i++){
+                if(walker.get_data(i)>gg->get_max(i) || walker.get_data(i)<gg->get_min(i)){
+                    walker_in_bounds=0;
+                }
+            }
+            
+            
         }
         else{
             delta*=0.5;
@@ -563,6 +572,7 @@ int node::coulomb_search(){
     
     time_coulomb+=double(time(NULL))-before;
     ct_coulomb+=gg->get_called()-ibefore;
+    
     return iout;
 }
 

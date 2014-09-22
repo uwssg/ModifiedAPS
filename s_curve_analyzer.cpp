@@ -96,8 +96,8 @@ for(i=0;i<ix.get_dim();i++){
     sprintf(outname,"processedFiles/s_curve_d%d_c%d_%d_%d_frequentist.sav",dim,ncenters,ix.get_data(i),iy.get_data(i));
     apsExtractor.write_good_points(outname,ix.get_data(i),iy.get_data(i));
         
-    sprintf(outname,"processedFiles/s_curve_d%d_c%d_%d_%d_bayesian.sav",dim,ncenters,ix.get_data(i),iy.get_data(i));
-    apsExtractor.draw_bayesian_bounds(outname,ix.get_data(i),iy.get_data(i),0.95);
+    //sprintf(outname,"processedFiles/s_curve_d%d_c%d_%d_%d_bayesian.sav",dim,ncenters,ix.get_data(i),iy.get_data(i));
+    //apsExtractor.draw_bayesian_bounds(outname,ix.get_data(i),iy.get_data(i),0.95);
 
 }
 }

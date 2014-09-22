@@ -1163,6 +1163,9 @@ int aps::aps_box_wide(){
         
         for(ii=0;ii<acceptableBoxes.get_dim();ii++){
             ibox=acceptableBoxes.get_data(ii);
+            
+            //printf("    ibox %d\n",ibox);
+            
             ggWrap.reset_cache();
             ptotal=0.0;
             for(i=0;i<1000;i++){
@@ -1170,6 +1173,20 @@ int aps::aps_box_wide(){
                 for(j=0;j<ggWrap.get_dim();j++){
                     trial.set(j,ggWrap.get_box_min(ibox,j)+
                         dice->doub()*(ggWrap.get_box_max(ibox,j)-ggWrap.get_box_min(ibox,j)));
+                }
+                
+                for(j=0;j<ggWrap.get_dim();j++){
+                    if(trial.get_data(j)<ggWrap.get_box_min(ibox,j) || 
+                    trial.get_data(j)>ggWrap.get_box_max(ibox,j)){
+                        
+                        printf("WARNING in aps trial %e not between %e %e\n",
+                        trial.get_data(j),
+                        ggWrap.get_box_min(ibox,j),
+                        ggWrap.get_box_max(ibox,j));
+                        
+                        exit(1);
+                        
+                    }
                 }
                 
                 mu=ggWrap.user_predict(trial,&sig);
@@ -1247,6 +1264,7 @@ int aps::aps_box_wide(){
                 chosenBox=ibox;
             }
             
+           
         }//loop over the boxes
     
     }
@@ -1282,7 +1300,7 @@ int aps::aps_box_wide(){
         printf("\n\nThat's odd... chosenBox %d\n",chosenBox);
     }
     
-    
+
 }
 
 int aps::aps_wide(){

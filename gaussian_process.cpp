@@ -125,6 +125,8 @@ double gp::get_box_min(int dex, int idim){
         
         exit(1);
     }
+    
+    return bptr->get_box_min(dex,idim);
 }
 
 int gp::get_search_ct_box(){
@@ -234,7 +236,7 @@ double gp::get_max(int dex) const{
         exit(1);
     }
     
-    return kptr->get_max(dex);
+    return bptr->get_max(dex);
 }
 
 double gp::get_min(int dex) const{
@@ -245,7 +247,7 @@ double gp::get_min(int dex) const{
         exit(1);
     }
     
-    return kptr->get_min(dex);
+    return bptr->get_min(dex);
 }
 
 double gp::distance(int d1, int d2){
@@ -611,7 +613,7 @@ const{
     First we must determine whether we need to do a new nearest neighbor search,
     or whether the results from the last nearest neighbor search will suffice
     */
-    int dosrch,ibox;
+    int dosrch=0,ibox;
     array_1d<int> tree_stats;
     tree_stats.set_name("gp_predict_tree_stats");
     
@@ -619,14 +621,24 @@ const{
     cached_neigh.get_dim()==0 || cached_pmin.get_dim()==0 ||
     cached_pmax.get_dim()==0){
         
+        //printf("searching because of initial filter\n");
         dosrch=1;
     }
     else{
         ibox=bptr->find_box(pt);
         
-        if(ibox!=cached_ibox)dosrch=1;
+        if(ibox!=cached_ibox){
+           // printf("searching because ibox %d cached %d\n",
+           // ibox,cached_ibox);
+            
+            dosrch=1;
+        }
         
-        if(bptr->get_contents(ibox)!=cached_kk)dosrch=1;
+        if(bptr->get_contents(ibox)!=cached_kk){
+            //printf("searching because contents %d cached %d\n",
+            //bptr->get_contents(ibox),cached_kk);
+            dosrch=1;
+        }
     }
     
     
@@ -634,6 +646,7 @@ const{
     
     if(dosrch==1){
         /*do a new nearest neighbor search*/
+        
         
         nn=double(time(NULL));
         
@@ -645,6 +658,8 @@ const{
         
         cached_ibox=tree_stats.get_data(0);
         cached_kk=bptr->get_contents(cached_ibox);
+
+        
         
         if(cached_kk != cached_neigh.get_dim()){
             printf("WARNING cached_kk %d cached_neigh.dim %d\n",
@@ -710,7 +725,14 @@ const{
             }
             
         }
-
+        
+        //printf("    inverting %d\n",cached_ibox);
+        /*for(i=0;i<kptr->get_dim();i++){
+            printf("%e %e -- %e %e -- %e\n",
+            bptr->get_box_min(cached_ibox,i),bptr->get_box_max(cached_ibox,i),
+            bptr->get_box_min(0,i),bptr->get_box_max(0,i),pt.get_data(i));
+        }*/
+        
         invert_lapack(gg,cached_ggin,0);
         nn=check_inversion(gg,cached_ggin);
         if(nn>1.0e-5){
@@ -722,6 +744,20 @@ const{
         
         ct_search++;
         time_search+=double(time(NULL))-nn;
+    }
+    
+    //sfd -- this is specialized to the s_curve test case        
+    for(i=0;i<kptr->get_dim();i++){
+        if((pt.get_data(i)<bptr->get_box_min(cached_ibox,i) && pt.get_data(i)>-200.0) ||
+           (pt.get_data(i)>bptr->get_box_max(cached_ibox,i) && pt.get_data(i)<200.0)){
+                   
+               printf("WARNING %e not between %e %e\n",
+               pt.get_data(i),bptr->get_box_min(cached_ibox,i),
+               bptr->get_box_max(cached_ibox,i));
+                   
+               exit(1);
+                   
+           }
     }
     
     after=double(time(NULL));
@@ -744,7 +780,8 @@ const{
    
     vv.set_dim(dim);
     uu.set_dim(dim); 
-
+    
+    
     for(i=0;i<cached_kk;i++){
         /*set the values of the covariogram evaluated on the query point and each nearest neighbor*/
         ggq.set(i,(*covariogram)((*bptr->get_pt(cached_neigh.get_data(i))),pt,cached_pmin,cached_pmax,grad,0));
