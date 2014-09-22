@@ -2781,6 +2781,20 @@ void aps::write_pts(){
 
     double per_chisq,per_total,overhead;
     
+    array_1d<int> candidates;
+    candidates.set_name("aps_write_pts_candidates");
+    
+    for(i=0;i<nodes.get_dim();i++){
+        nodes(i)->flush_candidates(candidates);
+    }
+    
+    if(candidates.get_dim()>0){
+        for(i=0;i<candidates.get_dim();i++){
+            assess_node(candidates.get_data(i));
+        }
+    }
+    
+    
     /*how much clock time is spent per call to chisquared just calling chisquared*/
     per_chisq=ggWrap.get_chisq_time()/ggWrap.get_called();
     
