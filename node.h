@@ -53,6 +53,9 @@ class node{
         double volume();
         int is_it_active();
         
+        double get_max(int);
+        double get_min(int);
+        
     private:
         
         array_1d<int> associates,boundaryPoints;

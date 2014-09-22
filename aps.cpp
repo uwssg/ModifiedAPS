@@ -41,6 +41,9 @@ aps::aps(int dim_in, int kk, double dd, int seed){
     ddUnitSpheres.set_name("ddUnitSpheres");
     refined_simplex.set_name("refined_simplex");
     
+    _aps_wide_contents_buffer.set_name("_aps_wide_contents_buffer");
+    _aps_wide_ss_buffer.set_name("_aps_wide_ss_buffer");
+    
     _last_ff.set_name("find_global_min_last_ff");
     _last_simplex.set_name("find_global_min_last_simplex");
     
@@ -228,6 +231,7 @@ void aps::initialize(int npts, array_1d<double> &min, array_1d<double> &max,
         ggmin.set(i,0.0);
         if(characteristic_length.get_data(i)<0.0){
             ggmax.set(i,(range_max.get_data(i)-range_min.get_data(i)));
+            characteristic_length.set(i,range_max.get_data(i)-range_min.get_data(i));
         }
         else{
             ggmax.set(i,characteristic_length.get_data(i));
@@ -1088,16 +1092,14 @@ void aps::search(){
     double aps_score,simplex_score;
     int i;
     
-    //printf("in search\n");
-    
-    //aps_score=time_aps;
-    
     aps_score=ct_aps;
     simplex_score=ct_simplex;
     
     int i_simplex;
     if(simplex_score<aps_score){
-        i_simplex=simplex_search();
+        i=ggWrap.get_called();
+        aps_box_wide();
+        ct_simplex+=ggWrap.get_called()-i;
     }
     
     aps_search();
@@ -1109,11 +1111,13 @@ void aps::search(){
     time_total+=double(time(NULL))-before;
 }
 
-int aps::aps_box_wide(){
+void aps::get_interesting_boxes(array_1d<int> &acceptableBoxes){
+
+    array_1d<double> trial;
+    trial.set_name("aps_box_wide_trial");
+    int ic;
     
-    array_1d<int> acceptableBoxes;
-    acceptableBoxes.set_name("aps_acceptableBoxes");
-    
+    double span,allowedDistance,dd;
     int i,j,use_it;
     for(i=0;i<ggWrap.get_nboxes();i++){
         use_it=1;
@@ -1123,13 +1127,56 @@ int aps::aps_box_wide(){
             }
         }
         
+        if(nodes.get_dim()>0 && use_it==1){
+            for(j=0;j<ggWrap.get_dim();j++){
+                trial.set(j,0.5*(ggWrap.get_box_max(i,j)+ggWrap.get_box_min(i,j)));
+            }
+            
+            ic=find_nearest_center(trial);
+            
+            allowedDistance=0.0;
+            for(j=0;j<ggWrap.get_dim();j++){
+                span=nodes(ic)->get_max(j)-nodes(ic)->get_min(j);
+                allowedDistance+=power(span/characteristic_length.get_data(j),2);
+            }
+            allowedDistance=sqrt(allowedDistance);
+            
+            dd=ggWrap.distance(ic,trial);
+            if(dd<allowedDistance)use_it=0;
+        }
+        
+        
         if(use_it==1){
             acceptableBoxes.add(i);
         }
     
     }
+
+
+}
+
+int aps::aps_box_wide(){
+    /*
+    Select the boxes with no good points in them which are sufficiently
+    far from their nearest nodes.
     
-    int iout;
+    Use a GP to approximate the probability that each of these boxes contains
+    zero good points.
+    
+    Do a simplex minimization of chisquared (directly) seeded with points
+    in the box whose probability of containing a good point is the lowest.
+
+    */
+    
+    array_1d<int> acceptableBoxes;
+    acceptableBoxes.set_name("aps_acceptableBoxes");
+    
+    get_interesting_boxes(acceptableBoxes);
+    
+    array_1d<double> trial;
+    trial.set_name("aps_box_wide_trial");
+    
+    int i,j,iout;
     if(acceptableBoxes.get_dim()==0){
         printf("\n\nI'm sorry; there were no acceptable boxes\n\n");
         iout=aps_wide();
@@ -1142,12 +1189,9 @@ int aps::aps_box_wide(){
     double pterm,pbest,ptotal,lpterm,volume;
     int ibox,dex,chosenBox,ii,norm_is_set;
     array_1d<int> seed;
-    array_1d<double> trial;
     double chitrial,mu,sig,norm,x1,x2,y1,y2,stopping_point,dx;
-    
-    
+
     seed.set_name("aps_box_search_seed");
-    trial.set_name("aps_box_search_trial");
     
     chosenBox=-1;
     
@@ -1248,7 +1292,7 @@ int aps::aps_box_wide(){
             ptotal is now the average log of the probability that a given
             point in the box is not good
             */
-            
+                       
             volume=1.0;
             for(i=0;i<ggWrap.get_dim();i++){
                 volume*=ggWrap.get_box_max(ibox,i)-ggWrap.get_box_min(ibox,i);
@@ -1305,22 +1349,87 @@ int aps::aps_box_wide(){
 
 int aps::aps_wide(){
     
-    double sig;
-    
     /*
     Run the simplex search that seeks to maximize S
+    
+    First, however, select the boxes that have no good points in them
+    and are sufficiently far away from their nearest centers.
+    
+    Evaluate S at the center of each of these boxes.
+    
+    Maximize S in the box whose center has the maximum S.
     
     After calling simplex_strad, the point at which S is maximized
     will be stored in the global array_1d<double> simplex_best
     
     That is the point at which to evaluate chisquared.
     */
-    sig=simplex_strad(range_min,range_max);
     
+    array_1d<int> acceptableBoxes;
+    acceptableBoxes.set_name("aps_wide_acceptableBoxes");
+    get_interesting_boxes(acceptableBoxes);
+    
+    array_1d<double> searchMin,searchMax;
+    searchMin.set_name("aps_wide_searchMin");
+    searchMax.set_name("aps_wide_searchMax");
+    
+    int i,j,chosenBox,ii,ibox;
     array_1d<double> midpt;
+    midpt.set_name("aps_wide_midpt");
+    
+    double mu,sig,ss,ssbest;
+    
+    if(acceptableBoxes.get_dim()==0){
+        for(i=0;i<ggWrap.get_dim();i++){
+            searchMin.set(i,range_min.get_data(i));
+            searchMax.set(i,range_max.get_data(i));
+        }
+    }
+    else{
+        for(ii=0;ii<acceptableBoxes.get_dim();ii++){
+            ibox=acceptableBoxes.get_data(ii);
+            
+            if(ibox<_aps_wide_contents_buffer.get_dim() && 
+               ggWrap.get_box_contents(ibox)==_aps_wide_contents_buffer.get_data(ibox)){
+               
+               
+               ss=_aps_wide_ss_buffer.get_data(ibox);    
+           }
+           else{
+            
+            
+                for(i=0;i<ggWrap.get_dim();i++){
+                    midpt.set(i,0.5*(ggWrap.get_box_min(ibox,i)+ggWrap.get_box_max(ibox,i)));
+                }
+            
+                mu=ggWrap.user_predict(midpt,&sig);
+                ss=ggWrap.straddle_value(mu,sig);
+                
+                _aps_wide_contents_buffer.set(ibox,ggWrap.get_box_contents(ibox));
+                _aps_wide_ss_buffer.set(ibox,ss);
+                
+            }
+            
+            if(ii==0 || ss>ssbest){
+                chosenBox=ibox;
+                ssbest=ss;
+                
+                for(i=0;i<ggWrap.get_dim();i++){
+                    searchMin.set(i,ggWrap.get_box_min(ibox,i));
+                    searchMax.set(i,ggWrap.get_box_max(ibox,i));
+                }
+                
+            }
+            
+        }
+        
+        
+    }
+    
+    sig=simplex_strad(searchMin,searchMax);
     
     double chitrue;
-    int actually_added,ic,i,j,use_it;
+    int actually_added,ic,use_it;
      
     int iout=-1;
     
@@ -2235,9 +2344,9 @@ void aps::aps_search(){
     }
     else{
         ggWrap.set_iWhere(iAPS);
-        //i_wide=aps_wide();
+        i_wide=aps_wide();
         
-        aps_box_wide();
+        //aps_box_wide();
         called_wide+=ggWrap.get_called()-ibefore;
     }
 
@@ -2650,6 +2759,9 @@ void aps::optimize(){
     gg_opt.get_hyper_parameters(hh);
     set_hyper_parameters(hh);
     
+    _aps_wide_contents_buffer.reset();
+    _aps_wide_ss_buffer.reset();
+    
     last_optimized=wide_pts.get_dim();
     time_optimizing+=double(time(NULL))-before;
 
@@ -2836,6 +2948,8 @@ void aps::write_pts(){
     
         nn=double(time(NULL));
         gg.refactor();
+        _aps_wide_contents_buffer.reset();
+        _aps_wide_ss_buffer.reset();
         time_refactoring+=double(time(NULL))-nn;
     }
 

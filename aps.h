@@ -240,6 +240,7 @@ private:
     */
     int aps_wide();
     void aps_wide_post_process(int,double,double);
+    void get_interesting_boxes(array_1d<int>&);
     int aps_box_wide();
     
     /*
@@ -525,6 +526,12 @@ private:
     double ddNodeRatio;
     
     int n_wide,n_box_wide;
+    
+    /*buffers so that aps_wide doesn't have to keep computing
+    GP's that have not changed*/
+    array_1d<int> _aps_wide_contents_buffer;
+    array_1d<double> _aps_wide_ss_buffer;
+    
 };
 
 

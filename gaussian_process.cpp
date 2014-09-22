@@ -746,16 +746,31 @@ const{
         time_search+=double(time(NULL))-nn;
     }
     
-    //sfd -- this is specialized to the s_curve test case        
+    //sfd -- this is specialized to the s_curve test case
+    int betterFit;
+    int ibf,jbf;
+            
     for(i=0;i<kptr->get_dim();i++){
         if((pt.get_data(i)<bptr->get_box_min(cached_ibox,i) && pt.get_data(i)>-200.0) ||
            (pt.get_data(i)>bptr->get_box_max(cached_ibox,i) && pt.get_data(i)<200.0)){
+               betterFit=0;
+               
+               for(ibf=0;ibf<bptr->get_nboxes() && betterFit==0;ibf++){
+                   betterFit=1;
+                   for(jbf=0;jbf<kptr->get_dim() && betterFit==1;jbf++){
+                       if(pt.get_data(jbf)<bptr->get_box_min(ibf,jbf) || pt.get_data(jbf)>bptr->get_box_max(ibf,jbf)){
+                           betterFit=0; 
+                       }
+                   }
+               }
+               
+               if(betterFit==1){    
+                   printf("WARNING %e not between %e %e\n",
+                   pt.get_data(i),bptr->get_box_min(cached_ibox,i),
+                   bptr->get_box_max(cached_ibox,i));
                    
-               printf("WARNING %e not between %e %e\n",
-               pt.get_data(i),bptr->get_box_min(cached_ibox,i),
-               bptr->get_box_max(cached_ibox,i));
-                   
-               exit(1);
+                   exit(1);
+               }
                    
            }
     }

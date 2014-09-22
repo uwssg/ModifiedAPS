@@ -106,6 +106,8 @@ class gpWrapper{
         void set_chisq(chisquared*);
         void set_strad(straddle_parameter*);
         
+        double straddle_value(double,double);
+        
         /*
         determine whether or not the specified point is within the bounds allowed
         by the chisquard funciton (return 1 if so; return 0 if not)

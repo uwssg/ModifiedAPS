@@ -199,6 +199,10 @@ void gpWrapper::set_strad(straddle_parameter *strad_in){
     strad=strad_in;
 }
 
+double gpWrapper::straddle_value(double mu, double sig){
+    return (*strad)(mu,sig);
+}
+
 double gpWrapper::get_pt(int dex, int i){
     return gg->get_pt(dex,i);
 }

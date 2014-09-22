@@ -1226,6 +1226,14 @@ double node::volume(){
     return ans;
 }
 
+double node::get_max(int idim){
+    return range_max.get_data(idim);
+}
+
+double node::get_min(int idim){
+    return range_min.get_data(idim);
+}
+
 int node::search(){
     
     if(gg==NULL){
