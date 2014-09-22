@@ -51,6 +51,9 @@ aps::aps(int dim_in, int kk, double dd, int seed){
     called_focus=0;
     called_wide=0;
     ddNodeRatio=-1.0;
+    
+    n_wide=0;
+    n_box_wide=0;
         
     last_optimized=0;
     time_optimizing=0.0;
@@ -1099,6 +1102,41 @@ void aps::search(){
     time_total+=double(time(NULL))-before;
 }
 
+int aps::aps_box_wide(){
+
+    array_1d<int> acceptableBoxes;
+    acceptableBoxes.set_name("aps_acceptableBoxes");
+    
+    int i,j,use_it;
+    for(i=0;i<ggWrap.get_nboxes();i++){
+        use_it=1;
+        for(j=0;j<ggWrap.get_box_contents(i) && use_it==1;j++){
+            if(ggWrap.get_fn(ggWrap.get_box_contents(i,j))<ggWrap.get_target()){
+                use_it=0;
+            }
+        }
+        
+        if(use_it==1){
+            acceptableBoxes.add(i);
+        }
+    
+    }
+    
+    int iout;
+    if(acceptableBoxes.get_dim()==0){
+        printf("\n\nI'm sorry; there were no acceptable boxes\n\n");
+        iout=aps_wide();
+        n_wide++;
+        return iout;
+    }
+    
+    n_box_wide++;
+    
+    
+    
+
+}
+
 int aps::aps_wide(){
     
     double sig;
@@ -1115,93 +1153,116 @@ int aps::aps_wide(){
     
     array_1d<double> midpt;
     
-    double chitrue,chimid;
+    double chitrue;
     int actually_added,ic,i,j,use_it;
      
-    int bisect_it=0,iout=-1,inode;
-    array_1d<double> unit_v,dd_sphere;
-    array_1d<int> neigh_sphere;
-    
-    unit_v.set_name("aps_wide_unit_v");
-    dd_sphere.set_name("aps_wide_dd_sphere");
-    neigh_sphere.set_name("aps_wide_neigh_sphere");
-    
+    int iout=-1;
     
     if(simplex_best.get_dim()==gg.get_dim()){
         ggWrap.evaluate(simplex_best,&chitrue,&actually_added);
         
         iout=actually_added;
+        
+    }
+    aps_wide_post_process(actually_added,simplex_mu_best,simplex_sig_best);
+    return iout;
+}
 
-        if(actually_added>=0){
-            wide_pts.add(actually_added);
-            mu_storage.add(simplex_mu_best);
-            sig_storage.add(simplex_sig_best);
-         
-            if(do_bisection==1){
-                if(sphere_threshold<0.0 && chitrue<global_threshold){
-                    /*
-                    If the KD-tree of boundary points projected onto a unit sphere has not
-                    yet been established, and chisquared is less than the 1/10 quantile of
-                    points sampled by aps_wide, do bisection
-                    */
-                    
-                    bisect_it=1;
-                }
-                else if(sphere_threshold>0.0){
-                    /*
-                    If the KD-tree of boundary points projected onto a unit sphere has
-                    been established, find the nearest low-chisquared center, project
-                    this point onto a unit sphere about that center, compare the distance
-                    between that projected point and its nearest projected neighbor
-                    to the last few hundred such distances.  If that distance is greater
-                    than the 2/3 quantile of such distances, do bisection.
-                    */
-                    ic=find_nearest_center(simplex_best);
-                    if(ic>=0){
-                        if(ggWrap.is_unitSpheres_null()==0){
-                            project_to_unit_sphere(ic,simplex_best,unit_v);
-                            ggWrap.unitSpheres_nn_srch(unit_v,1,neigh_sphere,dd_sphere);
-                            ddUnitSpheres.add(dd_sphere.get_data(0));
-                   
-                            if(dd_sphere.get_data(0)>sphere_threshold){
-                                bisect_it=1;
-                            }
-                        }
-                    }
-                
-                }
-            
-            
-                if(bisect_it==1){
-                    bisection(simplex_best,chitrue);
-                }
-            }
-            
-            /*
-            If chisquared<chisquared_lim, assess whether or not we have
-            discovered a new low-chisquared region.
-            */
-            if(chitrue<strad.get_target()){
-                use_it=1;
-                for(ic=0;ic<nodes.get_dim() && use_it==1;ic++){
-                    inode=nodes(ic)->get_center();
-                    for(i=0;i<gg.get_dim();i++){
-                        midpt.set(i,0.5*(simplex_best.get_data(i)+gg.get_pt(inode,i)));
-                    }
-                    
-                    ggWrap.evaluate(midpt,&chimid,&i);
-                    
-                    if(chimid<strad.get_target())use_it=0;
-                }
-                
-                if(use_it==1){
-                    assess_node(actually_added);
-                }
-            }
-        }
+void aps::aps_wide_post_process(int actually_added, double mu, double sig){    
+    
+    if(actually_added<0)return;
+    
+    array_1d<double> pt;
+    pt.set_name("aps_wide_post_process_pt");
+    
+    int i;
+    for(i=0;i<ggWrap.get_dim();i++){
+        pt.set(i,ggWrap.get_pt(actually_added,i));
     }
     
-    return iout;
+    double chitrue=ggWrap.get_fn(actually_added);
+    int bisect_it=0;
+    
+    wide_pts.add(actually_added);
+    mu_storage.add(mu);
+    sig_storage.add(sig);
+    
+    int ic;
+    array_1d<double> unit_v,dd_sphere;
+    unit_v.set_name("aps_wide_post_process_unit_v");
+    dd_sphere.set_name("aps_wide_post_process_dd_sphere");
+    
+    array_1d<int> neigh_sphere;
+    neigh_sphere.set_name("aps_wide_post_process_neigh_sphere");     
+         
+    if(do_bisection==1){
+        if(sphere_threshold<0.0 && chitrue<global_threshold){
+            /*
+            If the KD-tree of boundary points projected onto a unit sphere has not
+            yet been established, and chisquared is less than the 1/10 quantile of
+            points sampled by aps_wide, do bisection
+            */
+                    
+            bisect_it=1;
+        }
+        else if(sphere_threshold>0.0){
+            /*
+            If the KD-tree of boundary points projected onto a unit sphere has
+            been established, find the nearest low-chisquared center, project
+            this point onto a unit sphere about that center, compare the distance
+            between that projected point and its nearest projected neighbor
+            to the last few hundred such distances.  If that distance is greater
+            than the 2/3 quantile of such distances, do bisection.
+            */
+            ic=find_nearest_center(pt);
+            if(ic>=0){
+                if(ggWrap.is_unitSpheres_null()==0){
+                    project_to_unit_sphere(ic,pt,unit_v);
+                    ggWrap.unitSpheres_nn_srch(unit_v,1,neigh_sphere,dd_sphere);
+                    ddUnitSpheres.add(dd_sphere.get_data(0));
+                   
+                    if(dd_sphere.get_data(0)>sphere_threshold){
+                        bisect_it=1;
+                    }
+                }
+            }
+                
+        }
+            
+            
+        if(bisect_it==1){
+            bisection(simplex_best,chitrue);
+        }
+    }
+     
+    int use_it,inode;
+    array_1d<double> midpt;
+    midpt.set_name("aps_wide_post_process_midpt");
+    
+    double chimid;
+           
+    /*
+    If chisquared<chisquared_lim, assess whether or not we have
+    discovered a new low-chisquared region.
+    */
+    if(chitrue<strad.get_target()){
+        use_it=1;
+        for(ic=0;ic<nodes.get_dim() && use_it==1;ic++){
+            inode=nodes(ic)->get_center();
+            for(i=0;i<gg.get_dim();i++){
+                midpt.set(i,0.5*(simplex_best.get_data(i)+gg.get_pt(inode,i)));
+            }
+                    
+            ggWrap.evaluate(midpt,&chimid,&i);
+                    
+            if(chimid<strad.get_target())use_it=0;
+        }
+                
+        if(use_it==1){
+            assess_node(actually_added);
+        }
+    }
+
    
 }
 
@@ -2678,6 +2739,7 @@ void aps::write_pts(){
     printf("n small boxes %d\n",ggWrap.get_n_small_boxes());
     printf("n optimal boxes %d\n",ggWrap.get_n_optimal_boxes());
     printf("total time %e\n",time_now-start_time);
+    printf("n wide %d n box wide %d\n",n_wide,n_box_wide);
     printf("\n");
     
        

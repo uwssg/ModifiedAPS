@@ -239,6 +239,8 @@ private:
     below.
     */
     int aps_wide();
+    void aps_wide_post_process(int,double,double);
+    int aps_box_wide();
     
     /*
     aps_focus() runs the focused search (steps 1B-5B in the paper) about known centers of
@@ -520,6 +522,8 @@ private:
     arrayOfNodes nodes;
     void assess_node(int);
     double ddNodeRatio;
+    
+    int n_wide,n_box_wide;
 };
 
 
