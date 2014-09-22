@@ -56,11 +56,15 @@ class node{
         double get_max(int);
         double get_min(int);
         
+        void flush_candidates(array_1d<int>&);
+        
     private:
         
         array_1d<int> associates,boundaryPoints;
         array_2d<double> basisVectors;
         array_1d<double> range_max,range_min;
+        
+        array_1d<int> candidates;
         
         int ct_search,ct_coulomb,ct_bases,ct_ricochet;
         int last_expanded,activity;

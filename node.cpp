@@ -6,6 +6,7 @@ void node::set_names(){
     basisVectors.set_name("node_basisVectors");
     range_max.set_name("node_range_max");
     range_min.set_name("node_range_min");
+    candidates.set_name("node_candidates");
 }
 
 node::node(){
@@ -44,6 +45,9 @@ void node::copy(const node &in){
     associates.reset();
     boundaryPoints.reset();
     basisVectors.reset();
+    range_min.reset();
+    range_max.reset();
+    candidates.reset();
     
     center_dex=in.center_dex;
     last_nAssociates=in.last_nAssociates;
@@ -82,6 +86,10 @@ void node::copy(const node &in){
         boundaryPoints.add(in.boundaryPoints.get_data(i));
     }
     
+    for(i=0;i<in.candidates.get_dim();i++){
+        candidates.add(in.candidates.get_data(i));
+    }
+    
     if(gg!=NULL){
         if(gg->is_gp_null()==0){
             
@@ -106,6 +114,14 @@ node& node::operator=(const node &in){
     copy(in);
     
     return *this;
+}
+
+void node::flush_candidates(array_1d<int> &out){
+    int i;
+    for(i=0;i<candidates.get_dim();i++){
+        out.add(candidates.get_data(i));
+    }
+    candidates.reset();
 }
 
 double node::get_farthest_associate(){
@@ -784,7 +800,13 @@ void node::ricochet_search(int iStart, array_1d<double> &dir){
     printf("points visited %d -- %e\n",
     pts_visited.get_dim(),distance_traveled.get_data(distance_traveled.get_dim()-1));
     printf("number of points %d\n\n",gg->get_whereCt(iRicochet));
-        
+    
+    array_1d<int> neigh;
+    array_1d<double> ddneigh;
+    
+    neigh.set_name("ricochet_neigh");
+    ddneigh.set_name("ricochet_ddneigh");
+    
     if(pts_visited.get_dim()>1){
         /*
         First do a compass search in the middle of the last ricochet path
@@ -826,6 +848,22 @@ void node::ricochet_search(int iStart, array_1d<double> &dir){
             if(itrial>=0){
                 compass_search(itrial);
             }
+        }
+        
+        /*now find the points nearest to the center of each leg, and save them
+        as potential nodes themselves*/
+        
+        for(i=1;i<pts_visited.get_dim();i++){
+            for(j=0;j<gg->get_dim();j++){
+                trial.set(j,0.5*(gg->get_pt(pts_visited.get_data(i),j)+gg->get_pt(pts_visited.get_data(i-1),j)));
+            }
+            
+            gg->nn_srch(trial,1,neigh,ddneigh);
+            
+            if(neigh.get_data(0)>=0){
+                candidates.add(neigh.get_data(0));
+            }
+            
         }
             
     }

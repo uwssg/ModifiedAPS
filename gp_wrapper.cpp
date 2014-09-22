@@ -591,3 +591,14 @@ int gpWrapper::get_called(){
 int gpWrapper::get_pts(){
     return gg->get_pts();
 }
+
+void gpWrapper::nn_srch(array_1d<double> &pt, int kk, array_1d<int> &neigh,
+array_1d<double> &dd){
+
+    if(gg==NULL){
+        printf("WARNING gpWrapper cannot do nn_srch; gg is NULL\n");
+    }
+    
+    gg->nn_srch(pt,kk,neigh,dd);
+
+}
