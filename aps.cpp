@@ -520,6 +520,10 @@ double aps::simplex_evaluate(array_1d<double> &pt, int *actually_added,
 }
 
 int aps::find_global_minimum(array_1d<int> &neigh){
+    return find_global_minimum(neigh,-1);
+}
+
+int aps::find_global_minimum(array_1d<int> &neigh, int limit){
     
     /*
     * Use simplex minimization, seeded by the sampled points whose
@@ -673,6 +677,9 @@ int aps::find_global_minimum(array_1d<int> &neigh){
     _last_simplex.reset();
     _last_ff.reset();
     
+    
+    int ibefore=ggWrap.get_called();
+    
     /*
     The while loop below is where we actually implement the simplex algorithm
     as described by Nelder and Mead in The Computer Journal, volume 7, pg 308 (1965)
@@ -683,7 +690,7 @@ int aps::find_global_minimum(array_1d<int> &neigh){
     are made to chisquared without improving _simplex_min, then the simplex search
     will end.
     */
-    while(_min_ct-_last_found<200){
+    while(_min_ct-_last_found<200 && (limit<0 || ggWrap.get_called()-ibefore<limit)){
         simplex_ct++;
         
         for(i=0;i<dim;i++){

@@ -286,6 +286,7 @@ private:
     without improving upon its discovered local minimum in chisquared.
     */
     int find_global_minimum(array_1d<int>&);
+    int find_global_minimum(array_1d<int>&,int);
     
     /*
     These are wrappers of the function evaluate() specifically designed
