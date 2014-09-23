@@ -153,6 +153,21 @@ void node::set_dice(Ran *ddin){
 
 void node::set_center_dex(int ii){
     center_dex=ii;
+    
+    int i;
+    
+    if(gg!=NULL){
+        if(range_max.get_dim()!=gg->get_dim() ||
+           range_min.get_dim()!=gg->get_dim()){
+    
+            for(i=0;i<gg->get_dim();i++){
+                range_max.set(i,gg->get_pt(ii,i));
+                range_min.set(i,gg->get_pt(ii,i));
+            }
+    
+        }
+    }
+    
 }
 
 void node::evaluate(array_1d<double> &pt, double *chiout, int *dexout){
@@ -1265,10 +1280,12 @@ double node::volume(){
 }
 
 double node::get_max(int idim){
+    if(range_max.get_dim()<idim) return 1.0;
     return range_max.get_data(idim);
 }
 
 double node::get_min(int idim){
+    if(range_max.get_dim()<idim) return 0.0;
     return range_min.get_data(idim);
 }
 
@@ -1520,8 +1537,8 @@ void arrayOfNodes::add(int cc, Ran *dice, gpWrapper *gg){
         }
     }
     
-    data[ct].set_center_dex(cc);
     data[ct].set_gpWrapper(gg);
+    data[ct].set_center_dex(cc);
     data[ct].set_dice(dice);
     
     ct++;
