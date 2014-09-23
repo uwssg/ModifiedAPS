@@ -824,8 +824,8 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
         }
         mean_value=mean_value/double(dim);
         
-        
-        if(spread<1.0e-1){
+        //used to be 0.1
+        if(spread<1.0){
             /*
             If it appears that the simplex is converging into a valley in chisquared, 
             try a modified gradient descent from the current minimum point of the simplex, 
@@ -1100,6 +1100,7 @@ void aps::search(){
         i=ggWrap.get_called();
         aps_box_wide();
         ct_simplex+=ggWrap.get_called()-i;
+        time_simplex+=double(time(NULL))-before;
     }
     
     aps_search();
@@ -1167,6 +1168,8 @@ int aps::aps_box_wide(){
     in the box whose probability of containing a good point is the lowest.
 
     */
+    
+    ggWrap.set_iWhere(iSimplex);
     
     array_1d<int> acceptableBoxes;
     acceptableBoxes.set_name("aps_acceptableBoxes");
@@ -1365,6 +1368,8 @@ int aps::aps_wide(){
     That is the point at which to evaluate chisquared.
     */
     
+    ggWrap.set_iWhere(iAPS);
+    
     array_1d<int> acceptableBoxes;
     acceptableBoxes.set_name("aps_wide_acceptableBoxes");
     get_interesting_boxes(acceptableBoxes);
@@ -1396,13 +1401,29 @@ int aps::aps_wide(){
                ss=_aps_wide_ss_buffer.get_data(ibox);    
            }
            else{
+                if(acceptableBoxes.get_dim()<2000){
+                    for(i=0;i<ggWrap.get_dim();i++){
+                        midpt.set(i,0.5*(ggWrap.get_box_min(ibox,i)+ggWrap.get_box_max(ibox,i)));
+                    }
             
-            
-                for(i=0;i<ggWrap.get_dim();i++){
-                    midpt.set(i,0.5*(ggWrap.get_box_min(ibox,i)+ggWrap.get_box_max(ibox,i)));
+                    mu=ggWrap.user_predict(midpt,&sig);
                 }
-            
-                mu=ggWrap.user_predict(midpt,&sig);
+                else{
+                
+                    mu=0.0;
+                    for(i=0;i<ggWrap.get_box_contents(ibox);i++){
+                        mu+=ggWrap.get_fn(ggWrap.get_box_contents(ibox,i));
+                    }
+                    mu=mu/double(ggWrap.get_box_contents(ibox));
+                    sig=0.0;
+                    for(i=0;i<ggWrap.get_box_contents(ibox);i++){
+                        sig+=power(mu-ggWrap.get_fn(ggWrap.get_box_contents(ibox,i)),2);
+                    }
+                    sig=sig/double(ggWrap.get_box_contents(ibox));
+                    sig=sqrt(sig);
+                
+                }
+                
                 ss=ggWrap.straddle_value(mu,sig);
                 
                 _aps_wide_contents_buffer.set(ibox,ggWrap.get_box_contents(ibox));
@@ -2343,10 +2364,7 @@ void aps::aps_search(){
         called_focus+=ggWrap.get_called()-ibefore;
     }
     else{
-        ggWrap.set_iWhere(iAPS);
         i_wide=aps_wide();
-        
-        //aps_box_wide();
         called_wide+=ggWrap.get_called()-ibefore;
     }
 
@@ -3030,6 +3048,7 @@ void aps::write_pts(){
     ggWrap.get_search_time_box()/double(ggWrap.get_search_ct_box()));
     printf("smallest box %d\n",ggWrap.get_smallest_box());
     printf("biggest box %d\n",ggWrap.get_biggest_box());
+    printf("biggest bad box %d\n",ggWrap.get_biggest_bad_box());
     printf("n boxes %d\n",ggWrap.get_nboxes());
     printf("n small boxes %d\n",ggWrap.get_n_small_boxes());
     printf("n optimal boxes %d\n",ggWrap.get_n_optimal_boxes());

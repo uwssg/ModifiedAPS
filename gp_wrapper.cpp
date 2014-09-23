@@ -80,6 +80,11 @@ double gpWrapper::get_search_time_box(){
     return gg->get_search_time_box();
 }
 
+int gpWrapper::get_biggest_bad_box(){
+    if(gg==NULL) return 0;
+    return gg->get_biggest_bad_box(get_target());
+}
+
 int gpWrapper::get_biggest_box(){
     if(gg==NULL) return 0;
     return gg->get_biggest_box();

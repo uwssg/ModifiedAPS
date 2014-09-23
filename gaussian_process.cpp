@@ -44,6 +44,27 @@ gp::~gp(){
 
 }
 
+int gp::get_biggest_bad_box(double target){
+    if(bptr==NULL) return 0;
+    
+    int i,imax=-1,j,isbad;
+    
+    for(i=0;i<bptr->get_nboxes();i++){
+        isbad=1;
+        for(j=0;j<bptr->get_contents(i) && isbad==1;j++){
+            if(get_fn(bptr->get_contents(i,j))<target){
+                isbad=0;
+            }
+        }
+        
+        if(isbad==1 && bptr->get_contents(i)>imax){
+            imax=bptr->get_contents(i);
+        }
+    }
+    
+    return imax;
+}
+
 int gp::get_biggest_box(){
     if(bptr==NULL) return 0;
     return bptr->get_biggest_box();

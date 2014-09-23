@@ -468,7 +468,7 @@ int box::find_box(array_1d<double> &pt, int *i_tree, int *dir){
 
 int box::add_pt(){
     
-    int i;
+    int i,j,k;
     array_1d<double> pt;
     for(i=0;i<data->get_cols();i++){
         pt.set(i,data->get_data(data->get_rows()-1,i));
@@ -532,6 +532,18 @@ int box::add_pt(){
     }
     
     time_split+=double(time(NULL))-before;
+    
+    /*if(get_biggest_box()>50){
+        for(i=0;i<box_contents.get_rows();i++){
+            if(i==0 || box_contents.get_cols(i)>k){
+                k=box_contents.get_cols(i);
+                j=i;
+            }
+        }
+        
+        split_box(j,-1,-1);
+        
+    }*/
     
     return did_it_split;
     

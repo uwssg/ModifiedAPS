@@ -221,6 +221,7 @@ class gpWrapper{
         double get_search_time_box();
         int get_smallest_box();
         int get_biggest_box();
+        int get_biggest_bad_box();
         int get_n_small_boxes();
         int get_n_optimal_boxes();
         
