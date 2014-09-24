@@ -76,6 +76,11 @@ for(ct=0;ct<100000;ct++){
     
     data.add_row(vv);
     testBox.add_pt();
+    if(ct%1000==0){
+        printf("ndata %d \n",data.get_rows());
+        printf("smallest box %d\n",testBox.get_smallest_box());
+        printf("biggest box %d\n",testBox.get_biggest_box());
+        printf("\n");
     
 }
 
