@@ -121,11 +121,12 @@ all:
 	make test_containers
 	make test_kd
 	make test_eigen
+	make test_box
 	make ellipse
 	make aps_extract
 	make s_control
 	make s_curve
 	make s_curve_analysis
 clean:
-	rm *.o test_containers test_kd test_eigen ellipse \
+	rm *.o test_containers test_kd test_box test_eigen ellipse \
 	aps_extract s_curve s_control s_curve_analysis

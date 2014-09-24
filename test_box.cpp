@@ -14,7 +14,7 @@ max.set_name("test_max");
 int rows,cols;
 
 cols=22;
-rows=1000;
+rows=100;
 
 int i,j;
 
@@ -32,16 +32,29 @@ for(i=0;i<rows;i++){
 
 box testBox(&data,20);
 
-array_1d<double> vv;
+array_1d<double> vv,base;
 vv.set_name("test_vv");
+base.set_name("test_base");
+
+for(i=0;i<cols;i++){
+    base.set(i,-110.0+chaos.doub()*220.0);
+    vv.set(i,base.get_data(i));
+}
+
+int idim=chaos.int32()%cols;
 
 int ct=0,i_tree,i_dir,i_box;
 int betterFit,isOkay;
 double before=double(time(NULL));
 for(ct=0;ct<100000;ct++){
-    for(i=0;i<cols;i++){
-        vv.set(i,-200.0+chaos.doub()*400.0);
+    
+    if(ct%5000==0){
+        for(i=0;i<cols;i++)base.set(i,-110.0+chaos.doub()*220.0);
+        for(i=0;i<cols;i++)vv.set(i,base.get_data(i));
+        idim=chaos.int32()%cols;
     }
+    
+    vv.set(idim,base.get_data(idim)+1.0e-6*(ct%5000));
     
     i_box=testBox.find_box(vv,&i_tree,&i_dir);
     
@@ -80,6 +93,7 @@ for(ct=0;ct<100000;ct++){
         printf("ndata %d \n",data.get_rows());
         printf("smallest box %d\n",testBox.get_smallest_box());
         printf("biggest box %d\n",testBox.get_biggest_box());
+        printf("nboxes %d\n",testBox.get_nboxes());
         printf("\n");
     }
     
