@@ -6,6 +6,11 @@ Ran chaos(99);
 
 array_2d<double> data;
 array_1d<double> min,max;
+
+data.set_name("test_data");
+min.set_name("test_min");
+max.set_name("test_max");
+
 int rows,cols;
 
 cols=22;
@@ -28,6 +33,8 @@ for(i=0;i<rows;i++){
 box testBox(&data,20);
 
 array_1d<double> vv;
+vv.set_name("test_vv");
+
 int ct=0,i_tree,i_dir,i_box;
 int betterFit,isOkay;
 double before=double(time(NULL));
@@ -49,8 +56,8 @@ for(ct=0;ct<100000;ct++){
         for(i=0;i<testBox.get_nboxes() && betterFit==-1;i++){
             betterFit=i;
             for(j=0;j<cols && betterFit==i;j++){
-                if(vv.get_data(i)<testBox.get_box_min(i,j))betterFit=-1;
-                if(vv.get_data(i)>testBox.get_box_max(i,j))betterFit=-1;
+                if(vv.get_data(j)<testBox.get_box_min(i,j))betterFit=-1;
+                if(vv.get_data(j)>testBox.get_box_max(i,j))betterFit=-1;
             }
         }
         
