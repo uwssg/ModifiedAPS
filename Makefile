@@ -47,6 +47,9 @@ kd.o: kd.cpp kd.h goto_tools.o containers.o
 box.o: box.cpp box.h goto_tools.o kd.o
 	$(gg) -c box.cpp
 
+test_box: test_box.cpp box.o
+	$(gg) -o test_box test_box.cpp goto_tools.o containers.o box.o
+
 test_kd: test_kd.cpp kd.o
 	$(gg) -o test_kd test_kd.cpp containers.o goto_tools.o kd.o
 
