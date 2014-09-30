@@ -47,9 +47,16 @@ test: mcmc_test.cpp mcmc.o
 	$(MAPSOBJ) \
 	mcmc.o mcmc_extractor.o \
 	$(LIBRARIES) $(INCLUDE)
-	
+
+scurve: mcmc.o mcmc_s_curve.cpp
+	$(gg) -o scurve mcmc_s_curve.cpp \
+	$(MAPSOBJ) \
+	mcmc.o mcmc_extractor.o \
+	$(LIBRARIES) $(INCLUDE)
 
 all:
 	make mcmc.o
+	make test
+	make scurve
 clean:
-	rm *.o test
+	rm *.o test scurve
