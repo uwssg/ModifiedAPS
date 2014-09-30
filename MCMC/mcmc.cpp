@@ -616,6 +616,11 @@ void mcmc::generate_random_basis(){
     
 }
 
+void mcmc::generate_random_basis(array_1d<double> &sigs){
+    array_2d<double> dummy;
+    generate_random_basis(sigs,dummy);
+}
+
 void mcmc::generate_random_basis(array_2d<double> &samples){
     array_1d<double> sigs;
     double mean,nn;

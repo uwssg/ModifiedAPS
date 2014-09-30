@@ -60,7 +60,7 @@ mcmc_test.begin_update(1000);
 mcmc_test.step_update(1000);
 //mcmc_test.cutoff_update(30000);
 
-mcmc_test.generate_random_basis();
+mcmc_test.generate_random_basis(sig);
 
 mcmc_test.sample(200000);
 
