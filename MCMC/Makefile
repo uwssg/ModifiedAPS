@@ -42,6 +42,9 @@ mcmc_extractor.o: mcmc_extractor.h mcmc_extractor.cpp
 mcmc.o: mcmc.cpp mcmc.h mcmc_extractor.o
 	$(gg) -c mcmc.cpp
 
+kde.o: kde.h kde.cpp
+	$(gg) -c kde.cpp
+
 test: mcmc_test.cpp mcmc.o
 	$(gg) -o test mcmc_test.cpp \
 	$(MAPSOBJ) \
@@ -54,9 +57,17 @@ scurve: mcmc.o mcmc_s_curve.cpp
 	mcmc.o mcmc_extractor.o \
 	$(LIBRARIES) $(INCLUDE)
 
+scurve_extract: mcmc_extractor.o mcmc_s_curve_extractor.cpp kde.o
+	$(gg) -o scurve_extract mcmc_s_curve_extractor.cpp \
+	$(MAPSOBJ) \
+	mcmc_extractor.o kde.o \
+	$(LIBRARIES) $(INCLUDE)
+
 all:
 	make mcmc.o
 	make test
 	make scurve
+	make scurve_extract
+	
 clean:
-	rm *.o test scurve
+	rm *.o test scurve scurve_extract

@@ -1,5 +1,5 @@
 #include "mcmc_extractor.h"
-#include "eigen_wrapper.h"
+#include "../eigen_wrapper.h"
 #include "kde.h"
 
 main(){
