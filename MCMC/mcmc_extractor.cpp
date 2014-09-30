@@ -211,7 +211,7 @@ void mcmc_extractor::learn_thinby(){
     //printf("thin_lim %d\n",thin_lim);
     
 
-    for(thinval=10;best_covar>0.1 && thinval<thin_lim;thinval+=10){
+    for(thinval=10;best_covar>0.1 && thinval<thin_lim;thinval+=thin_lim/100){
         for(i=0;i<nparams;i++){
             mean.set(i,0.0);
             var.set(i,0.0);
@@ -329,9 +329,13 @@ void mcmc_extractor::learn_thinby(){
         total_independent=0;
         for(cc=0;cc<nchains;cc++)total_independent+=data[cc].get_rows();
         
+        //printf("    covar %e thin %d\n",max_covar,thinval);
+        
         if(max_covar<best_covar && total_independent>0){
             best_covar=max_covar;
             thin_best=thinval;
+            
+            //printf("    covar %e thin %d\n",best_covar,thinval);
             
             independent_samples.reset();
             independent_dex.reset();
