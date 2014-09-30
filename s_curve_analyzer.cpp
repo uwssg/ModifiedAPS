@@ -166,7 +166,7 @@ iy.set(2,17);
 
 for(i=0;i<ix.get_dim();i++){
 
-    sprintf(outname,"processedFiles/s_curve_d%d_c%d_%d_%d_frequentist.sav",dim,ncenters,ix.get_data(i),iy.get_data(i));
+    sprintf(outname,"processedFiles/MAPS/s_curve_d%d_c%d_%d_%d_frequentist.sav",dim,ncenters,ix.get_data(i),iy.get_data(i));
     apsExtractor.write_good_points(outname,ix.get_data(i),iy.get_data(i));
         
     //sprintf(outname,"processedFiles/s_curve_d%d_c%d_%d_%d_bayesian.sav",dim,ncenters,ix.get_data(i),iy.get_data(i));
@@ -174,10 +174,10 @@ for(i=0;i<ix.get_dim();i++){
 
 }
 
-apsExtractor.write_good_points("processedFiles/s_curve_projected_good.sav");
+apsExtractor.write_good_points("processedFiles/MAPS/s_curve_projected_good.sav");
 
 
-sprintf(outname,"processedFiles/s_curve_d%d_c%d_histograms.sav",dim,ncenters);
+sprintf(outname,"processedFiles/MAPS/s_curve_d%d_c%d_histograms.sav",dim,ncenters);
 output=fopen(outname,"w");
 fprintf(output,"#lnchi aps simplex coulomb compass bisect ricochet total\n");
 for(i=0;i<lnchi_hist.get_dim();i++){

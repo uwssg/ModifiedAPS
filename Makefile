@@ -123,6 +123,11 @@ s_curve_multinest_analysis: s_curve_multinest_analyzer.cpp chisq.o aps_extractor
 	goto_tools.o containers.o kd.o aps_extractor.o \
 	chisq.o $(LIBRARIES) $(INCLUDE)
 
+s_curve_mcmc_analysis: s_curve_mcmc_analyzer.cpp chisq.o aps_extractor.o
+	$(gg) -o s_curve_mcmc_analysis s_curve_mcmc_analyzer.cpp \
+	goto_tools.o containers.o kd.o aps_extractor.o \
+	chisq.o $(LIBRARIES) $(INCLUDE)
+
 
 
 all:
@@ -135,6 +140,9 @@ all:
 	make s_control
 	make s_curve
 	make s_curve_analysis
+	make s_curve_mcmc_analysis
+	make s_curve_multinest_analysis
 clean:
 	rm *.o test_containers test_kd test_box test_eigen ellipse \
-	aps_extract s_curve s_control s_curve_analysis
+	aps_extract s_curve s_control s_curve_analysis \
+	s_curve_mcmc_analysis s_curve_mcmc_analysis
