@@ -52,4 +52,4 @@ test: mcmc_test.cpp mcmc.o
 all:
 	make mcmc.o
 clean:
-	rm *.o 
+	rm *.o test
