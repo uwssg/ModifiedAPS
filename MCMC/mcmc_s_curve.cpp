@@ -23,13 +23,10 @@ if(iargc>1){
 }
 
 Ran chaos(seed);
-int i,j,dim=5,nchains=5,ncenters=4;
+int i,j,dim=22,nchains=5,ncenters=3;
 
-ellipses_integrable chifn(dim,ncenters);
-//chifn.integrate_boundary(0,1,0.95,"aps_output/ellipses_integrable_truth_0_1.sav");
+s_curve chifn(dim,ncenters);
 
-
-//ellipses chifn(dim,2);
 array_1d<double> min,max,sig;
 array_2d<double> true_centers;
 
@@ -41,8 +38,8 @@ for(i=0;i<dim;i++){
 true_centers.set_cols(dim);
 
 for(i=0;i<dim;i++){
-    min.set(i,-100.0);
-    max.set(i,100.0);
+    min.set(i,-200.0);
+    max.set(i,200.0);
     sig.set(i,10.0);
 
     for(j=0;j<ncenters;j++){
@@ -51,66 +48,22 @@ for(i=0;i<dim;i++){
     
 }
 
-
 printf("time to start declaring stuff\n");
-mcmc mcmc_test(dim,nchains,"chains/ellipse_140804_chains",min,max,sig,2.0,&chaos);
+mcmc mcmc_test(dim,nchains,"chains/s_curve_chains",min,max,sig,2.0,&chaos);
 mcmc_test.set_chisq(&chifn,1);
 
 printf("done with constructor\n");
 
-//mcmc_test.set_statname("chains/integrable_test_mcmc_status.sav");
-mcmc_test.set_statname("chains/ellipse_140804_status.sav");
-mcmc_test.set_diagname("chains/ellipse_140804_diagnostic.sav");
+mcmc_test.set_statname("chains/s_curve_status.sav");
+mcmc_test.set_diagname("chains/s_curve_diagnostic.sav");
 mcmc_test.begin_update(1000);
-mcmc_test.step_update(500);
+mcmc_test.step_update(1000);
 //mcmc_test.cutoff_update(30000);
 
-
-printf("ready to set up gibbs\n");
-mcmc_test.do_gibbs();
 mcmc_test.generate_random_basis();
-//mcmc_test.disable_update();
-mcmc_test.sample(7500);
+
+mcmc_test.sample(200000);
 
 printf("done sampling\n");
-
-FILE *input;
-char inname[letters];
-int ii;
-array_1d<double> vv,dd,ddmin;
-double nn;
-
-for(i=0;i<ncenters;i++){
-    ddmin.set(i,2.0*chisq_exception);
-}
-
-for(ii=1;ii<=nchains;ii++){
-    sprintf(inname,"chains/ellipse_140804_chains_%d.txt",ii);
-    input=fopen(inname,"r");
-    while(fscanf(input,"%le",&nn)>0){
-        fscanf(input,"%le",&nn);
-        for(i=0;i<dim;i++){
-            fscanf(input,"%le",&nn);
-            vv.set(i,nn);
-        }
-        
-        for(i=0;i<ncenters;i++){
-            dd.set(i,euclideanDistance(vv,*true_centers(i)));
-            if(dd.get_data(i)<ddmin.get_data(i)){
-                ddmin.set(i,dd.get_data(i));
-            }
-        }
-        
-    
-    }
-    
-    fclose(input);
-}
-
-printf("mins ");
-for(i=0;i<ncenters;i++){
-    printf("%e ",ddmin.get_data(i));
-}
-printf("\n");
 
 }
