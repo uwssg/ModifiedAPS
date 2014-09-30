@@ -45,6 +45,7 @@ public:
     void plot_chimin(char*);
     
     void plot_delta(char*,double);
+    void plot_as_aps(char*);
     
     array_2d<double>* get_samples();
     

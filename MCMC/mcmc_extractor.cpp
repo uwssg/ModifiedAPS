@@ -663,6 +663,47 @@ void mcmc_extractor::plot_chimin(char *outname){
     
 }
 
+void mcmc_extractor::plot_as_aps(char *filename){
+ 
+    FILE *input,*output;
+    double nn,chi,tol,d_wgt;
+    int wgt,ct=0;
+    
+    tol=1.0e-5;
+    
+    printf("chi_min %e\n",chi_min);
+    
+    char inname[letters];
+    int cc,i;
+    output=fopen(filename,"w");
+    fprintf(output,"# ");
+    for(i=0;i<nparams;i++){
+        fprintf(output,"p%d ",i);
+    }
+    fprintf(output,"chisq mu sig ling\n");
+    
+    for(cc=0;cc<nchains;cc++){
+        sprintf(inname,"%s_%d.txt",chainname,cc+1);
+        input=fopen(inname,"r");
+        ct=0;
+        while(fscanf(input,"%le",&d_wgt)>0 && (cutoff<0 || ct<cutoff)){
+            wgt=int(d_wgt);
+            ct+=wgt;
+            fscanf(input,"%le",&chi);
+            
+            for(i=0;i<nparams;i++){
+                fscanf(input,"%le",&nn);
+                fprintf(output,"%le ",nn);
+            }
+            
+            fprintf(output,"%e -2.0 -2.0 1\n",chi);
+        }
+        fclose(input);
+    }
+    fclose(output);
+    
+}
+
 void mcmc_extractor::plot_delta(char *filename, double delta_chi){
     if(!(chi_min<chisq_exception)){
         plot_chimin("junk_chimin.sav");

@@ -63,7 +63,7 @@ mcmc_test.do_gibbs();
 
 mcmc_test.generate_random_basis(sig);
 
-mcmc_test.sample(50000);
+mcmc_test.sample(100000);
 
 printf("done sampling\n");
 

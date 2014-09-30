@@ -89,6 +89,7 @@ for(i=0;i<3;i++){
 }
         
 extractor.plot_delta("processed/scurve_good_pts_testcontrol.sav",33.93);
+extractor.plot_as_aps("processed/scurve_mcmc_like_aps.sav");
 
 
 array_1d<double> RR,VV,WW,mean,var;
