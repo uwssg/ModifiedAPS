@@ -10,7 +10,7 @@ s_curve chifn(22,3);
 
 int nparams,nchains,i,j;
 nparams = 22;
-nchains=5;
+nchains=4;
 
 array_1d<double> vv,vvproj;
 char rawName[letters],outname[letters];

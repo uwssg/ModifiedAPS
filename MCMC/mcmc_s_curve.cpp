@@ -23,7 +23,7 @@ if(iargc>1){
 }
 
 Ran chaos(seed);
-int i,j,dim=22,nchains=5,ncenters=3;
+int i,j,dim=22,nchains=4,ncenters=3;
 
 s_curve chifn(dim,ncenters);
 
@@ -56,13 +56,14 @@ printf("done with constructor\n");
 
 mcmc_test.set_statname("chains/s_curve_status.sav");
 mcmc_test.set_diagname("chains/s_curve_diagnostic.sav");
-mcmc_test.begin_update(1000);
-mcmc_test.step_update(1000);
+mcmc_test.begin_update(5000);
+mcmc_test.step_update(5000);
+mcmc_test.do_gibbs();
 //mcmc_test.cutoff_update(30000);
 
 mcmc_test.generate_random_basis(sig);
 
-mcmc_test.sample(200000);
+mcmc_test.sample(50000);
 
 printf("done sampling\n");
 
