@@ -772,25 +772,30 @@ const{
     int ibf,jbf;
             
     for(i=0;i<kptr->get_dim();i++){
-        if((pt.get_data(i)<bptr->get_box_min(cached_ibox,i) && pt.get_data(i)>-200.0) ||
-           (pt.get_data(i)>bptr->get_box_max(cached_ibox,i) && pt.get_data(i)<200.0)){
-               betterFit=0;
+        if(pt.get_data(i)<bptr->get_box_min(cached_ibox,i) || pt.get_data(i)>bptr->get_box_max(cached_ibox,i)){
+               betterFit=-1;
                
-               for(ibf=0;ibf<bptr->get_nboxes() && betterFit==0;ibf++){
-                   betterFit=1;
-                   for(jbf=0;jbf<kptr->get_dim() && betterFit==1;jbf++){
+               for(ibf=0;ibf<bptr->get_nboxes() && betterFit==-1;ibf++){
+                   betterFit=ibf;
+                   for(jbf=0;jbf<kptr->get_dim() && betterFit==ibf;jbf++){
                        if(pt.get_data(jbf)<bptr->get_box_min(ibf,jbf) || pt.get_data(jbf)>bptr->get_box_max(ibf,jbf)){
-                           betterFit=0; 
+                           betterFit=-1; 
                        }
                    }
                }
                
-               if(betterFit==1){    
-                   printf("WARNING %e not between %e %e\n",
-                   pt.get_data(i),bptr->get_box_min(cached_ibox,i),
-                   bptr->get_box_max(cached_ibox,i));
+               if(betterFit>=0){    
+                   printf("WARNING box search failure -- did search: %d\n",dosrch);
+                   for(jbf=0;jbf<kptr->get_dim();jbf++){
+                       printf("%e -- %e %e -- %e %e\n",
+                       pt.get_data(jbf),
+                       bptr->get_box_min(cached_ibox,jbf),bptr->get_box_max(cached_ibox,jbf),
+                       bptr->get_box_min(betterFit,jbf),bptr->get_box_max(betterFit,jbf));
+                   }
                    
-                   exit(1);
+                   //not going to exit
+                   //I think this behavior is not dangerous
+                   //exit(1);
                }
                    
            }
