@@ -793,7 +793,9 @@ const{
                        bptr->get_box_min(betterFit,jbf),bptr->get_box_max(betterFit,jbf));
                    }
                    
-                   exit(1);
+                   //not going to exit
+                   //I think this behavior is not dangerous
+                   //exit(1);
                }
                    
            }
