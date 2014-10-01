@@ -49,13 +49,13 @@ for(i=0;i<dim;i++){
 }
 
 printf("time to start declaring stuff\n");
-mcmc mcmc_test(dim,nchains,"chains/s_curve_chains",min,max,sig,2.0,&chaos);
+mcmc mcmc_test(dim,nchains,"chains/s_curve_testchains",min,max,sig,2.0,&chaos);
 mcmc_test.set_chisq(&chifn,1);
 
 printf("done with constructor\n");
 
-mcmc_test.set_statname("chains/s_curve_status.sav");
-mcmc_test.set_diagname("chains/s_curve_diagnostic.sav");
+mcmc_test.set_statname("chains/s_curve_teststatus.sav");
+mcmc_test.set_diagname("chains/s_curve_testdiagnostic.sav");
 mcmc_test.begin_update(5000);
 mcmc_test.step_update(5000);
 mcmc_test.do_gibbs();
