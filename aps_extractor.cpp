@@ -85,7 +85,7 @@ void aps_extractor::learn_chimin(){
     learn_nparams();
     
     FILE *input=fopen(filename,"r");
-    int i;
+    int i,ct=0;
     double nn;
     array_1d<double> vv;
     char word[letters];
@@ -104,9 +104,10 @@ void aps_extractor::learn_chimin(){
         fscanf(input,"%le",&nn);
         if(nn<chi_min || chi_min<0.0){
             chi_min=nn;
+            //printf("    ct %d chimin %e\n",ct,chi_min);
             for(i=0;i<nparams;i++)min_pt.set(i,vv.get_data(i));
         }
-        
+        ct++;
         for(i=0;i<extra_words-2;i++)fscanf(input,"%le",&nn);
     }
     
@@ -151,6 +152,7 @@ void aps_extractor::write_good_points(char *outname){
                 fprintf(output,"%le ",vv.get_data(i));
             }
             fprintf(output,"%le\n",nn);
+            //printf("nn %e chimin %e\n",nn,chi_min);
         }
         
         for(i=0;i<extra_words-2;i++)fscanf(input,"%le",&nn);

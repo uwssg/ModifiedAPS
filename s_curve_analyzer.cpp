@@ -56,10 +56,10 @@ vvprojected.set_name("main_vvprojected");
 
 s_curve chifn(dim,ncenters);
 
-sprintf(inputName,"outputFiles/s_curve_d%d_c%d_output.sav",dim,ncenters);
+sprintf(inputName,"outputFiles/APS/s_curveBox_d%d_c%d_output.sav",dim,ncenters);
 FILE *input,*output;
 
-output=fopen("outputFiles/s_curve_projected.sav","w");
+output=fopen("outputFiles/APS/s_curve_projected.sav","w");
 input=fopen(inputName,"r");
 for(i=0;i<dim+5;i++){
     fscanf(input,"%s",word);
@@ -150,7 +150,7 @@ for(i=0;i<dim;i++){
 printf("\n");
 
 aps_extractor apsExtractor;
-apsExtractor.set_filename("outputFiles/s_curve_projected.sav");
+apsExtractor.set_filename("outputFiles/APS/s_curve_projected.sav");
 apsExtractor.set_delta_chi(delta_chi);
 
 char outname[letters];
@@ -166,7 +166,7 @@ iy.set(2,17);
 
 for(i=0;i<ix.get_dim();i++){
 
-    sprintf(outname,"processedFiles/MAPS/s_curve_d%d_c%d_%d_%d_frequentist.sav",dim,ncenters,ix.get_data(i),iy.get_data(i));
+    sprintf(outname,"processedFiles/APS/s_curve_d%d_c%d_%d_%d_frequentist.sav",dim,ncenters,ix.get_data(i),iy.get_data(i));
     apsExtractor.write_good_points(outname,ix.get_data(i),iy.get_data(i));
         
     //sprintf(outname,"processedFiles/s_curve_d%d_c%d_%d_%d_bayesian.sav",dim,ncenters,ix.get_data(i),iy.get_data(i));
@@ -174,10 +174,10 @@ for(i=0;i<ix.get_dim();i++){
 
 }
 
-apsExtractor.write_good_points("processedFiles/MAPS/s_curve_projected_good.sav");
+apsExtractor.write_good_points("processedFiles/APS/s_curve_projected_good.sav");
 
 
-sprintf(outname,"processedFiles/MAPS/s_curve_d%d_c%d_histograms.sav",dim,ncenters);
+sprintf(outname,"processedFiles/APS/s_curve_d%d_c%d_histograms.sav",dim,ncenters);
 output=fopen(outname,"w");
 fprintf(output,"#lnchi aps simplex coulomb compass bisect ricochet total\n");
 for(i=0;i<lnchi_hist.get_dim();i++){
