@@ -155,7 +155,7 @@ void chisquared::make_bases(int seed){
     time_spent=0.0;
     called=0;
     
-    printf("set centers and widths %d %d\n",dim,ncenters);
+    //printf("set centers and widths %d %d\n",dim,ncenters);
     
 }  
 
@@ -246,8 +246,8 @@ void chisquared::make_centersRandom(){
 		    nn=fabs(centers.get_data(ii,i)-centers.get_data(jj,i));
 		    if(nn<2.0*widths.get_data(ii,i) || nn<2.0*widths.get_data(jj,i)){
                         acceptable=0;
-                        printf("centers %d %d -- %d -- %e %e -- %e %e\n",ii,jj,i,centers.get_data(ii,i),widths.get_data(ii,i),
-                        centers.get_data(jj,i),widths.get_data(jj,i));
+                        //printf("centers %d %d -- %d -- %e %e -- %e %e\n",ii,jj,i,centers.get_data(ii,i),widths.get_data(ii,i),
+                        //centers.get_data(jj,i),widths.get_data(jj,i));
                     }
 		}
 	    }

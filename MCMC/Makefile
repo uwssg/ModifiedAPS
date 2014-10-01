@@ -57,6 +57,14 @@ scurve: mcmc.o mcmc_s_curve.cpp
 	mcmc.o mcmc_extractor.o \
 	$(LIBRARIES) $(INCLUDE)
 
+scurveBatch: mcmc.o mcmc_s_curve_batch.cpp
+	$(gg) -o scurveBatch mcmc_s_curve_batch.cpp \
+	$(MAPSOBJ) \
+	mcmc.o mcmc_extractor.o \
+	$(LIBRARIES) $(INCLUDE)
+
+
+
 scurve_extract: mcmc_extractor.o mcmc_s_curve_extractor.cpp kde.o
 	$(gg) -o scurve_extract mcmc_s_curve_extractor.cpp \
 	$(MAPSOBJ) \
@@ -67,7 +75,8 @@ all:
 	make mcmc.o
 	make test
 	make scurve
+	make scurveBatch
 	make scurve_extract
 	
 clean:
-	rm *.o test scurve scurve_extract
+	rm *.o test scurve scurveBatch scurve_extract
