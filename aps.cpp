@@ -1182,9 +1182,7 @@ int aps::aps_box_wide(){
     
     int i,j,iout;
     array_1d<int> acceptableBoxes;
-    array_1d<int> unacceptableBoxes;
     acceptableBoxes.set_name("aps_simplex_acceptableBoxes");
-    unacceptableBoxes.set_name("aps_simplex_unacceptableBoxes");
     
     get_interesting_boxes(acceptableBoxes);
     if(acceptableBoxes.get_dim()==0){
