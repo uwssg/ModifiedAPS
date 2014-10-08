@@ -64,7 +64,7 @@ class node{
         array_2d<double> basisVectors;
         array_1d<double> range_max,range_min,geographicCenter;
         
-        array_1d<int> candidates;
+        array_1d<int> candidates,centerCandidates;
         
         int ct_search,ct_coulomb,ct_bases,ct_ricochet;
         int last_expanded,activity;
@@ -89,6 +89,7 @@ class node{
         void find_bases();
         int perturb_bases(array_2d<double>&,int,array_1d<double>&,array_2d<double>&);
         double basis_error(array_2d<double>&,array_1d<int>&);
+        void recenter();
 
 };
 

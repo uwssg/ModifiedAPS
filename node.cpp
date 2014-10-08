@@ -8,6 +8,7 @@ void node::set_names(){
     range_min.set_name("node_range_min");
     candidates.set_name("node_candidates");
     geographicCenter.set_name("node_geographicCenter");
+    centerCandidates.set_name("node_centerCandidates");
 }
 
 node::node(){
@@ -70,6 +71,11 @@ void node::copy(const node &in){
     int i,j;
     
     farthest_associate=in.farthest_associate;
+    
+    centerCandidates.reset();
+    for(i=0;i<in.centerCandidates.get_dim();i++){
+        centerCandidates.set(i,in.centerCandidates.get_data(i));
+    }
     
     for(i=0;i<in.geographicCenter.get_dim();i++){
         geographicCenter.set(i,in.geographicCenter.get_data(i));
@@ -226,9 +232,8 @@ void node::evaluate(array_1d<double> &pt, double *chiout, int *dexout, int doAss
             ddTest=gg->distance(dexout[0],geographicCenter);
             
             if(ddTest<ddCenters){
-                center_dex=dexout[0];
+                centerCandidates.add(dexout[0]);
                 last_expanded=ct_search;
-                printf("\nrecentering\n");
             }
         }
     }
@@ -1454,7 +1459,43 @@ int node::search(){
         }
     }
     
+    if(centerCandidates.get_dim()>0){
+        recenter();
+    }
+    
     time_search+=double(time(NULL))-before;
+}
+
+void node::recenter(){
+    
+    printf("\nrecentering\n");
+    
+    int i,ibest=-1;
+    double dd,ddmin,ddCenter,chiTol;
+    
+    chiTol=0.9*gg->get_chimin()+0.1*gg->get_target();
+    ddCenter=gg->distance(center_dex,geographicCenter);
+    
+    for(i=0;i<centerCandidates.get_dim();i++){
+        if(gg->get_fn(centerCandidates.get_data(i))<chiTol){
+            dd=gg->distance(centerCandidates.get_data(i),geographicCenter);
+            
+            if(dd<ddCenter){
+                if(ibest<0 || dd<ddmin){
+                    ddmin=dd;
+                    ibest=centerCandidates.get_data(i);
+                }
+            }
+        }
+    }
+    
+    if(ibest>=0){
+        center_dex=ibest;
+        activity=1;
+        last_expanded=ct_search;
+    }
+    
+    centerCandidates.reset();
 }
 
 int node::is_it_active(){
