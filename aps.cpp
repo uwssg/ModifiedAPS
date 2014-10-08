@@ -3034,7 +3034,8 @@ void aps::write_pts(){
     printf("Ricochet: %d\n",ggWrap.get_whereCt(iRicochet));
     printf("nodes: %d\n",nodes.get_dim());
     for(i=0;i<nodes.get_dim();i++){
-        printf("node %d associates %d vv %.4e active %d\n",i,nodes(i)->get_n_associates(),
+        printf("node %d associates %d vv %.4e active %d\n",
+        nodes(i)->get_center(),nodes(i)->get_n_associates(),
         nodes(i)->volume(),nodes(i)->is_it_active());
     }
     printf("called time_tot coulomb ricochet bases\n");

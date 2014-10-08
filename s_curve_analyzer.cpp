@@ -22,11 +22,12 @@ for(i=0;i<120;i++){
 
 char inputName[letters],word[letters];
 
-int dim,ncenters;
+int dim,ncenters,seed;
 double delta_chi;
 
 dim=22;
 ncenters=3;
+seed=99;
 delta_chi=33.93;
 
 if(iargc>1)ncenters=atoi(argv[1]);
@@ -56,10 +57,10 @@ vvprojected.set_name("main_vvprojected");
 
 s_curve chifn(dim,ncenters);
 
-sprintf(inputName,"outputFiles/s_curveConvergence_d%d_c%d_output.sav",dim,ncenters);
+sprintf(inputName,"outputFiles/s_curve_d%d_c%d_s%d_output.sav",dim,ncenters,seed);
 FILE *input,*output;
 
-output=fopen("outputFiles/s_curveConvergence_projected.sav","w");
+output=fopen("outputFiles/s_curve_projected.sav","w");
 input=fopen(inputName,"r");
 for(i=0;i<dim+5;i++){
     fscanf(input,"%s",word);
@@ -150,7 +151,7 @@ for(i=0;i<dim;i++){
 printf("\n");
 
 aps_extractor apsExtractor;
-apsExtractor.set_filename("outputFiles/s_curveConvergence_projected.sav");
+apsExtractor.set_filename("outputFiles/s_curve_projected.sav");
 apsExtractor.set_delta_chi(delta_chi);
 
 char outname[letters];
@@ -166,7 +167,7 @@ iy.set(2,17);
 
 for(i=0;i<ix.get_dim();i++){
 
-    sprintf(outname,"processedFiles/s_curveConvergence_d%d_c%d_%d_%d_frequentist.sav",dim,ncenters,ix.get_data(i),iy.get_data(i));
+    sprintf(outname,"processedFiles/s_curve_d%d_c%d_s%d_%d_%d_frequentist.sav",dim,ncenters,seed,ix.get_data(i),iy.get_data(i));
     apsExtractor.write_good_points(outname,ix.get_data(i),iy.get_data(i));
         
     //sprintf(outname,"processedFiles/s_curve_d%d_c%d_%d_%d_bayesian.sav",dim,ncenters,ix.get_data(i),iy.get_data(i));
@@ -174,10 +175,10 @@ for(i=0;i<ix.get_dim();i++){
 
 }
 
-apsExtractor.write_good_points("processedFiles/s_curveConvergence_projected_good.sav");
+apsExtractor.write_good_points("processedFiles/s_curve_projected_good.sav");
 
 
-sprintf(outname,"processedFiles/s_curveConvergence_d%d_c%d_histograms.sav",dim,ncenters);
+sprintf(outname,"processedFiles/s_curve_d%d_c%d_s%d_histograms.sav",dim,ncenters,seed);
 output=fopen(outname,"w");
 fprintf(output,"#lnchi aps simplex coulomb compass bisect ricochet total\n");
 for(i=0;i<lnchi_hist.get_dim();i++){
