@@ -1031,6 +1031,14 @@ int aps::get_n_pts(){
     return gg.get_pts();
 }
 
+int aps::get_n_active_nodes(){
+    int i,ans=0;
+    for(i=0;i<nodes.get_dim();i++){
+        if(nodes(i)->is_it_active()==1)ans++;
+    }
+    return ans;
+}
+
 array_1d<double>* aps::get_pt(int i){
     if(i>=gg.get_pts() || i<0){
         printf("WOAH; asked APS for pt %d but only have %d\n",i,gg.get_pts());

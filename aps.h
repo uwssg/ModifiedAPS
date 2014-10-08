@@ -97,6 +97,8 @@ public:
     /*return the number of points stored in the Gaussian Process object*/
     int get_n_pts();
     
+    int get_n_active_nodes();
+    
     /*return the number of low-chisquared centers discovered*/
     int get_n_centers();
     
