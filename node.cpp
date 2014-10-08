@@ -326,7 +326,7 @@ array_1d<double> &highball_in, double fhigh_in, int asAssociates){
     }
     
     int iout;
-    double bisection_tolerance=1.0;
+    double bisection_tolerance=0.01*(gg->get_target()-gg->get_chimin());
     
     array_1d<double> trial;
     double ftrial;

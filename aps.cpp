@@ -2131,7 +2131,7 @@ void aps::bisection(array_1d<double> &inpt, double chi_in){
     double dd,ddmin;
     int origin_dex,i,j,k,use_it_parabola,i_center=-1;
     
-    double bisection_tolerance=0.1*ggWrap.get_delta_chisquared();
+    double bisection_tolerance=0.01*ggWrap.get_delta_chisquared();
     
     /*
     The code will work by finding one point with chisquared<chisquared_lim which will
