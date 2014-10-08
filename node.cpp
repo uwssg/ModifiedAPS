@@ -7,6 +7,7 @@ void node::set_names(){
     range_max.set_name("node_range_max");
     range_min.set_name("node_range_min");
     candidates.set_name("node_candidates");
+    geographicCenter.set_name("node_geographicCenter");
 }
 
 node::node(){
@@ -69,6 +70,10 @@ void node::copy(const node &in){
     int i,j;
     
     farthest_associate=in.farthest_associate;
+    
+    for(i=0;i<in.geographicCenter.get_dim();i++){
+        geographicCenter.set(i,in.geographicCenter.get_data(i));
+    }
     
     for(i=0;i<in.range_max.get_dim();i++){
         range_max.set(i,in.range_max.get_data(i));
@@ -194,19 +199,40 @@ void node::evaluate(array_1d<double> &pt, double *chiout, int *dexout, int doAss
         }
     }
     
-    int i;
+    int i,rangeChanged=0;
+    double ddCenters,ddTest;
     if(chiout[0]<gg->get_target()){
         for(i=0;i<gg->get_dim();i++){
             if(i>=range_max.get_dim() || pt.get_data(i)>range_max.get_data(i)){
                 range_max.set(i,pt.get_data(i));
+                rangeChanged=1;
             }
             
             if(i>=range_min.get_dim() || pt.get_data(i)<range_min.get_data(i)){
                 range_min.set(i,pt.get_data(i));
+                rangeChanged=1;
             }
             
         }
+        
+        if(rangeChanged==1){
+            for(i=0;i<gg->get_dim();i++){
+                geographicCenter.set(i,0.5*(range_max.get_data(i)+range_min.get_data(i)));
+            }
+        }
+        
+        if(dexout[0]>=0 && chiout[0]<0.9*gg->get_chimin()+0.1*gg->get_target()){
+            ddCenters=gg->distance(center_dex,geographicCenter);
+            ddTest=gg->distance(dexout[0],geographicCenter);
+            
+            if(ddTest<ddCenters){
+                center_dex=dexout[0];
+                last_expanded=ct_search;
+                printf("\nrecentering\n");
+            }
+        }
     }
+    
     
 }
 

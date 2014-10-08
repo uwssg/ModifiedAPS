@@ -62,7 +62,7 @@ class node{
         
         array_1d<int> associates,boundaryPoints;
         array_2d<double> basisVectors;
-        array_1d<double> range_max,range_min;
+        array_1d<double> range_max,range_min,geographicCenter;
         
         array_1d<int> candidates;
         
