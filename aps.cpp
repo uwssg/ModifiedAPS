@@ -40,6 +40,7 @@ aps::aps(int dim_in, int kk, double dd, int seed){
     range_min.set_name("range_min");
     ddUnitSpheres.set_name("ddUnitSpheres");
     refined_simplex.set_name("refined_simplex");
+    simplex_start_pts.set_name("simplex_start_pts");
     
     _aps_wide_contents_buffer.set_name("_aps_wide_contents_buffer");
     _aps_wide_ss_buffer.set_name("_aps_wide_ss_buffer");
@@ -1179,15 +1180,35 @@ int aps::aps_box_wide(){
     
     ggWrap.set_iWhere(iSimplex);
     
+    int i,j,iout;
     array_1d<int> acceptableBoxes;
-    acceptableBoxes.set_name("aps_acceptableBoxes");
+    array_1d<int> unacceptableBoxes;
+    acceptableBoxes.set_name("aps_simplex_acceptableBoxes");
+    unacceptableBoxes.set_name("aps_simplex_unacceptableBoxes");
     
     get_interesting_boxes(acceptableBoxes);
+    if(acceptableBoxes.get_dim()==0){
+        iout=aps_wide();
+        n_wide++;
+        return iout;
+    }
+    
+    /*do not use any boxes containing smallest seeds from previous simplexes*/
+    int ibox,isOkay;
+    for(i=0;i<simplex_start_pts.get_dim();i++){
+        ibox=ggWrap.find_box(simplex_start_pts.get_data(i));
+        isOkay=1;
+        for(j=0;j<acceptableBoxes.get_dim() && isOkay==1;j++){
+            if(acceptableBoxes.get_data(j)==ibox){
+                isOkay=0;
+                acceptableBoxes.remove(j);
+            }
+        }
+    }
     
     array_1d<double> trial;
     trial.set_name("aps_box_wide_trial");
     
-    int i,j,iout;
     if(acceptableBoxes.get_dim()==0){
         printf("\n\nI'm sorry; there were no acceptable boxes\n\n");
         iout=aps_wide();
@@ -1198,7 +1219,7 @@ int aps::aps_box_wide(){
     n_box_wide++;
     
     double pterm,pbest,ptotal,lpterm,volume;
-    int ibox,dex,chosenBox,ii,norm_is_set;
+    int dex,chosenBox,ii,norm_is_set;
     array_1d<int> seed;
     double chitrial,mu,sig,norm,x1,x2,y1,y2,stopping_point,dx;
 
@@ -1324,6 +1345,7 @@ int aps::aps_box_wide(){
     
     }
     
+    int iSmallestSeed;
     double smallestSeed=2.0*chisq_exception;
     if(chosenBox>=0){
         while(seed.get_dim()<ggWrap.get_dim()+1){
@@ -1337,12 +1359,16 @@ int aps::aps_box_wide(){
             ggWrap.evaluate(trial,&chitrial,&dex);
             
             if(dex>=0){
-                if(chitrial<smallestSeed)smallestSeed=chitrial;
+                if(chitrial<smallestSeed){
+                    smallestSeed=chitrial;
+                    iSmallestSeed=dex;
+                }
                 seed.add(dex);
             }
         } 
     
         i=find_global_minimum(seed);
+        simplex_start_pts.add(iSmallestSeed);
         
         if(i>=0){
             printf("    box found %e from %e\n",ggWrap.get_fn(i),smallestSeed);

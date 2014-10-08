@@ -529,6 +529,8 @@ private:
     
     int n_wide,n_box_wide;
     
+    array_1d<int> simplex_start_pts;
+    
     /*buffers so that aps_wide doesn't have to keep computing
     GP's that have not changed*/
     array_1d<int> _aps_wide_contents_buffer;

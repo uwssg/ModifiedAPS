@@ -227,6 +227,10 @@ int gp::is_kptr_null(){
     else return 0;
 }
 
+int gp::find_box(int dex){
+    return bptr->find_box(*get_pt(dex));
+}
+
 void gp::nn_srch(int dex, int ikk, array_1d<int> &neigh, array_1d<double> &dd)
 const{
     if(kptr==NULL){

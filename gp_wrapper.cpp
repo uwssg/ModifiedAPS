@@ -597,6 +597,10 @@ int gpWrapper::get_pts(){
     return gg->get_pts();
 }
 
+int gpWrapper::find_box(int dex){
+    return gg->find_box(dex);
+}
+
 void gpWrapper::nn_srch(array_1d<double> &pt, int kk, array_1d<int> &neigh,
 array_1d<double> &dd){
 

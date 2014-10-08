@@ -186,6 +186,7 @@ class gpWrapper{
         double get_target();
         
         void nn_srch(array_1d<double>&,int,array_1d<int>&,array_1d<double>&);
+        int find_box(int);
         
         void add_to_unitSpheres(array_1d<double>&);
         void unitSpheres_nn_srch(array_1d<double>&,int,array_1d<int>&,array_1d<double>&);
