@@ -383,7 +383,7 @@ int node::coulomb_search(){
     double before=double(time(NULL));
     int ibefore=gg->get_called();
     
-    double eps=1.0e-6,tol=1.0;
+    double eps=1.0e-6,tol=0.01*(gg->get_target()-gg->get_chimin());
     
     gg->reset_cache(); //so that results of previous GP interpolation are not carried over
     array_1d<double> av_dir,dir;
@@ -514,7 +514,7 @@ int node::coulomb_search(){
  
     delta=0.1;
     dx=1.0;
-    while(dx>1.0e-20 && delta>1.0e-10 && walker_in_bounds==1 && (gg->get_target()-mu>tol || istep<step_max)){
+    while(dx>1.0e-6 && delta>1.0e-6 && walker_in_bounds==1 && (gg->get_target()-mu>tol || istep<step_max)){
         istep++;
         
         for(i=0;i<gg->get_dim();i++){
