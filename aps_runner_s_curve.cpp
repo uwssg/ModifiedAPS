@@ -23,18 +23,18 @@ if(iargc>4){
     nsamples=atoi(argv[4]);
 }
 
+if(seed<0){
+    seed=int(time(NULL));
+    if(seed>10000)seed=seed%10000;
+}
+
 char timingname[letters],outname[letters];
 
 //what is the name of the file where APS will store its timing information
-sprintf(timingname,"timingFiles/s_curveConvergence_d%d_c%d_timing.sav",dim,ncenters);
+sprintf(timingname,"timingFiles/s_curve_d%d_c%d_s%d_timing.sav",dim,ncenters,seed);
 
 //what is the name of the file where APS will output the points it sampled
-sprintf(outname,"outputFiles/s_curveConvergence_d%d_c%d_output.sav",dim,ncenters);
-
-
-if(seed<0){
-    seed=int(time(NULL));
-}
+sprintf(outname,"outputFiles/s_curve_d%d_c%d_s%d_output.sav",dim,ncenters,seed);
 
 printf("seed %d\n",seed);
 
