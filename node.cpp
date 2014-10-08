@@ -174,6 +174,7 @@ void node::set_center_dex(int ii){
             for(i=0;i<gg->get_dim();i++){
                 range_max.set(i,gg->get_pt(ii,i));
                 range_min.set(i,gg->get_pt(ii,i));
+                geographicCenter.set(i,gg->get_pt(ii,i));
             }
     
         }
