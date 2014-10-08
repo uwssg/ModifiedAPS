@@ -541,12 +541,19 @@ double chisquared::project_to_basis(int ix, array_1d<double> &vv) const{
 
 s_curve::~s_curve(){}
 
-s_curve::s_curve() : chisquared(6), trig_factor(10.0){make_bases(22);}
+s_curve::s_curve() : chisquared(6), trig_factor(10.0){make_bases(22);
+}
 
 s_curve::s_curve(int id) : chisquared(id), trig_factor(10.0){make_bases(22);}
 
 s_curve::s_curve(int id, int ic) : chisquared(id,ic), trig_factor(10.0){
-        make_bases(22);}
+        make_bases(22);
+        widths.set(0,0,0.5);
+        widths.set(0,1,0.5);
+        
+        if(ic>1)widths.multiply_val(1,1,0.25);
+        if(ic>2)widths.multiply_val(2,0,0.25);
+}
 
 
 ellipses::~ellipses(){}
@@ -770,6 +777,9 @@ void s_curve::build_boundary(double br){
     
     array_1d<double> alphaUp,alphaDown,alphaNearest;
     double fUp,fDown,fNearest,ftrial;
+    double fWorst,err;
+    
+    fWorst=-1.0;
     
     if(widths.get_data(0,0)<widths.get_data(0,1))ds=0.1*widths.get_data(0,0);
     else ds=0.1*widths.get_data(0,1);
@@ -866,7 +876,8 @@ void s_curve::build_boundary(double br){
                 }
             }
             
-            
+            err=fabs(fNearest-br);
+            if(err>fWorst)fWorst=err;
             add_to_boundary(alphaNearest,ix,iy,fNearest);
 	    
             
@@ -879,9 +890,12 @@ void s_curve::build_boundary(double br){
         }
     }
     
+    printf("after 0,1 fworst %e\n",fWorst);
+    
     for(i=0;i<dim;i++)alpha.set(i,centers.get_data(0,i));
     
     double th,s2x,s2y,aa,rr,thmin,thmax;
+    int iabort,abort_max=20;
     for(theta=-1.0*pi;theta<=1.5*pi;theta+=2.0*pi){
         for(i=0;i<dim;i++)alpha.set(i,centers.get_data(0,i));
     
@@ -905,25 +919,40 @@ void s_curve::build_boundary(double br){
             aa=cos(th)*cos(th)/s2x+sin(th)*sin(th)/s2y;
 	    rr=br/aa;
 	    rr=sqrt(rr);
+            
+            iabort=0;
+            chitest=br+10.0*tol;
+            while(iabort<abort_max && fabs(chitest-br)>tol){
+            
+	        alpha.set(0,x0+rr*cos(th));
+	        alpha.set(1,y0+rr*sin(th));
 	
-	    alpha.set(0,x0+rr*cos(th));
-	    alpha.set(1,y0+rr*sin(th));
-	
-	    for(i=0;i<dim;i++){
-		pt.set(i,0.0);
-	        for(j=0;j<dim;j++)pt.add_val(i,alpha.get_data(j)*bases.get_data(j,i));
-	    }
+	        for(i=0;i<dim;i++){
+		    pt.set(i,0.0);
+	            for(j=0;j<dim;j++)pt.add_val(i,alpha.get_data(j)*bases.get_data(j,i));
+	        }
     
-            chitest=(*this)(pt);
+                chitest=(*this)(pt);
 	    
-	    if(fabs(chitest-br)<5.0){
-	        add_to_boundary(alpha,ix,iy,chitest);
-	    }
+	        if(fabs(chitest-br)<tol){
+                    err=fabs(chitest-br);
+                    if(err>fWorst)fWorst=err;
+	            add_to_boundary(alpha,ix,iy,chitest);
+	        }
+                
+                if(chitest>br)rr*=0.95;
+                else rr*=1.02;
+                iabort++;
+            }
+            err=fabs(chitest-br);
+            if(err>fWorst)fWorst=err;
 	    /*for(i=0;i<2;i++)printf("%e ",alpha[i]);
 	    printf("%e\n",chitest);*/
         }
 
     }
+    
+    printf("after caps fWorst %e\n",fWorst);
     
     /////////////////////now do ix=0,1; iy>=2
     double xx,yy,yth,xth;
@@ -946,13 +975,16 @@ void s_curve::build_boundary(double br){
            chitest=(*this)(pt);
            
 	   if(fabs(chitest-br)<5.0){
+               err=fabs(chitest-br);
+               if(err>fWorst)fWorst=err;
 	       add_to_boundary(alpha,0,iy,chitest);
 	       add_to_boundary(alpha,1,iy,chitest);
 	   }
         }
     }}
    
-
+    printf("after (0,1), >2 fWorst %e\n",fWorst);
+    
     double thetamin,thetamax,dtheta;
 
     for(ix=0;ix<2;ix++){
@@ -1003,6 +1035,8 @@ void s_curve::build_boundary(double br){
 		     }
 		     chitest=(*this)(pt);
 		     if(fabs(chitest-br)<5.0){
+                         err=fabs(chitest-br);
+                         if(err>fWorst)fWorst=err;
 		         add_to_boundary(alpha,ix,iy,chitest);
 		     }
 		 
@@ -1011,6 +1045,8 @@ void s_curve::build_boundary(double br){
 	    }
         }
     }
+    
+    printf("after caps fWorst %e\n",fWorst);
     
     for(ic=0;ic<ncenters;ic++){
         for(ix=0;ix<dim;ix++){
@@ -1035,7 +1071,9 @@ void s_curve::build_boundary(double br){
 			chitest=(*this)(pt);
 			if(fabs(chitest-br)<5.0){
 			    //if(ic==1 && iy==1)printf("adding %d %d %d\n",ix,iy,ic);
-			
+			    
+                            err=fabs(chitest-br);
+                            if(err>fWorst)fWorst=err;
 			    add_to_boundary(alpha,ix,iy,chitest);
 			}
 		    }
@@ -1044,7 +1082,7 @@ void s_curve::build_boundary(double br){
 	    }
 	}
     }
-    
+    printf("and finally fWorst %e\n",fWorst);
     centers.set_where("nowhere");
     widths.set_where("nowhere");
     bases.set_where("nowhere");
