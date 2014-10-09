@@ -1332,7 +1332,7 @@ int aps::aps_box_wide(){
             there are no good points in the box*/
             
             ptotal*=volume;
-            
+            printf("ptotal %e\n",ptotal);
             if(ii==0 || ptotal<pbest){
                 pbest=ptotal;
                 chosenBox=ibox;
@@ -1342,6 +1342,8 @@ int aps::aps_box_wide(){
         }//loop over the boxes
     
     }
+    
+    if(nodes.get_dim()>1)exit(1);
     
     int iSmallestSeed;
     double smallestSeed=2.0*chisq_exception;

@@ -32,7 +32,9 @@ delta_chi=33.93;
 
 if(iargc>1)ncenters=atoi(argv[1]);
 if(iargc>2)dim=atoi(argv[2]);
-if(iargc>3)delta_chi=atof(argv[3]);
+if(iargc>3)seed=atoi(argv[3]);
+if(iargc>4)delta_chi=atof(argv[4]);
+
 
 array_2d<double> data;
 array_1d<double> chisq,vv,vvprojected,mu,sig;
