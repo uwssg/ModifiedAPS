@@ -1222,10 +1222,20 @@ int aps::aps_box_wide(){
     int dex,chosenBox,ii,norm_is_set;
     array_1d<int> seed;
     double chitrial,mu,sig,norm,x1,x2,y1,y2,stopping_point,dx;
-
+    
+    array_1d<double> gradient,gtrial;
+    gradient.set_name("aps_box_search_gradient");
+    gtrial.set_name("aps_box_search_gtrial");
+    double aa,distanceOfClosestApproach,distanceOfApproach;
+    double mu1,mu2,gradSquareNorm,lpold,pnew,maxDistance;
+    int ix,ic;
+    
+    double sqrtTwoPi=sqrt(2.0*pi);
+    
     seed.set_name("aps_box_search_seed");
     
     chosenBox=-1;
+    maxDistance=100.0;
     
     if(acceptableBoxes.get_dim()==1){
         chosenBox=acceptableBoxes.get_data(0);
@@ -1266,6 +1276,52 @@ int aps::aps_box_wide(){
                 }
                 
                 mu=ggWrap.user_predict(trial,&sig);
+                
+                distanceOfClosestApproach=-1.0;
+                if(nodes.get_dim()>0){
+                    for(ix=0;ix<ggWrap.get_dim();ix++){
+                        for(j=0;j<ggWrap.get_dim();j++)gtrial.set(j,trial.get_data(j));
+                        dx=characteristic_length.get_data(ix)*1.0e-5;
+                        gtrial.set(ix,trial.get_data(ix)+dx);
+                        mu2=ggWrap.user_predict(gtrial);
+                        gtrial.set(ix,trial.get_data(ix)-dx);
+                        mu1=ggWrap.user_predict(gtrial);
+                        gradient.set(ix,(mu2-mu1)/(2.0*dx));
+                    }
+                    
+                    gradSquareNorm=gradient.get_square_norm();
+                    
+                    if(gradSquareNorm<1.0e-10){
+                        printf("WARNING tradient norm %e\n",
+                        gradSquareNorm);
+                        exit(1);
+                    }
+                    
+                    for(ix=0;ix<nodes.get_dim();ix++){
+                        aa=0.0;
+                        ic=nodes(ix)->get_center();
+                        for(j=0;j<ggWrap.get_dim();j++){
+                            aa+=gradient.get_data(j)*(ggWrap.get_pt(ic,j)-trial.get_data(j));
+                        }
+                        aa=aa/gradSquareNorm;
+                        
+                        if(aa<0.0){
+                            //if the negative gradient points towards the node
+                            distanceOfApproach=0.0;
+                            for(j=0;j<ggWrap.get_dim();j++){
+                                distanceOfApproach+=power(ggWrap.get_pt(ic,j)-trial.get_data(j)-aa*gradient.get_data(j),2);
+                            }
+                        }
+                        else{
+                            distanceOfApproach=maxDistance;
+                        }
+                        
+                        if(ix==0 || distanceOfApproach<distanceOfClosestApproach){
+                            distanceOfClosestApproach=distanceOfApproach;
+                        }
+                    }
+                }
+               
                 
                 if(sig<=0.0){
                     printf("WARNING in box_wide sig %e\n",sig);
@@ -1315,6 +1371,31 @@ int aps::aps_box_wide(){
                 /*lpterm is now the log of the probability that this point
                 is not a good point*/
                 
+                
+                if(nodes.get_dim()>0 && distanceOfClosestApproach>-0.5){
+                    if(distanceOfClosestApproach<=0.0){
+                        lpold=0.0;
+                    }
+                    else{
+                        pnew=0.0;
+                        dx=0.1;
+                        x1=0.0;
+                        y1=1.0;
+                        for(x2=dx;x2<distanceOfClosestApproach;x2+=dx){
+                            y2=exp(-0.5*x2*x2);
+                            pnew+=(x2-x1)*(y2+y1);//drop the factor of 2 because this is half a Gaussian
+                            
+                            x1=x2;
+                            y1=y2;
+                        }
+                        pnew=pnew/sqrtTwoPi;
+                        if(pnew>=1.0)lpold=-12.0;
+                        else lpold=log(1.0-pnew);
+                    }
+                  
+                    lpterm+=lpold;
+                }
+                
                 ptotal+=lpterm;  
             }//loop over 1000 trial points in the box
             
@@ -1349,7 +1430,8 @@ int aps::aps_box_wide(){
     
     }
     printf("\nchosen %d by volume %d\n",chosenBox,iByVolume);
-    if(nodes.get_dim()>1)exit(1);
+    
+    
     
     int iSmallestSeed;
     double smallestSeed=2.0*chisq_exception;
