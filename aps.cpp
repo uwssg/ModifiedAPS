@@ -1216,6 +1216,8 @@ int aps::aps_box_wide(){
     
     n_box_wide++;
     
+    double volumeBiggest;
+    int iByVolume;
     double pterm,pbest,ptotal,lpterm,volume;
     int dex,chosenBox,ii,norm_is_set;
     array_1d<int> seed;
@@ -1332,17 +1334,21 @@ int aps::aps_box_wide(){
             there are no good points in the box*/
             
             ptotal*=volume;
-            printf("ptotal %e\n",ptotal);
             if(ii==0 || ptotal<pbest){
                 pbest=ptotal;
                 chosenBox=ibox;
+            }
+            
+            if(ii==0 || volume>volumeBiggest){
+                volumeBiggest=volume;
+                iByVolume=ibox;
             }
             
            
         }//loop over the boxes
     
     }
-    
+    printf("\nchosen %d by volume %d\n",chosenBox,iByVolume);
     if(nodes.get_dim()>1)exit(1);
     
     int iSmallestSeed;
