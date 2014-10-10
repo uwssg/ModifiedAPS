@@ -56,6 +56,8 @@ aps::aps(int dim_in, int kk, double dd, int seed){
     called_wide=0;
     ddNodeRatio=-1.0;
     
+    time_penalty=0.5;
+    
     n_wide=0;
     n_box_wide=0;
         
@@ -1101,8 +1103,11 @@ void aps::search(){
     double aps_score,simplex_score;
     int i;
     
-    aps_score=ct_aps;
-    simplex_score=ct_simplex;
+    //aps_score=ct_aps;
+    //simplex_score=ct_simplex;
+    
+    aps_score=time_aps+ct_aps*time_penalty;
+    simplex_score=time_simplex+ct_simplex*time_penalty;
     
     int i_simplex;
     if(simplex_score<aps_score){

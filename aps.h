@@ -537,6 +537,8 @@ private:
     array_1d<int> _aps_wide_contents_buffer;
     array_1d<double> _aps_wide_ss_buffer;
     
+    double time_penalty;
+    
 };
 
 
