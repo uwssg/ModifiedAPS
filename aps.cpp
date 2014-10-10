@@ -1356,6 +1356,12 @@ int aps::aps_box_wide(){
     array_1d<int> seed;
     double chitrial,mu,sig,norm,x1,x2,y1,y2,stopping_point,dx;
     
+    array_1d<double> boxProbabilities;
+    array_1d<int> boxDexes;
+    
+    boxProbabilities.set_name("aps_box_search_boxProbabilities");
+    boxDexes.set_name("aps_box_searc_boxDexes");
+    
     seed.set_name("aps_box_search_seed");
     
     chosenBox=-1;
@@ -1448,19 +1454,7 @@ int aps::aps_box_wide(){
                 /*lpterm is now the log of the probability that this point
                 is not a good point*/
                 
-                if(nodes.get_dim()>0){
-                    lpold=calculate_lpold(trial,mu,ibox);
-                    
-                    if(lpold>-12.0){
-                        printf("    lpold %e %d %d %d\n",
-                        lpold,i,ii,acceptableBoxes.get_dim());
-                    }
-                }
-                else{
-                    lpold=0.0;
-                }
-                
-                ptotal+=lpterm+lpold;  
+                ptotal+=lpterm;  
             }//loop over 1000 trial points in the box
             
             ptotal=ptotal/double(i+1);
@@ -1489,12 +1483,35 @@ int aps::aps_box_wide(){
                 iByVolume=ibox;
             }
             
+            boxProbabilities.add(ptotal);
+            boxDexes.add(ibox);
+            
            
         }//loop over the boxes
     
     }
     printf("\nchosen %d by volume %d\n",chosenBox,iByVolume);
     
+    array_1d<double> sortedProbabilities;
+    sortedProbabilities.set_name("aps_box_search_sortedProbabilities");
+   
+    if(nodes.get_dim()>0){
+        sort_and_check(boxProbabilities,sortedProbabilities,boxDexes);
+        for(ii=0;ii<sortedProbabilities.get_dim()/4;ii++){
+            ibox=boxDexes.get_data(ii);
+            for(i=0;i<ggWrap.get_dim();i++){
+                trial.set(i,0.5*(ggWrap.get_box_min(ibox,i)+ggWrap.get_box_max(ibox,i)));
+            }
+            mu=ggWrap.user_predict(trial);
+            lpold=calculate_lpold(trial,mu,ibox);
+            
+            if(ii==0 || lpold<pbest){
+                pbest=lpold;
+                chosenBox=ibox;
+            }
+        }
+        printf("chosen by lpold %d\n\n",chosenBox);
+    }
     
     
     int iSmallestSeed;
