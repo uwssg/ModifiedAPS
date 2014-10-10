@@ -1165,6 +1165,134 @@ void aps::get_interesting_boxes(array_1d<int> &acceptableBoxes){
 
 }
 
+double aps::calculate_lpold(array_1d<double> &pt, double mu, int ibox){
+    /*
+    This will return the log(probability that pt is connected to a known node)
+    */
+    
+    if(nodes.get_dim()==0)return 0.0;
+    
+    double expMinVal,minVal=-12.0;
+    expMinVal=exp(minVal);
+    
+    array_1d<double> gradient,trial;
+    gradient.set_name("aps_lpold_gradient");
+    trial.set_name("aps_lpold_trial");
+    
+    double x1,x2,mu1,mu2,dx,delta;
+    int i,j,ix;
+    
+    delta=0.01;
+    for(ix=0;ix<ggWrap.get_dim();ix++){
+        for(i=0;i<ggWrap.get_dim();i++)trial.set(i,pt.get_data(i));
+        dx=delta*(ggWrap.get_box_max(ibox,ix)-ggWrap.get_box_min(ibox,ix));
+        x1=pt.get_data(ix)+dx;
+        while(x1>ggWrap.get_box_max(ibox,ix)){
+            dx-=0.1*delta*(ggWrap.get_box_max(ibox,ix)-ggWrap.get_box_min(ibox,ix));
+            x1=pt.get_data(ix)+dx;
+        }
+        
+        if(x1<pt.get_data(ix)){
+            x1=pt.get_data(ix);
+            mu1=mu;
+        }
+        else{
+            trial.set(ix,x1);
+            mu1=ggWrap.user_predict(trial);
+        }
+        
+        dx=delta*(ggWrap.get_box_max(ibox,ix)-ggWrap.get_box_min(ibox,ix));
+        x2=pt.get_data(ix)-dx;
+        while(x2<ggWrap.get_box_min(ibox,ix)){
+           dx-=0.1*delta*(ggWrap.get_box_max(ibox,ix)-ggWrap.get_box_min(ibox,ix));
+           x2=pt.get_data(ix)-dx;
+        }
+        
+        if(x2>pt.get_data(ix)){
+            x2=pt.get_data(ix);
+            mu2=mu;
+        }
+        else{
+            trial.set(ix,x2);
+            mu2=ggWrap.user_predict(trial);
+        }
+        
+        gradient.set(ix,(mu2-mu1)/(x2-x1));
+    }
+    
+    double gradSquareNorm=gradient.get_square_norm();
+    if(gradSquareNorm<1.0e-10){
+        if(mu<ggWrap.get_target())return minVal;
+        else return 0.0;
+    }
+    
+    double dd,ddNearest,aa,sqrtTwoPi,ddmax;
+    int ic,icNearest;
+    
+    ddmax=100.0;
+    sqrtTwoPi=sqrt(2.0*pi);
+    for(ic=0;ic<nodes.get_dim();ic++){
+        ix=nodes(ic)->get_center();
+        aa=0.0;
+        for(i=0;i<ggWrap.get_dim();i++){
+            aa+=gradient.get_data(i)*(ggWrap.get_pt(ix,i)-pt.get_data(i));
+        }
+        aa=aa/gradSquareNorm;
+        
+        dd=0.0;
+        if(aa>0.0){
+            dd=ddmax;
+        }
+        else{
+            for(i=0;i<ggWrap.get_dim();i++){
+                dd+=power(ggWrap.get_pt(ix,i)-pt.get_data(i)-aa*gradient.get_data(i),2);
+            }
+        }
+        
+        if(ic==0 || dd<ddNearest){
+            ddNearest=dd;
+            icNearest=ic;
+        }
+    }
+    
+    double lpnew,pnewTerm;
+    lpnew=0.0;
+    
+    if(ddNearest>0.99*ddmax){
+        return minVal;
+    }
+    
+    double y1,y2;
+    double sigma;
+    for(ix=0;ix<ggWrap.get_dim();ix++){
+        pnewTerm=0.0;
+        sigma=nodes(icNearest)->get_max(ix)-nodes(icNearest)->get_min(ix);
+        if(sigma<1.0e-10)sigma=1.0;
+        dx=0.01*sigma;
+        x1=0.0;
+        y1=1.0;
+        for(x2=dx;x2<ddNearest && x2<5.0*sigma;x2+=dx){
+            y2=exp(-0.5*power(x2/sigma,2));
+            pnewTerm+=(x2-x1)*(y2+y1);//drop the 0.5 because this is half a Gaussian;
+            
+            y1=y2;
+            x1=x2;
+        }
+        pnewTerm=pnewTerm/(sqrtTwoPi*sigma);
+        if(pnewTerm<expMinVal){
+            lpnew+=minVal;
+        }
+        else{
+            lpnew+=log(pnewTerm);
+        }
+    }
+    
+    double pold=1.0-exp(lpnew);
+    if(pold>=1.0) return 0.0;
+    else if(pold<expMinVal) return minVal;
+    else return log(pold);
+}
+
 int aps::aps_box_wide(){
     /*
     Select the boxes with no good points in them which are sufficiently
@@ -1223,19 +1351,9 @@ int aps::aps_box_wide(){
     array_1d<int> seed;
     double chitrial,mu,sig,norm,x1,x2,y1,y2,stopping_point,dx;
     
-    array_1d<double> gradient,gtrial;
-    gradient.set_name("aps_box_search_gradient");
-    gtrial.set_name("aps_box_search_gtrial");
-    double aa,distanceOfClosestApproach,distanceOfApproach;
-    double mu1,mu2,gradSquareNorm,lpold,pnew,maxDistance;
-    int ix,ic;
-    
-    double sqrtTwoPi=sqrt(2.0*pi);
-    
     seed.set_name("aps_box_search_seed");
     
     chosenBox=-1;
-    maxDistance=100.0;
     
     if(acceptableBoxes.get_dim()==1){
         chosenBox=acceptableBoxes.get_data(0);
@@ -1276,52 +1394,6 @@ int aps::aps_box_wide(){
                 }
                 
                 mu=ggWrap.user_predict(trial,&sig);
-                
-                distanceOfClosestApproach=-1.0;
-                if(nodes.get_dim()>0){
-                    for(ix=0;ix<ggWrap.get_dim();ix++){
-                        for(j=0;j<ggWrap.get_dim();j++)gtrial.set(j,trial.get_data(j));
-                        dx=characteristic_length.get_data(ix)*1.0e-5;
-                        gtrial.set(ix,trial.get_data(ix)+dx);
-                        mu2=ggWrap.user_predict(gtrial);
-                        gtrial.set(ix,trial.get_data(ix)-dx);
-                        mu1=ggWrap.user_predict(gtrial);
-                        gradient.set(ix,(mu2-mu1)/(2.0*dx));
-                    }
-                    
-                    gradSquareNorm=gradient.get_square_norm();
-                    
-                    if(gradSquareNorm<1.0e-10){
-                        printf("WARNING tradient norm %e\n",
-                        gradSquareNorm);
-                        exit(1);
-                    }
-                    
-                    for(ix=0;ix<nodes.get_dim();ix++){
-                        aa=0.0;
-                        ic=nodes(ix)->get_center();
-                        for(j=0;j<ggWrap.get_dim();j++){
-                            aa+=gradient.get_data(j)*(ggWrap.get_pt(ic,j)-trial.get_data(j));
-                        }
-                        aa=aa/gradSquareNorm;
-                        
-                        if(aa<0.0){
-                            //if the negative gradient points towards the node
-                            distanceOfApproach=0.0;
-                            for(j=0;j<ggWrap.get_dim();j++){
-                                distanceOfApproach+=power(ggWrap.get_pt(ic,j)-trial.get_data(j)-aa*gradient.get_data(j),2);
-                            }
-                        }
-                        else{
-                            distanceOfApproach=maxDistance;
-                        }
-                        
-                        if(ix==0 || distanceOfApproach<distanceOfClosestApproach){
-                            distanceOfClosestApproach=distanceOfApproach;
-                        }
-                    }
-                }
-               
                 
                 if(sig<=0.0){
                     printf("WARNING in box_wide sig %e\n",sig);
@@ -1371,32 +1443,7 @@ int aps::aps_box_wide(){
                 /*lpterm is now the log of the probability that this point
                 is not a good point*/
                 
-                
-                if(nodes.get_dim()>0 && distanceOfClosestApproach>-0.5){
-                    if(distanceOfClosestApproach<=0.0){
-                        lpold=0.0;
-                    }
-                    else{
-                        pnew=0.0;
-                        dx=0.1;
-                        x1=0.0;
-                        y1=1.0;
-                        for(x2=dx;x2<distanceOfClosestApproach;x2+=dx){
-                            y2=exp(-0.5*x2*x2);
-                            pnew+=(x2-x1)*(y2+y1);//drop the factor of 2 because this is half a Gaussian
-                            
-                            x1=x2;
-                            y1=y2;
-                        }
-                        pnew=pnew/sqrtTwoPi;
-                        if(pnew>=1.0)lpold=-12.0;
-                        else lpold=log(1.0-pnew);
-                    }
-                  
-                    lpterm+=lpold;
-                }
-                
-                ptotal+=lpterm;  
+                ptotal+=lpterm+calculate_lpold(trial,mu,ibox);  
             }//loop over 1000 trial points in the box
             
             ptotal=ptotal/double(i+1);
