@@ -1351,7 +1351,7 @@ int aps::aps_box_wide(){
     
     double volumeBiggest;
     int iByVolume;
-    double pterm,pbest,ptotal,lpterm,volume;
+    double pterm,pbest,ptotal,lpterm,volume,lpold;
     int dex,chosenBox,ii,norm_is_set;
     array_1d<int> seed;
     double chitrial,mu,sig,norm,x1,x2,y1,y2,stopping_point,dx;
@@ -1448,7 +1448,19 @@ int aps::aps_box_wide(){
                 /*lpterm is now the log of the probability that this point
                 is not a good point*/
                 
-                ptotal+=lpterm+calculate_lpold(trial,mu,ibox);  
+                if(nodes.get_dim()>0){
+                    lpold=calculate_lpold(trial,mu,ibox);
+                    
+                    if(lpold>-12.0){
+                        printf("    lpold %e %d %d %d\n",
+                        lpold,i,ii,acceptableBoxes.get_dim());
+                    }
+                }
+                else{
+                    lpold=0.0;
+                }
+                
+                ptotal+=lpterm+lpold;  
             }//loop over 1000 trial points in the box
             
             ptotal=ptotal/double(i+1);
