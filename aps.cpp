@@ -1494,7 +1494,15 @@ int aps::aps_box_wide(){
     
     array_1d<double> sortedProbabilities;
     sortedProbabilities.set_name("aps_box_search_sortedProbabilities");
-   
+    
+    array_1d<double> lpoldArr,lpoldSorted;
+    array_1d<int> lpoldDex;
+    double dd,ddMax;
+    
+    lpoldArr.set_name("aps_box_search_lpoldArr");
+    lpoldSorted.set_name("aps_box_search_lpoldSorted");
+    lpoldDex.set_name("aps_box_search_lpoldDex");
+    
     if(nodes.get_dim()>0){
         sort_and_check(boxProbabilities,sortedProbabilities,boxDexes);
         for(ii=0;ii<sortedProbabilities.get_dim()/4;ii++){
@@ -1505,10 +1513,23 @@ int aps::aps_box_wide(){
             mu=ggWrap.user_predict(trial);
             lpold=calculate_lpold(trial,mu,ibox);
             
-            if(ii==0 || lpold<pbest){
-                pbest=lpold;
+            lpoldArr.add(lpold);
+            lpoldDex.add(ibox);
+        }
+        
+        sort_and_check(lpoldArr,lpoldSorted,lpoldDex);
+        for(ii=0;ii<lpoldSorted.get_dim()/4;ii++){
+            ibox=lpoldDex.get_data(ii);
+            for(i=0;i<ggWrap.get_dim();i++){
+                trial.set(i,0.5*(ggWrap.get_box_min(ibox,i)+ggWrap.get_box_max(ibox,i)));
+            }
+            i=find_nearest_center(trial);
+            dd=ggWrap.distance(nodes(i)->get_center(),trial);
+            if(ii==0 || dd>ddMax){
+                ddMax=dd;
                 chosenBox=ibox;
             }
+        
         }
         printf("chosen by lpold %d\n\n",chosenBox);
     }
