@@ -187,6 +187,7 @@ class gpWrapper{
         
         void nn_srch(array_1d<double>&,int,array_1d<int>&,array_1d<double>&);
         int find_box(int);
+        int find_box(array_1d<double>&);
         
         void add_to_unitSpheres(array_1d<double>&);
         void unitSpheres_nn_srch(array_1d<double>&,int,array_1d<int>&,array_1d<double>&);
@@ -232,6 +233,7 @@ class gpWrapper{
         double get_box_max(int,int);
         double get_box_min(int,int);
         
+        chisquared* get_chifn();
         
         /////////code for diagnostic testing
         int set_iWhere(int);

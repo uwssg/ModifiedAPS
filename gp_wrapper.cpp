@@ -63,6 +63,10 @@ gpWrapper::~gpWrapper(){
 
 }
 
+chisquared* gpWrapper::get_chifn(){
+    return chisq;
+}
+
 void gpWrapper::set_gp(gp *gg_in){
     gg=gg_in;
     good_max.set_dim(gg->get_dim());
@@ -595,6 +599,10 @@ int gpWrapper::get_called(){
 
 int gpWrapper::get_pts(){
     return gg->get_pts();
+}
+
+int gpWrapper::find_box(array_1d<double> &p){
+    return gg->find_box(p);
 }
 
 int gpWrapper::find_box(int dex){

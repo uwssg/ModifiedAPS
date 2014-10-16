@@ -13,6 +13,15 @@ FILE *output;
 
 int i,j,k;
 
+printf("centers\n");
+for(i=0;i<dim;i++){
+    for(j=0;j<ncenters;j++){
+        printf("%e ",chifn.get_center(j,i));
+    }
+    printf("\n");
+}
+printf("\n");
+
 //chifn.build_boundary(11.0);
 chifn.build_boundary(33.9);//for 22dof
     

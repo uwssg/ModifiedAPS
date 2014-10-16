@@ -2,8 +2,15 @@
 #include "../eigen_wrapper.h"
 #include "kde.h"
 #include "../chisq.h"
+#include "../aps_extractor.h"
 
-main(){
+main(int iargc, char *argv[]){
+
+int seed=99;
+
+if(iargc>1){
+    seed=atoi(argv[1]);
+}
 
 mcmc_extractor extractor;
 s_curve chifn(22,3);
@@ -18,7 +25,7 @@ FILE *input,*output;
 double nn,chival;
 int ct,ic;
 for(ic=0;ic<nchains;ic++){
-    sprintf(rawName,"chains/s_curve_chains_%d.txt",ic+1);
+    sprintf(rawName,"chains/s_curve_s%d_chains_%d.txt",seed,ic+1);
     sprintf(outname,"chains/s_curve_chains_projected_%d.txt",ic+1);
     input=fopen(rawName,"r");
     output=fopen(outname,"w");
@@ -59,7 +66,9 @@ printf("thinby %d\nused %d\nkept %d\n",extractor.get_thinby(),extractor.get_tota
 printf("rows %d\n",extractor.get_total_rows());
 printf("best_covar %e\n",extractor.get_best_covar());
 
-extractor.print_samples("processed/scurve_samples.sav");
+char samplename[letters];
+sprintf(samplename,"processed/scurve_s%d_samples.sav",seed);
+extractor.print_samples(samplename);
 
 kde kdeObj;
 kdeObj.set_data(extractor.get_samples());
@@ -80,16 +89,24 @@ iy.set(2,17);
 
 for(i=0;i<3;i++){
  
-    sprintf(outname,"processed/scurve_%d_%d.sav",ix.get_data(i),iy.get_data(i));
+    sprintf(outname,"processed/scurve_s%d_%d_%d.sav",seed,ix.get_data(i),iy.get_data(i));
 
     kdeObj.plot_boundary(ix.get_data(i),dx,iy.get_data(i),dx,0.95,outname,3);
             
-    sprintf(outname,"processed/scurve_scatter_%d_%d_control.sav",ix.get_data(i),iy.get_data(i));
+    sprintf(outname,"processed/scurve_s%d_scatter_%d_%d_control.sav",seed,ix.get_data(i),iy.get_data(i));
     kdeObj.plot_density(ix.get_data(i),dx,iy.get_data(i),dx,0.95,outname,3);
 }
         
 extractor.plot_delta("processed/scurve_good_pts_testcontrol.sav",33.93);
-extractor.plot_as_aps("processed/scurve_mcmc_like_aps.sav");
+sprintf(samplename,"processed/scurve_s%d_mcmc_like_aps.sav",seed);
+extractor.plot_as_aps(samplename);
+
+aps_extractor apsExtractor;
+apsExtractor.set_filename(samplename);
+apsExtractor.set_delta_chi(33.93);
+
+sprintf(samplename,"processed/APSstyle/scurve_s%d_0_1.sav",seed);
+apsExtractor.write_good_points(samplename,0,1);
 
 
 array_1d<double> RR,VV,WW,mean,var;
@@ -107,7 +124,8 @@ for(i=0;i<nparams;i++){
     }
 }
 
-extractor.plot_chimin("processed/scurve_chi_min.sav");
+sprintf(samplename,"processed/scurve_s%d_chi_min.sav",seed);
+extractor.plot_chimin(samplename);
 //extractor.show_minpt();
 
 ///////////////////////////covariance matrix////////////

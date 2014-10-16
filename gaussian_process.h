@@ -539,6 +539,7 @@ class gp{
         void nn_srch(int,int,array_1d<int>&,array_1d<double>&) const;
         
         int find_box(int);
+        int find_box(array_1d<double>&);
         
         /*return the number of times predict() was called*/
         int get_ct_predict();

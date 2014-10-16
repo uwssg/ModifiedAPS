@@ -26,7 +26,7 @@ WMAP_INCLUDE = $(INCLUDE) $(CAMB_INC) $(WMAP_INC)
 MAPSDIR = /Users/noldor/physics/nonparametric_cosmology/code_sfd/GitDirectory/ModifiedAPS/
 
 MAPSOBJ = $(MAPSDIR)containers.o $(MAPSDIR)goto_tools.o $(MAPSDIR)kd.o $(MAPSDIR)eigen_wrapper.o \
-$(MAPSDIR)chisq.o
+$(MAPSDIR)chisq.o $(MAPSDIR)aps_extractor.o
 
 #do not use these compilers with omp
 #gg = g++ -Wno-write-strings -O3

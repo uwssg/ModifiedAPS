@@ -227,6 +227,10 @@ int gp::is_kptr_null(){
     else return 0;
 }
 
+int gp::find_box(array_1d<double> &p){
+    return bptr->find_box(p);
+}
+
 int gp::find_box(int dex){
     return bptr->find_box(*get_pt(dex));
 }
