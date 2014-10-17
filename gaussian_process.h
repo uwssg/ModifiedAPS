@@ -416,6 +416,8 @@ class gp{
         the array_1d<double> is the point in parameter space;
         the double is the corresponding function value*/
         void add_pt(array_1d<double>&,double);
+        void freeze_boxes();
+        void unfreeze_boxes();
         
         /*write the data stored in kd_tree to a file whose name is specified by the char* */
         void write_data(char*);

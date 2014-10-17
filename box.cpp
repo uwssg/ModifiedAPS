@@ -24,6 +24,7 @@ void box::initialize(array_2d<double> *data_in, int pp_per_box,
 array_1d<double> &min_in, array_1d<double> &max_in){
     
     ct_search=0;
+    frozen=0;
     time_search=0.0;
     
     int i,j;
@@ -525,10 +526,12 @@ int box::add_pt(){
     
     int did_it_split=0;
     
-    if(box_contents.get_cols(i_box)>pts_per_box){
+    if(frozen==0){
+        if(box_contents.get_cols(i_box)>pts_per_box){
         
-        did_it_split=split_box(i_box,i_tree,dir);
+            did_it_split=split_box(i_box,i_tree,dir);
 	
+        }
     }
     
     time_split+=double(time(NULL))-before;
@@ -547,6 +550,14 @@ int box::add_pt(){
     
     return did_it_split;
     
+}
+
+void box::freeze_boxes(){
+    frozen=1;
+}
+
+void box::unfreeze_boxes(){
+    frozen=0;
 }
 
 double box::get_time_add_srch(){

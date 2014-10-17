@@ -146,6 +146,8 @@ class gpWrapper{
         or is a "good" point (i.e. whether chisquared<=chisquared_im)
         */
         int add_pt(array_1d<double>&,double);
+        void freeze_boxes();
+        void unfreeze_boxes();
         
             
         /*

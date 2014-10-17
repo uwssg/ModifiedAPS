@@ -476,6 +476,24 @@ void gp::refactor(){
 
 }
 
+void gp::freeze_boxes(){
+    if(bptr==NULL){
+        printf("WARNING cannot freeze boxes; bptr is null\n");
+        exit(1);
+    }
+    
+    bptr->freeze_boxes();
+}
+
+void gp::unfreeze_boxes(){
+    if(bptr==NULL){
+        printf("WARNING cannot unfreeze boxes; bptr is null\n");
+        exit(1);
+    }
+    
+    bptr->unfreeze_boxes();
+}
+
 void gp::add_pt(array_1d<double> &newpt, double newfn){
   
   //add a point to the gaussian process data set

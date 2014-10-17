@@ -341,6 +341,24 @@ void gpWrapper::evaluate(array_1d<double> &pt, double *chiout, int *dex, int val
     }
 }
 
+void gpWrapper::freeze_boxes(){
+    if(gg==NULL){
+        printf("WARNING cannot freeze boxes; gg is null\n");
+        exit(1);
+    }
+    
+    gg->freeze_boxes();
+}
+
+void gpWrapper::unfreeze_boxes(){
+    if(gg==NULL){
+        printf("WARNING cannot unfreeze boxes; gg is null\n");
+        exit(1);
+    }
+    
+    gg->unfreeze_boxes();
+}
+
 int gpWrapper::add_pt(array_1d<double> &vv, double chitrue){
     
     int i;
