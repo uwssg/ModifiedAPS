@@ -8,6 +8,7 @@ main(int iargc, char *argv[]){
 //d=8 -> delta_chisq=15.5
 //d=5 -> delta_chisq=11
 
+int i,j;
 int seed=99;
 int dim,ncenters;
 int nsamples=10000;
@@ -46,6 +47,28 @@ matern_covariance cv;
 
 s_curve chisq(dim,ncenters);
 
+array_2d<double> troughPoints,borderPoints;
+chisq.get_trough_points(troughPoints);
+chisq.get_border_points(borderPoints);
+
+double chi,chimax;
+for(i=0;i<troughPoints.get_rows();i++){
+   chi=chisq(*troughPoints(i));
+   if(i==0 || chi>chimax)chimax=chi;
+}
+printf("after troughPoints chimax %e\n",chimax);
+for(i=0;i<borderPoints.get_rows();i++){
+    chi=fabs(33.93-chisq(*borderPoints(i)));
+    if(i==0 || chi>chimax){
+        chimax=chi;
+    }
+}
+printf("after borderPoints dchimax %e\n",chimax);
+
+printf("trough %d\n",troughPoints.get_rows());
+printf("border %d\n",borderPoints.get_rows());
+exit(1);
+
 //declare APS
 //the '20' below is the number of nearest neighbors to use when seeding the
 //Gaussian process
@@ -72,9 +95,6 @@ max.set_name("driver_max");
 min.set_name("driver_min");
 max.set_dim(dim);
 min.set_dim(dim);
-
-
-int i,j;
 
 for(i=0;i<dim;i++){
     min.set(i,-200.0);

@@ -333,6 +333,9 @@ public:
     virtual double operator()(array_1d<double>&) const;
     virtual void build_boundary(double);
     virtual double distance_to_center(int,array_1d<double>&);
+    
+    void get_trough_points(array_2d<double>&);
+    void get_border_points(array_2d<double>&);
 
 };
 
