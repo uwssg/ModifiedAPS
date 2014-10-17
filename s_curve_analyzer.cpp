@@ -5,11 +5,13 @@
 main(int iargc, char *argv[]){
 
 int i,j;
-array_1d<double> lnchi_hist,xmin,xmax;
+array_1d<double> lnchi_hist,xmin,xmax,chi_hist;
 array_1d<int> apsHist,simplexHist,coulombHist,compassHist;
 array_1d<int> bisectHist,ricochetHist,totalHist;
+array_1d<int> totalDistLnChi,totalDistChi;
 
 for(i=0;i<120;i++){
+    chi_hist.set(i,i*1.0+0.5);
     lnchi_hist.set(i,-2.0+i*0.1);
     apsHist.set(i,0);
     simplexHist.set(i,0);
@@ -18,6 +20,9 @@ for(i=0;i<120;i++){
     ricochetHist.set(i,0);
     totalHist.set(i,0);
     compassHist.set(i,0);
+    
+    totalDistChi.set(i,0);
+    totalDistLnChi.set(i,0);
 }
 
 char inputName[letters],word[letters];
@@ -117,6 +122,14 @@ while(fscanf(input,"%le",&nn)>0){
         totalHist.add_val(i,1);
     }
     
+    if(log(chival)<lnchi_hist.get_data(lnchi_hist.get_dim()-1)+0.1){
+        totalDistLnChi.add_val(hdex,1);
+    }
+    if(chival<chi_hist.get_data(chi_hist.get_dim()-1)+0.5){
+        hdex=get_dex(chi_hist,chival);
+        totalDistChi.add_val(hdex,1);
+    }
+    
     if(chival<=delta_chi){
         for(i=0;i<dim;i++){
             if(vv.get_data(i)<xmin.get_data(i)){
@@ -193,6 +206,16 @@ for(i=0;i<lnchi_hist.get_dim();i++){
     bisectHist.get_data(i),
     ricochetHist.get_data(i),
     totalHist.get_data(i));
+}
+fclose(output);
+
+sprintf(outname,"processedFiles/s_curve_d%d_c%d_s%d_distributions.sav",dim,ncenters,seed);
+output=fopen(outname,"w");
+fprintf(output,"#lnchi dN/dlnchi chi dN/dchi\n");
+for(i=0;i<lnchi_hist.get_dim();i++){
+    fprintf(output,"%le %d %le %d\n",
+    lnchi_hist.get_data(i),totalDistLnChi.get_data(i),
+    chi_hist.get_data(i),totalDistChi.get_data(i));
 }
 fclose(output);
 
