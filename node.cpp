@@ -85,7 +85,7 @@ void node::copy(const node &in){
         range_max.set(i,in.range_max.get_data(i));
     }
     
-    for(i=0;i<range_min.get_dim();i++){
+    for(i=0;i<in.range_min.get_dim();i++){
         range_min.set(i,in.range_min.get_data(i));
     }
     
