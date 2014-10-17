@@ -568,11 +568,11 @@ double box::split_error(array_1d<int> &use,int idim, int *iup, int *idown){
     npts=use.get_dim();
     
     for(i=0;i<npts;i++){
-        if(data->get_data(use.get_data(i),idim)<vmin || i==0){
+        if(i==0 || data->get_data(use.get_data(i),idim)<vmin){
 	    vmin=data->get_data(use.get_data(i),idim);
 	}
 	
-	if(data->get_data(use.get_data(i),idim)>vmax || i==0){
+	if(i==0 || data->get_data(use.get_data(i),idim)>vmax){
 	    vmax=data->get_data(use.get_data(i),idim);
 	}
     }
@@ -618,7 +618,7 @@ double box::split_error(array_1d<int> &use,int idim, int *iup, int *idown){
 	diff=idown1-idown2;
 	if(diff<0)diff*=(-1);
 	diff+=i;
-	
+
     }
     
     int split1,split2;
@@ -651,6 +651,27 @@ double box::split_error(array_1d<int> &use,int idim, int *iup, int *idown){
 	iup[0]=iup2;
 	idown[0]=idown2;
     }
+    
+    array_1d<int> testDexes;
+    array_1d<double> testVals;
+    for(i=0;i<use.get_dim();i++){
+        testDexes.set(i,use.get_data(i));
+        testVals.set(i,data->get_data(use.get_data(i),idim));
+    }
+    
+    array_1d<double> sortedVals;
+    sort_and_check(testVals,sortedVals,testDexes);
+    double median = sortedVals.get_data(use.get_dim()/2);
+    int testUp=0,testDown=0;
+    
+    for(i=0;i<use.get_dim();i++){
+        if(data->get_data(use.get_data(i),idim)>median)testUp++;
+        else testDown++;
+    }
+    
+    printf("    idim %d iup %d idown %d\n",idim,iup[0],idown[0]);
+    printf("        median %d %d\n",testDown,testUp);
+    printf("        vmin %e vmax %e -- %e\n",vmin,vmax,vmax-vmin);
     
     return valbest;
 }
@@ -735,7 +756,12 @@ int box::split_box(int i_box, int i_tree, int dir){
     }
     
     if(best_min<min_pts_per_box){
-        //printf("bestmin %d returning\n",best_min);
+        printf("bestmin %d returning\n",best_min);
+        printf("bestsplit %d %d\n",split_best,get_contents(i_box));
+        
+        if(split_best>100){
+            exit(1);
+        }
         return 0;
     }
     
