@@ -494,6 +494,14 @@ void gp::unfreeze_boxes(){
     bptr->unfreeze_boxes();
 }
 
+void gp::get_box_quartiles(array_1d<int> &qq){
+    if(bptr==NULL){
+        printf("WARNING cannot get box quartiles; bptr is null\n");
+        exit(1);
+    }
+    bptr->get_box_quartiles(qq);
+}
+
 void gp::add_pt(array_1d<double> &newpt, double newfn){
   
   //add a point to the gaussian process data set

@@ -418,6 +418,7 @@ class gp{
         void add_pt(array_1d<double>&,double);
         void freeze_boxes();
         void unfreeze_boxes();
+        void get_box_quartiles(array_1d<int>&);
         
         /*write the data stored in kd_tree to a file whose name is specified by the char* */
         void write_data(char*);

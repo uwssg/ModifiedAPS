@@ -67,6 +67,7 @@ public:
     int get_smallest_box();
     int get_biggest_box();
     double get_mean_box(double*);
+    void get_box_quartiles(array_1d<int>&);
     int get_ntree();
     int get_contents(int);
     int get_contents(int,int);

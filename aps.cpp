@@ -3149,6 +3149,10 @@ void aps::write_pts(){
     ggWrap.get_search_time_solo(),ggWrap.get_search_ct_solo(),
     ggWrap.get_search_time_solo()/double(ggWrap.get_search_ct_solo()));
     
+    array_1d<int> quartiles;
+    quartiles.set_name("aps_quartiles");
+    ggWrap.get_box_quartiles(quartiles);
+    
     printf("search time box %e ct %d -- %e\n",
     ggWrap.get_search_time_box(),ggWrap.get_search_ct_box(),
     ggWrap.get_search_time_box()/double(ggWrap.get_search_ct_box()));
@@ -3158,7 +3162,10 @@ void aps::write_pts(){
     printf("n boxes %d\n",ggWrap.get_nboxes());
     printf("n small boxes %d\n",ggWrap.get_n_small_boxes());
     printf("n optimal boxes %d\n",ggWrap.get_n_optimal_boxes());
-    printf("total time %e\n",time_now-start_time);
+    printf("box quartiles %d %d %d\n",
+    quartiles.get_data(0),quartiles.get_data(1),quartiles.get_data(2));
+    printf("\ntotal time %e\n",time_now-start_time);
+    printf("pts %d\n",ggWrap.get_pts());
     printf("n wide %d n box wide %d\n",n_wide,n_box_wide);
     printf("\n");
     

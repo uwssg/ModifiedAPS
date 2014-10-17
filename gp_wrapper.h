@@ -148,6 +148,7 @@ class gpWrapper{
         int add_pt(array_1d<double>&,double);
         void freeze_boxes();
         void unfreeze_boxes();
+        void get_box_quartiles(array_1d<int>&);
         
             
         /*

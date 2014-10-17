@@ -359,6 +359,15 @@ void gpWrapper::unfreeze_boxes(){
     gg->unfreeze_boxes();
 }
 
+void gpWrapper::get_box_quartiles(array_1d<int> &qq){
+    if(gg==NULL){
+        printf("WARNING cannot get box quartiles; gg is null\n");
+        exit(1);
+    }
+    
+    gg->get_box_quartiles(qq);
+}
+
 int gpWrapper::add_pt(array_1d<double> &vv, double chitrue){
     
     int i;
