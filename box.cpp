@@ -528,9 +528,13 @@ int box::add_pt(){
     
     if(frozen==0){
         if(box_contents.get_cols(i_box)>pts_per_box){
-        
             did_it_split=split_box(i_box,i_tree,dir);
-	
+        }
+        
+        for(i=0;i<box_contents.get_rows();i++){
+            if(box_contents.get_cols(i)>min_pts_per_box*data->get_cols()){
+                j=split_box(i,-1,-1);
+            }
         }
     }
     
