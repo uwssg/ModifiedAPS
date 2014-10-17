@@ -14,7 +14,7 @@ max.set_name("test_max");
 int rows,cols;
 
 cols=22;
-rows=100;
+rows=1000;
 
 int i,j;
 
@@ -57,6 +57,9 @@ for(ct=0;ct<100000;ct++){
     vv.set(idim,base.get_data(idim)+1.0e-6*(ct%5000));
     
     i_box=testBox.find_box(vv,&i_tree,&i_dir);
+    i=chaos.int32()%cols;
+    vv.set(i,testBox.get_box_max(i_box,i));
+    i_box=testBox.find_box(vv,&i_tree,&i_dir);
     
     isOkay=1;
     for(i=0;i<cols && isOkay==1;i++){
@@ -75,8 +78,9 @@ for(ct=0;ct<100000;ct++){
         }
         
         
-        if(betterFit>=0){
+        /*if(betterFit>=0){
             printf("FAILED at %d %e\n",ct,double(time(NULL))-before);
+            printf("ibox %d betterFit %d\n",i_box,betterFit);
             for(i=0;i<cols;i++){
                 printf("%e -- %e %e -- %e %e\n",
                 vv.get_data(i),testBox.get_box_min(i_box,i),testBox.get_box_max(i_box,i),
@@ -84,7 +88,7 @@ for(ct=0;ct<100000;ct++){
             }
             
             exit(1);
-        }
+        }*/
     }
     
     data.add_row(vv);
