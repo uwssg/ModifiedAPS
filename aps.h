@@ -244,7 +244,7 @@ private:
     void aps_wide_post_process(int,double,double);
     void get_interesting_boxes(array_1d<int>&);
     int aps_box_wide();
-    double calculate_lpold(array_1d<double>&,double,int);
+    double calculate_dchi(int);
     
     /*
     aps_focus() runs the focused search (steps 1B-5B in the paper) about known centers of

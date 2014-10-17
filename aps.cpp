@@ -1170,132 +1170,37 @@ void aps::get_interesting_boxes(array_1d<int> &acceptableBoxes){
 
 }
 
-double aps::calculate_lpold(array_1d<double> &pt, double mu, int ibox){
-    /*
-    This will return the log(probability that pt is connected to a known node)
-    */
-    
+double aps::calculate_dchi(int ibox){
     if(nodes.get_dim()==0)return 0.0;
     
-    double expMinVal,minVal=-12.0;
-    expMinVal=exp(minVal);
+    int i,j,imin;
+    double chimin,chi2,dchi,dchibest;
+    array_1d<double> midpt;
+    midpt.set_name("aps_calculate_dchi_midpt");
     
-    array_1d<double> gradient,trial;
-    gradient.set_name("aps_lpold_gradient");
-    trial.set_name("aps_lpold_trial");
-    
-    double x1,x2,mu1,mu2,dx,delta;
-    int i,j,ix;
-    
-    delta=0.01;
-    for(ix=0;ix<ggWrap.get_dim();ix++){
-        for(i=0;i<ggWrap.get_dim();i++)trial.set(i,pt.get_data(i));
-        dx=delta*(ggWrap.get_box_max(ibox,ix)-ggWrap.get_box_min(ibox,ix));
-        x1=pt.get_data(ix)+dx;
-        while(x1>ggWrap.get_box_max(ibox,ix)){
-            dx-=0.1*delta*(ggWrap.get_box_max(ibox,ix)-ggWrap.get_box_min(ibox,ix));
-            x1=pt.get_data(ix)+dx;
-        }
-        
-        if(x1<pt.get_data(ix)){
-            x1=pt.get_data(ix);
-            mu1=mu;
-        }
-        else{
-            trial.set(ix,x1);
-            mu1=ggWrap.user_predict(trial);
-        }
-        
-        dx=delta*(ggWrap.get_box_max(ibox,ix)-ggWrap.get_box_min(ibox,ix));
-        x2=pt.get_data(ix)-dx;
-        while(x2<ggWrap.get_box_min(ibox,ix)){
-           dx-=0.1*delta*(ggWrap.get_box_max(ibox,ix)-ggWrap.get_box_min(ibox,ix));
-           x2=pt.get_data(ix)-dx;
-        }
-        
-        if(x2>pt.get_data(ix)){
-            x2=pt.get_data(ix);
-            mu2=mu;
-        }
-        else{
-            trial.set(ix,x2);
-            mu2=ggWrap.user_predict(trial);
-        }
-        
-        gradient.set(ix,(mu2-mu1)/(x2-x1));
+    for(i=0;i<ggWrap.get_box_contents(ibox);i++){
+        dchi=ggWrap.get_fn(ggWrap.get_box_contents(ibox,i));
+	if(i==0 || dchi<chimin){
+	    chimin=dchi;
+	    imin=ggWrap.get_box_contents(ibox,i);
+	}
     }
     
-    double gradSquareNorm=gradient.get_square_norm();
-    if(gradSquareNorm<1.0e-10){
-        if(mu<ggWrap.get_target())return minVal;
-        else return 0.0;
-    }
-    
-    double dd,ddNearest,aa,sqrtTwoPi,ddmax;
-    int ic,icNearest;
-    
-    ddmax=100.0;
-    sqrtTwoPi=sqrt(2.0*pi);
+    int ic;
     for(ic=0;ic<nodes.get_dim();ic++){
-        ix=nodes(ic)->get_center();
-        aa=0.0;
-        for(i=0;i<ggWrap.get_dim();i++){
-            aa+=gradient.get_data(i)*(ggWrap.get_pt(ix,i)-pt.get_data(i));
-        }
-        aa=aa/gradSquareNorm;
-        
-        dd=0.0;
-        if(aa>0.0){
-            dd=ddmax;
-        }
-        else{
-            for(i=0;i<ggWrap.get_dim();i++){
-                dd+=power(ggWrap.get_pt(ix,i)-pt.get_data(i)-aa*gradient.get_data(i),2);
-            }
-        }
-        
-        if(ic==0 || dd<ddNearest){
-            ddNearest=dd;
-            icNearest=ic;
-        }
+        i=nodes(ic)->get_center();
+	for(j=0;j<ggWrap.get_dim();j++){
+	    midpt.set(j,0.5*(ggWrap.get_pt(imin,j)+ggWrap.get_pt(i,j)));
+	}
+	
+	ggWrap.evaluate(midpt,&chi2);
+	dchi=chi2-chimin;
+	if(ic==0 || dchi<dchibest){
+	    dchibest=dchi;
+	}
     }
     
-    double lpnew,pnewTerm;
-    lpnew=0.0;
-    
-    if(ddNearest>0.99*ddmax){
-        return minVal;
-    }
-    
-    double y1,y2;
-    double sigma;
-    for(ix=0;ix<ggWrap.get_dim();ix++){
-        pnewTerm=0.0;
-        sigma=nodes(icNearest)->get_max(ix)-nodes(icNearest)->get_min(ix);
-        if(sigma<1.0e-10)sigma=1.0;
-        dx=0.01*sigma;
-        x1=0.0;
-        y1=1.0;
-        for(x2=dx;x2<ddNearest && x2<5.0*sigma;x2+=dx){
-            y2=exp(-0.5*power(x2/sigma,2));
-            pnewTerm+=(x2-x1)*(y2+y1);//drop the 0.5 because this is half a Gaussian;
-            
-            y1=y2;
-            x1=x2;
-        }
-        pnewTerm=pnewTerm/(sqrtTwoPi*sigma);
-        if(pnewTerm<expMinVal){
-            lpnew+=minVal;
-        }
-        else{
-            lpnew+=log(pnewTerm);
-        }
-    }
-    
-    double pold=1.0-exp(lpnew);
-    if(pold>=1.0) return 0.0;
-    else if(pold<expMinVal) return minVal;
-    else return log(pold);
+    return dchibest;
 }
 
 int aps::aps_box_wide(){
@@ -1351,7 +1256,7 @@ int aps::aps_box_wide(){
     
     double volumeBiggest;
     int iByVolume;
-    double pterm,pbest,ptotal,lpterm,volume,lpold;
+    double pterm,pbest,ptotal,lpterm,volume;
     int dex,chosenBox,ii,norm_is_set;
     array_1d<int> seed;
     double chitrial,mu,sig,norm,x1,x2,y1,y2,stopping_point,dx;
@@ -1495,41 +1400,17 @@ int aps::aps_box_wide(){
     array_1d<double> sortedProbabilities;
     sortedProbabilities.set_name("aps_box_search_sortedProbabilities");
     
-    array_1d<double> lpoldArr,lpoldSorted;
-    array_1d<int> lpoldDex;
-    double dd,ddMax;
-    
-    lpoldArr.set_name("aps_box_search_lpoldArr");
-    lpoldSorted.set_name("aps_box_search_lpoldSorted");
-    lpoldDex.set_name("aps_box_search_lpoldDex");
-    
-    if(nodes.get_dim()>0){
+    double dc,dcMax;
+
+    if(nodes.get_dim()>0 && acceptableBoxes.get_dim()>1){
         sort_and_check(boxProbabilities,sortedProbabilities,boxDexes);
         for(ii=0;ii<sortedProbabilities.get_dim()/4;ii++){
             ibox=boxDexes.get_data(ii);
-            for(i=0;i<ggWrap.get_dim();i++){
-                trial.set(i,0.5*(ggWrap.get_box_min(ibox,i)+ggWrap.get_box_max(ibox,i)));
-            }
-            mu=ggWrap.user_predict(trial);
-            lpold=calculate_lpold(trial,mu,ibox);
-            
-            lpoldArr.add(lpold);
-            lpoldDex.add(ibox);
-        }
-        
-        sort_and_check(lpoldArr,lpoldSorted,lpoldDex);
-        for(ii=0;ii<lpoldSorted.get_dim()/4;ii++){
-            ibox=lpoldDex.get_data(ii);
-            for(i=0;i<ggWrap.get_dim();i++){
-                trial.set(i,0.5*(ggWrap.get_box_min(ibox,i)+ggWrap.get_box_max(ibox,i)));
-            }
-            i=find_nearest_center(trial);
-            dd=ggWrap.distance(nodes(i)->get_center(),trial);
-            if(ii==0 || dd>ddMax){
-                ddMax=dd;
+            dc=calculate_dchi(ibox);
+            if(ii==0 || dc>dcMax){
+                dcMax=dc;
                 chosenBox=ibox;
             }
-        
         }
         printf("chosen by lpold %d\n\n",chosenBox);
     }
