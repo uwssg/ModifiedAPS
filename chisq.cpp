@@ -907,7 +907,7 @@ void s_curve::get_border_points(array_2d<double> &outpoints){
    
     printf("after (0,1), >2 fWorst %e -- %d\n",fWorst,outpoints.get_rows());
     
-    double thetamin,thetamax,dtheta;
+    double thetamin,thetamax,dtheta,newtheta;
 
     for(ix=0;ix<2;ix++){
         if(ix==1){
@@ -948,6 +948,14 @@ void s_curve::get_border_points(array_2d<double> &outpoints){
 		     alpha.set(iy,centers.get_data(0,iy)+rr*sin(th));
 		     alpha.set(ix,xth+rr*cos(th));
 	         
+                     if(ix==0){
+                         newtheta=find_theta_from_x(alpha.get_data(ix));
+                         alpha.set(1,centers.get_data(0,1)+trig_factor*newtheta*(cos(newtheta)-1.0)/fabs(newtheta));
+                     }
+                     else{
+                         newtheta=find_theta_from_y(alpha.get_data(ix));
+                         alpha.set(0,centers.get_data(0,0)+trig_factor*sin(newtheta));
+                     }
 		 
 		     for(i=0;i<dim;i++){
                          pt.set(i,0.0);
@@ -1140,6 +1148,33 @@ double s_curve::distance_to_center(int ic, array_1d<double> &in_pt) {
     widths.set_where("nowhere");
     
     return dd;
+}
+
+double s_curve::find_theta_from_x(double x){
+
+    double dx=x-centers.get_data(0,0);
+    
+    double ratio=dx/trig_factor;
+    if(ratio>1.0)ratio=1.0;
+    else if(ratio<-1.0)ratio=-1.0;
+    
+    double naive=asin(ratio);
+    
+    return naive;
+}
+
+double s_curve::find_theta_from_y(double y){
+    double dy=y-centers.get_data(0,1);
+    double sgn;
+    if(dy<0.0)sgn=1.0;
+    else sgn=-1.0;
+    
+    double ratio=dy/trig_factor;
+    if(ratio>2.0)ratio=2.0;
+    else if(ratio<-2.0)ratio=-2.0;
+    
+    double naive=acos(1.0-fabs(ratio));
+    return sgn*naive;
 }
 
 void s_curve::build_boundary(double br){
@@ -1381,7 +1416,7 @@ void s_curve::build_boundary(double br){
    
     printf("after (0,1), >2 fWorst %e\n",fWorst);
     
-    double thetamin,thetamax,dtheta;
+    double thetamin,thetamax,dtheta,newtheta;
 
     for(ix=0;ix<2;ix++){
         if(ix==1){
@@ -1421,7 +1456,16 @@ void s_curve::build_boundary(double br){
 		 
 		     alpha.set(iy,centers.get_data(0,iy)+rr*sin(th));
 		     alpha.set(ix,xth+rr*cos(th));
-	         
+	             
+                     if(ix==0){
+                         newtheta=find_theta_from_x(alpha.get_data(ix));
+                         alpha.set(1,centers.get_data(0,1)+trig_factor*newtheta*(cos(newtheta)-1.0)/fabs(newtheta));
+                     }
+                     else{
+                         newtheta=find_theta_from_y(alpha.get_data(ix));
+                         alpha.set(0,centers.get_data(0,0)+trig_factor*sin(newtheta));
+                     }
+                     
 		 
 		     for(i=0;i<dim;i++){
 			 pt.set(i,0.0);
@@ -1430,7 +1474,7 @@ void s_curve::build_boundary(double br){
 		         }
 		     }
 		     chitest=(*this)(pt);
-		     if(fabs(chitest-br)<5.0){
+		     if(fabs(chitest-br)<1.0){
                          err=fabs(chitest-br);
                          if(err>fWorst)fWorst=err;
 		         add_to_boundary(alpha,ix,iy,chitest);

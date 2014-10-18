@@ -324,6 +324,9 @@ class s_curve : public chisquared{
 
 private:
     double trig_factor;
+    
+    double find_theta_from_x(double);
+    double find_theta_from_y(double);
 
 public:
     ~s_curve();
