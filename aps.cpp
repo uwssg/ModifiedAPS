@@ -1173,19 +1173,26 @@ void aps::get_interesting_boxes(array_1d<int> &acceptableBoxes){
 double aps::calculate_dchi(int ibox){
     if(nodes.get_dim()==0)return 0.0;
     
+    ggWrap.freeze_boxes();
+
     int i,j,imin;
     double chimin,chi2,dchi,dchibest;
     array_1d<double> midpt;
     midpt.set_name("aps_calculate_dchi_midpt");
     
-    for(i=0;i<ggWrap.get_box_contents(ibox);i++){
+    /*for(i=0;i<ggWrap.get_box_contents(ibox);i++){
         dchi=ggWrap.get_fn(ggWrap.get_box_contents(ibox,i));
 	if(i==0 || dchi<chimin){
 	    chimin=dchi;
 	    imin=ggWrap.get_box_contents(ibox,i);
 	}
-    }
+    }*/
     
+    for(i=0;i<ggWrap.get_dim();i++){
+        midpt.set(i,0.5*(ggWrap.get_box_max(ibox,i)+ggWrap.get_box_min(ibox,i)));
+    }
+    ggWrap.evaluate(midpt,&chimin);
+
     int ic;
     for(ic=0;ic<nodes.get_dim();ic++){
         i=nodes(ic)->get_center();
@@ -1199,6 +1206,8 @@ double aps::calculate_dchi(int ibox){
 	    dchibest=dchi;
 	}
     }
+    
+    ggWrap.unfreeze_boxes();
     
     return dchibest;
 }
