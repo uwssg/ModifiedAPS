@@ -1456,7 +1456,15 @@ int node::search(){
     }
     else{
         if(ct_search-last_expanded>gg->get_dim()*100){
-            activity=0;
+            find_bases();
+            vend=volume();
+
+            if(!(vend>vstart*1.00001)){
+                activity=0;
+            }
+            else{
+                last_expanded=ct_search;
+            }
         }
     }
     
