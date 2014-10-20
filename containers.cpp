@@ -1781,20 +1781,20 @@ int get_dex(const array_1d<T> &xx, T target){
     if(i==0){
         if(target>xx.get_data(1)){
             printf("WARNING spuriously got zero in get_dex\n");
-            printf("%e %e\n",target,xx.get_data(1));
+            printf("%e %e\n",double(target),double(xx.get_data(1)));
             exit(1);
         }
     }
     else if(i==xx.get_dim()-1){
         if(target<xx.get_data(i-1)){
             printf("WARNING spuriously got max in get_dex\n");
-            printf("%e %e\n",target,xx.get_data(i-1));
+            printf("%e %e\n",double(target),double(xx.get_data(i-1)));
             exit(1);
         }
     }
     else if(target>xx.get_data(i) || target<xx.get_data(i-1)){
         printf("WARNING getdex failed %e -- %e %e\n",
-        target,xx.get_data(i-1),xx.get_data(i));
+        double(target),double(xx.get_data(i-1)),double(xx.get_data(i)));
         printf("%d %d\n",i,xx.get_dim()-1);
         exit(1);
     }

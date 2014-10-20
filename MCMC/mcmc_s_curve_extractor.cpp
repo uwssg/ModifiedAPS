@@ -4,7 +4,7 @@
 #include "../chisq.h"
 #include "../aps_extractor.h"
 
-main(int iargc, char *argv[]){
+int main(int iargc, char *argv[]){
 
 int seed=99;
 

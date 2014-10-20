@@ -664,7 +664,7 @@ void s_curve::get_trough_points(array_2d<double> &outpoints){
         
         chival=(*this)(vv);
         if(chival>0.01){
-            printf("WARNING in center %d trough chival %e\n",chival);
+            printf("WARNING in center %d trough chival %e\n",i,chival);
             exit(1);
         }
         outpoints.add_row(vv);

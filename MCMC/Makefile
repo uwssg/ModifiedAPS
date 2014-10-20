@@ -29,12 +29,12 @@ MAPSOBJ = $(MAPSDIR)containers.o $(MAPSDIR)goto_tools.o $(MAPSDIR)kd.o $(MAPSDIR
 $(MAPSDIR)chisq.o $(MAPSDIR)aps_extractor.o
 
 #do not use these compilers with omp
-#gg = g++ -Wno-write-strings -O3
-#ff = gfortran -O3
+gg = g++ -Wno-write-strings -O3
+ff = gfortran -O3
 
 #use these compilers if you are going to use omp
-gg = /opt/local/bin/g++-mp-4.8 -Wno-write-strings -O3 -fopenmp -DUSE_OPENMP -g
-ff = /opt/local/bin/gfortran-mp-4.8 -O3 -g
+#gg = /opt/local/bin/g++-mp-4.8 -Wno-write-strings -O3 -fopenmp -DUSE_OPENMP -g
+#ff = /opt/local/bin/gfortran-mp-4.8 -O3 -g
 
 mcmc_extractor.o: mcmc_extractor.h mcmc_extractor.cpp
 	$(gg) -c mcmc_extractor.cpp

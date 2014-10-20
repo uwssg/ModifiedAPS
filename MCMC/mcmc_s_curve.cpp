@@ -13,7 +13,7 @@ double euclideanDistance(array_1d<double>& p1, array_1d<double> &p2){
 
 }
 
-main(int iargc, char *argv[]){
+int main(int iargc, char *argv[]){
 
 int seed=99;
 

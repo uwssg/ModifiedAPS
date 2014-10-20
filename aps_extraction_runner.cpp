@@ -12,7 +12,7 @@ the executable aps_extract will then run this file
 
 #include "aps_extractor.h"
 
-main(){
+int main(){
 
 char sizeflag[100];
 char outname[letters];

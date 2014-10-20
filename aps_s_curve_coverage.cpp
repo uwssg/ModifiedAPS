@@ -3,7 +3,7 @@
 #include <time.h>
 #include "aps.h"
 
-main(int iargc, char *argv[]){
+int main(int iargc, char *argv[]){
 
 //d=8 -> delta_chisq=15.5
 //d=5 -> delta_chisq=11

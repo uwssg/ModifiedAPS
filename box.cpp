@@ -1103,7 +1103,7 @@ int box::get_contents(int dex, int ii){
     }
     
     if(ii<0 || ii>=box_contents.get_cols(dex)){
-        printf("WARNING asked for the %dth content of box %d but only have %d\n",
+        printf("WARNING asked for the %dth content of box %d but only have %d\n",dex,
         ii,box_contents.get_cols(dex));
         
         exit(1);

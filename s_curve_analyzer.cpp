@@ -2,7 +2,7 @@
 #include "gp_wrapper.h"
 #include "aps_extractor.h"
 
-main(int iargc, char *argv[]){
+int main(int iargc, char *argv[]){
 
 int i,j;
 array_1d<double> lnchi_hist,xmin,xmax,chi_hist;

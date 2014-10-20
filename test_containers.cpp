@@ -37,7 +37,7 @@ if(vector.get_dim()!=dim){
 matrix.add_row(vector);
 
 if(matrix.get_cols()!=dim){
-    printf("WARNING matrix cols should be dim is %d\n",dim,matrix.get_cols());
+    printf("WARNING matrix cols should be %d is %d\n",dim,matrix.get_cols());
     exit(1);
 }
 
@@ -552,7 +552,7 @@ if(i_vector.get_dim()!=dim){
 i_matrix.add_row(i_vector);
 
 if(i_matrix.get_cols()!=dim){
-    printf("WARNING matrix cols should be dim is %d\n",dim,i_matrix.get_cols());
+    printf("WARNING matrix cols should be %d is %d\n",dim,i_matrix.get_cols());
     exit(1);
 }
 

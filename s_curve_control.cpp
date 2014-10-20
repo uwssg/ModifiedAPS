@@ -1,6 +1,6 @@
 #include "chisq.h"
 
-main(){
+int main(){
 
 //d=5 means delta_chisq=11
 int dim=22,ncenters=3;
