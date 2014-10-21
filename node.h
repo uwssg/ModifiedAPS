@@ -61,13 +61,16 @@ class node{
         
         void flush_candidates(array_1d<int>&);
         
+        int get_n_oldCenters();
+        int get_oldCenter(int);
+        
     private:
         
         array_1d<int> associates,boundaryPoints;
         array_2d<double> basisVectors;
         array_1d<double> range_max,range_min,geographicCenter;
         
-        array_1d<int> candidates,centerCandidates;
+        array_1d<int> candidates,centerCandidates,oldCenters;
         
         int ct_search,ct_coulomb,ct_bases,ct_ricochet;
         int calls_to_bases;

@@ -3235,6 +3235,7 @@ void aps::assess_node(int dex){
     midpt.set_name("aps_assess_node_midpt");
     double ftrial,dd,ddmin;
     int j,itrial,inode,iclosest=-1;
+    int iGhost;
     
     use_it=1;
     for(i=0;i<nodes.get_dim() && (use_it==1 || used_because_distance==1);i++){
@@ -3251,6 +3252,14 @@ void aps::assess_node(int dex){
             used_because_distance=0;
         }
         
+        //make the same test on old centers of nodes
+        for(iGhost=0;iGhost<nodes(i)->get_n_oldCenters();iGhost++){
+            dd=gg.distance(nodes(i)->get_oldCenter(iGhost),dex);
+            if(dd<ddNodeRatio*nodes(i)->get_farthest_associate() && ddNodeRatio>1.0e-10){
+                used_because_distance=0;
+            }
+        }
+        
         for(j=0;j<gg.get_dim();j++){
             midpt.set(j,0.5*(gg.get_pt(inode,j)+gg.get_pt(dex,j)));
         }
@@ -3259,6 +3268,17 @@ void aps::assess_node(int dex){
         
         if(ftrial<strad.get_target()){
             use_it=0;
+        }
+        
+        //make the same test on old centers of nodes
+        for(iGhost=0;iGhost<nodes(i)->get_n_oldCenters();iGhost++){
+            for(j=0;j<gg.get_dim();j++){
+                midpt.set(j,0.5*(gg.get_pt(nodes(i)->get_oldCenter(iGhost),j)+gg.get_pt(dex,j)));
+            }
+            ggWrap.evaluate(midpt,&ftrial);
+            if(ftrial<strad.get_target()){
+                use_it=0;
+            }
         }
     }
     

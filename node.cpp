@@ -9,6 +9,7 @@ void node::set_names(){
     candidates.set_name("node_candidates");
     geographicCenter.set_name("node_geographicCenter");
     centerCandidates.set_name("node_centerCandidates");
+    oldCenters.set_name("node_oldCenters");
 }
 
 node::node(){
@@ -65,6 +66,7 @@ void node::copy(const node &in){
     ct_ricochet=in.ct_ricochet;
     ct_coulomb=in.ct_coulomb;
     ct_bases=in.ct_bases;
+    calls_to_bases=in.calls_to_bases;
     
     last_expanded=in.last_expanded;
     activity=in.activity;
@@ -76,6 +78,11 @@ void node::copy(const node &in){
     centerCandidates.reset();
     for(i=0;i<in.centerCandidates.get_dim();i++){
         centerCandidates.set(i,in.centerCandidates.get_data(i));
+    }
+    
+    oldCenters.reset();
+    for(i=0;i<in.oldCenters.get_dim();i++){
+        oldCenters.set(i,in.oldCenters.get_data(i));
     }
     
     for(i=0;i<in.geographicCenter.get_dim();i++){
@@ -1508,12 +1515,21 @@ void node::recenter(){
     }
     
     if(ibest>=0){
+        oldCenters.add(center_dex);
         center_dex=ibest;
         activity=1;
         last_expanded=ct_search;
     }
     
     centerCandidates.reset();
+}
+
+int node::get_n_oldCenters(){
+    return oldCenters.get_dim();
+}
+
+int node::get_oldCenter(int dex){
+    return oldCenters.get_data(dex);
 }
 
 int node::is_it_active(){
