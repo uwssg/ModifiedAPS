@@ -3140,9 +3140,11 @@ void aps::write_pts(){
     printf("Ricochet: %d\n",ggWrap.get_whereCt(iRicochet));
     printf("nodes: %d\n",nodes.get_dim());
     for(i=0;i<nodes.get_dim();i++){
-        printf("node %d associates %d vv %.4e active %d\n",
+        printf("node %d associates %d vv %.4e active %d -- bases %d %d\n",
         nodes(i)->get_center(),nodes(i)->get_n_associates(),
-        nodes(i)->volume(),nodes(i)->is_it_active());
+        nodes(i)->volume(),nodes(i)->is_it_active(),
+        nodes(i)->get_calls_to_bases(),
+        nodes(i)->get_ct_bases());
     }
     printf("called time_tot coulomb ricochet bases\n");
     for(i=0;i<nodes.get_dim();i++){
@@ -3178,6 +3180,17 @@ void aps::write_pts(){
     printf("n wide %d n box wide %d\n",n_wide,n_box_wide);
     printf("\n");
     
+    output=fopen("node_dump.sav","w");
+    for(i=0;i<nodes.get_dim();i++){
+        for(j=0;j<ggWrap.get_dim();j++){
+           for(k=0;k<ggWrap.get_dim();k++){
+               fprintf(output,"%le ",nodes(i)->get_basis(k,j));
+           }
+           fprintf(output,"\n");
+        }
+        fprintf(output,"\n\n");
+    }
+    fclose(output);
        
     set_where("nowhere");
     time_writing+=double(time(NULL))-before;

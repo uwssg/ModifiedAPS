@@ -28,6 +28,7 @@ node::node(){
     ct_ricochet=0;
     ct_coulomb=0;
     ct_bases=0;
+    calls_to_bases=0;
     
     farthest_associate=0.0;
     time_penalty=0.5;
@@ -1212,7 +1213,7 @@ void node::find_bases(){
     }*/
     
     printf("finding bases\n");
-    
+    calls_to_bases++;
     last_nBasisAssociates=basis_associates.get_dim();
     
     double before=double(time(NULL));
@@ -1529,6 +1530,20 @@ int node::get_ct_coulomb(){
 
 int node::get_ct_bases(){
     return ct_bases;
+}
+
+double node::get_basis(int ix, int iy){
+    if(ix>=gg->get_dim() || iy >=gg->get_dim() || ix<0 || iy<0){
+        printf("IN NODE_GET_BASIS %d %d but %d\n",
+        ix,iy,gg->get_dim());
+        exit(1);
+    }
+    
+    return basisVectors.get_data(ix,iy);
+}
+
+int node::get_calls_to_bases(){
+    return calls_to_bases;
 }
 
 double node::get_time(){

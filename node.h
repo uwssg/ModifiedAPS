@@ -49,6 +49,9 @@ class node{
         int get_ct_ricochet();
         int get_ct_coulomb();
         int get_ct_bases();
+        int get_calls_to_bases();
+        
+        double get_basis(int,int);
         
         double volume();
         int is_it_active();
@@ -67,6 +70,7 @@ class node{
         array_1d<int> candidates,centerCandidates;
         
         int ct_search,ct_coulomb,ct_bases,ct_ricochet;
+        int calls_to_bases;
         int last_expanded,activity;
         int center_dex,last_nBasisAssociates,last_nAssociates;
         double time_ricochet,time_coulomb,time_search,time_bases;
