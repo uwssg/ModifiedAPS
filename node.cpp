@@ -1201,11 +1201,15 @@ void node::find_bases(){
         }
     }
     
-    if(basis_associates.get_dim()<100 || 
+    if(basis_associates.get_dim()<10){
+        return;
+    }
+    
+    /*if(basis_associates.get_dim()<100 || 
       (last_nBasisAssociates>0 && basis_associates.get_dim()<last_nBasisAssociates+1000)){
       
         return;
-    }
+    }*/
     
     printf("finding bases\n");
     

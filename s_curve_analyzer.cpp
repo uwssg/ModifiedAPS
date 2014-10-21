@@ -39,6 +39,8 @@ for(i=0;i<letters-1 && argv[1][i]!=0;i++){
 }
 inputName[i]=0;
 
+printf("inputName %s\n",inputName);
+
 for(i=0;i<letters-1 && argv[2][i]!=0;i++){
     outputRoot[i]=argv[2][i];
 }
