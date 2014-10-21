@@ -1452,7 +1452,8 @@ int node::search(){
         if(iStart>=0)ricochet_search(iStart,dir);
     }
     
-    evaluate(geographicCenter,&vend,&i);
+    double nn;
+    evaluate(geographicCenter,&nn,&i);
     ct_search+=gg->get_called()-ibefore;
     ibefore=gg->get_called();
     
@@ -1466,7 +1467,7 @@ int node::search(){
             find_bases();
             vend=volume();
 
-            if(!(vend>vstart*1.00001)){
+            if(!(vend>vstart*1.00001) && ct_ricochet>0){
                 activity=0;
             }
             else{
