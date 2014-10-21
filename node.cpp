@@ -1459,7 +1459,7 @@ int node::search(){
         last_expanded=ct_search;
     }
     else{
-        if(ct_search-last_expanded>gg->get_dim()*100){
+        if(ct_search-last_expanded>gg->get_dim()*10){
             find_bases();
             vend=volume();
 
