@@ -1600,7 +1600,7 @@ void arrayOfNodes::add(int cc, Ran *dice, gpWrapper *gg){
         if(ct>0){
             buffer=new node[ct];
             for(i=0;i<ct;i++){
-                buffer->copy(data[i]);
+                buffer[i].copy(data[i]);
             }
             
             delete [] data;
