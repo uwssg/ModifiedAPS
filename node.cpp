@@ -1473,6 +1473,7 @@ int node::search(){
         //}
     }
     
+    evaluate(geographicCenter,&vend,&i);
     if(centerCandidates.get_dim()>0){
         recenter();
     }
