@@ -1452,7 +1452,9 @@ int node::search(){
         if(iStart>=0)ricochet_search(iStart,dir);
     }
     
+    evaluate(geographicCenter,&vend,&i);
     ct_search+=gg->get_called()-ibefore;
+    ibefore=gg->get_called();
     
     double vend=volume();
     
@@ -1473,11 +1475,11 @@ int node::search(){
         //}
     }
     
-    evaluate(geographicCenter,&vend,&i);
     if(centerCandidates.get_dim()>0){
         recenter();
     }
     
+    ct_search+=gg->get_called()-ibefore;
     time_search+=double(time(NULL))-before;
 }
 
