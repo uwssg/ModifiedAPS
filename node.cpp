@@ -1296,6 +1296,9 @@ void node::find_bases(){
         
     }
     
+    printf("done finding bases %d %e <> %e %e <> %e -- %d\n",
+    abort,stdev,stdevlim,Ebest,Ebest0,changed_bases);
+    
     if(changed_bases==1){
         for(i=0;i<gg->get_dim();i++){
             for(j=0;j<gg->get_dim();j++){
@@ -1493,7 +1496,7 @@ int node::search(){
 
 void node::recenter(){
     
-    printf("\nrecentering\n");
+    //printf("\nrecentering\n");
     
     int i,ibest=-1;
     double dd,ddmin,ddCenter,chiTol;

@@ -3299,7 +3299,7 @@ void aps::assess_node(int dex){
     
     
     for(i=0;i<nodes.get_dim();i++){
-        printf("about to try node center %d\n",nodes(i)->get_center());
+        //printf("about to try node center %d\n",nodes(i)->get_center());
         if(gg.get_fn(nodes(i)->get_center())>strad.get_target()){
             nodes.remove(i);
             i--;
