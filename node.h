@@ -75,7 +75,7 @@ class node{
         int ct_search,ct_coulomb,ct_bases,ct_ricochet;
         int calls_to_bases;
         int last_expanded,activity;
-        int center_dex,last_nBasisAssociates,last_nAssociates;
+        int center_dex,min_dex,last_nBasisAssociates,last_nAssociates;
         double time_ricochet,time_coulomb,time_search,time_bases;
         double farthest_associate,time_penalty;
         

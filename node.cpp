@@ -22,6 +22,7 @@ node::node(){
     last_nAssociates=0;
     last_nBasisAssociates=0;
     center_dex=-1;
+    min_dex=-1;
     last_expanded=0;
     activity=1;
     
@@ -54,6 +55,7 @@ void node::copy(const node &in){
     candidates.reset();
     
     center_dex=in.center_dex;
+    min_dex=in.min_dex;
     last_nAssociates=in.last_nAssociates;
     last_nBasisAssociates=in.last_nBasisAssociates;
     time_ricochet=in.time_ricochet;
@@ -188,6 +190,10 @@ void node::set_center_dex(int ii){
         }
     }
     
+    if(min_dex<0 || gg->get_fn(ii)<gg->get_fn(min_dex)){
+        min_dex=ii;
+    }
+    
 }
 
 void node::evaluate(array_1d<double> &pt, double *chiout, int *dexout){
@@ -211,6 +217,12 @@ void node::evaluate(array_1d<double> &pt, double *chiout, int *dexout, int doAss
         dd=gg->distance(dexout[0],center_dex);
         if(dd>farthest_associate){
             farthest_associate=dd;
+        }
+    }
+    
+    if(dexout[0]>=0){
+        if(min_dex<0 || gg->get_fn(dexout[0])<gg->get_fn(min_dex)){
+            min_dex=dexout[0];
         }
     }
     
@@ -1092,6 +1104,10 @@ double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_ass
     multi-dimensional parabola on those bases fits the chisquared data we have observed
     */
     
+    if(min_dex<0){
+        return 2.0*chisq_exception;
+    }
+    
     int i,j,k,jx;
     double nn;
     
@@ -1111,7 +1127,7 @@ double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_ass
         for(j=0;j<gg->get_dim();j++){
             nn=0.0;
             for(jx=0;jx<gg->get_dim();jx++){
-                nn+=(gg->get_pt(k,jx)-gg->get_pt(center_dex,jx))*trial_bases.get_data(j,jx);
+                nn+=(gg->get_pt(k,jx)-gg->get_pt(min_dex,jx))*trial_bases.get_data(j,jx);
             }
             dd.set(i,j,nn*nn);
             
@@ -1127,8 +1143,9 @@ double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_ass
             matrix.set(i*gg->get_dim()+j,0.0);
             for(jx=0;jx<basis_associates.get_dim();jx++){
                 k=basis_associates.get_data(jx);
-                if(gg->get_fn(k)>gg->get_fn(center_dex)){
-                    matrix.add_val(i*gg->get_dim()+j,dd.get_data(jx,i)*dd.get_data(jx,j)/power(gg->get_fn(k)-gg->get_fn(center_dex),2));
+                if(gg->get_fn(k)>gg->get_fn(min_dex)){
+                    matrix.add_val(i*gg->get_dim()+j,
+                    dd.get_data(jx,i)*dd.get_data(jx,j)/power(gg->get_fn(k)-gg->get_fn(min_dex),2));
                 }
             }
         }
@@ -1138,8 +1155,8 @@ double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_ass
         bb.set(i,0.0);
         for(jx=0;jx<basis_associates.get_dim();jx++){
             k=basis_associates.get_data(jx);
-            if(gg->get_fn(k)>gg->get_fn(center_dex)){
-                bb.add_val(i,dd.get_data(jx,i)/(gg->get_fn(k)-gg->get_fn(center_dex)));
+            if(gg->get_fn(k)>gg->get_fn(min_dex)){
+                bb.add_val(i,dd.get_data(jx,i)/(gg->get_fn(k)-gg->get_fn(min_dex)));
             }
         }
     }
@@ -1156,11 +1173,11 @@ double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_ass
     double ans=0.0;
     for(jx=0;jx<basis_associates.get_dim();jx++){
         k=basis_associates.get_data(jx);
-        nn=gg->get_fn(k)-gg->get_fn(center_dex);
+        nn=gg->get_fn(k)-gg->get_fn(min_dex);
         for(i=0;i<gg->get_dim();i++){
             nn-=trial_model.get_data(i)*dd.get_data(jx,i);
         }
-        nn=nn/(gg->get_fn(k)-gg->get_fn(center_dex));
+        nn=nn/(gg->get_fn(k)-gg->get_fn(min_dex));
         ans+=nn*nn;
     }
     
@@ -1168,9 +1185,9 @@ double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_ass
         printf("WARNING in basis_error ans is nan\n");
         for(jx=0;jx<basis_associates.get_dim();jx++){
 	    k=basis_associates.get_data(jx);
-	    nn=gg->get_fn(k)-gg->get_fn(center_dex);
+	    nn=gg->get_fn(k)-gg->get_fn(min_dex);
 	    if(isnan(nn) || nn<1.0e-10){
-	        printf("ggfn %e chisq %e %e\n",gg->get_fn(k),gg->get_fn(center_dex),nn);
+	        printf("ggfn %e chisq %e %e\n",gg->get_fn(k),gg->get_fn(min_dex),nn);
 	    }
 	}
      
