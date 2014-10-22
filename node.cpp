@@ -1432,15 +1432,17 @@ int node::search(){
     }
     
     int iBisection;
+    int triedBasesOrRicochet=0;
     
     iBisection=bisectionAssociate(iLow,iHigh);
     
-    //if((associates.get_dim()>last_nAssociates+300 || last_nAssociates==0) && associates.get_dim()>200){
+    if((associates.get_dim()>last_nAssociates+10 || last_nAssociates==0) && associates.get_dim()>20){
         try{
+            triedBasesOrRicochet=1;
             find_bases();
         }
         catch(int iex){}
-    //}
+    }
     
     /*
     Now, of the two points (the end of the Coulomb search and the end of the bisection), choose the one
@@ -1449,6 +1451,7 @@ int node::search(){
     int iStart;
     double nn;
     if(time_ricochet+ct_ricochet*time_penalty<0.5*(time_search+ct_search*time_penalty) && associates.get_dim()>100){
+        triedBasesOrRicochet=1;
         if(iBisection<0 || fabs(gg->get_fn(iCoulomb)-gg->get_target())<fabs(gg->get_fn(iBisection)-gg->get_target())){
             iStart=iCoulomb;
         }
@@ -1526,7 +1529,7 @@ int node::search(){
         last_expanded=ct_search;
     }
     else{
-        //if(ct_search-last_expanded>gg->get_dim()*10){
+        if(triedBasesOrRicochet==1){
             find_bases();
             vend=volume();
 
@@ -1536,7 +1539,7 @@ int node::search(){
             else{
                 last_expanded=ct_search;
             }
-        //}
+        }
     }
     
     if(centerCandidates.get_dim()>0){
