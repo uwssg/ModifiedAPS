@@ -1525,11 +1525,11 @@ int node::search(){
     
     double vend=volume();
     
-    if(vend>vstart*(1.00001)){
-        last_expanded=ct_search;
-    }
-    else{
-        if(triedBasesOrRicochet==1){
+    if(triedBasesOrRicochet==1){
+        if(vend>vstart*(1.00001)){
+            last_expanded=ct_search;
+        }
+        else{
             find_bases();
             vend=volume();
 
