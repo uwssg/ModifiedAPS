@@ -1447,6 +1447,7 @@ int node::search(){
     that is closest to chisq_limit as the point where we will begin our ricochet search
     */
     int iStart;
+    double nn;
     if(time_ricochet+ct_ricochet*time_penalty<0.5*(time_search+ct_search*time_penalty) && associates.get_dim()>100){
         if(iBisection<0 || fabs(gg->get_fn(iCoulomb)-gg->get_target())<fabs(gg->get_fn(iBisection)-gg->get_target())){
             iStart=iCoulomb;
@@ -1484,10 +1485,37 @@ int node::search(){
         }
     
 
-        if(iStart>=0)ricochet_search(iStart,dir);
+        if(iStart>=0){
+            ricochet_search(iStart,dir);
+            
+            //now try ricocheting in the opposite direction relative to the center of the node
+            for(i=0;i<gg->get_dim();i++){
+                dir.set(i,gg->get_pt(center_dex,i)-gg->get_pt(iStart,i));
+            }
+            iLow=center_dex;
+            iHigh=-1;
+            ftrial=-2.0*chisq_exception;
+            nn=1.0;
+            dir.normalize();
+            while(ftrial<gg->get_target()){
+                for(i=0;i<gg->get_dim();i++){
+                    trial.set(i,gg->get_pt(center_dex,i)+nn*dir.get_data(i));
+                }
+                evaluateNoAssociate(trial,&ftrial,&iHigh);
+                nn*=1.5;
+            }
+            
+            if(iHigh>=0){
+                iStart=bisection(iLow,iHigh);
+            }
+            
+            if(iStart>=0){
+                ricochet_search(iStart,dir);
+            }
+            
+        }
     }
     
-    double nn;
     evaluate(geographicCenter,&nn,&i);
     ct_search+=gg->get_called()-ibefore;
     ibefore=gg->get_called();
