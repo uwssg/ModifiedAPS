@@ -1270,8 +1270,10 @@ void node::find_bases(){
     
     array_1d<double> dx;
     dx.set_name("node_find_bases_dx");
-
-    while(aborted<max_abort && stdev>stdevlim && Ebest>0.01*Ebest0){
+    
+    int go_on=1;
+    
+    while(aborted<max_abort && stdev>stdevlim && Ebest>0.01*Ebest0 && go_on==1){
 
         ix=-1;
         while(ix>=gg->get_dim() || ix<0){
@@ -1310,15 +1312,16 @@ void node::find_bases(){
             If Ebest has not changed by more than 10% in the last 1000 calls,
             just stop trying
             */
-            if((lastEbest-Ebest)/lastEbest<0.1)stdev=-1.0;
+            if((lastEbest-Ebest)/lastEbest<0.1)go_on=0;
             
             lastEbest=Ebest;
         }
         
     }
     
-    printf("done finding bases %d %e <> %e %e <> %e -- %d\n",
-    abort,stdev,stdevlim,Ebest,Ebest0,changed_bases);
+    printf("done finding bases %d %d \n",aborted,total_ct);
+    printf("criteria %e <> %e // %e <> %e\n",stdev,stdevlim,Ebest,0.01*Ebest0);
+    printf("changed bases %d time %e\n",changed_bases,double(time(NULL))-before);
     
     if(changed_bases==1){
         for(i=0;i<gg->get_dim();i++){
