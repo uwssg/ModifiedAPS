@@ -1201,6 +1201,10 @@ double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_ass
 void node::find_bases(){
     /*find best basis vectors for this node*/
     
+    if(min_dex<0){
+        return;
+    }
+    
     gg->set_iWhere(iCompass);
     
     if(dice==NULL){
@@ -1221,7 +1225,7 @@ void node::find_bases(){
     basis_associates.set_name("node_basis_associates");
     
     for(i=0;i<associates.get_dim();i++){
-        if(gg->get_fn(associates.get_data(i))-gg->get_fn(center_dex)>1.0e-10){
+        if(gg->get_fn(associates.get_data(i))-gg->get_fn(min_dex)>1.0e-10){
             basis_associates.add(associates.get_data(i));
         }
     }
@@ -1323,7 +1327,7 @@ void node::find_bases(){
             }
         }
         
-        compass_search(center_dex);
+        compass_search(min_dex);
     }
     
     time_bases+=double(time(NULL))-before;
