@@ -2907,7 +2907,7 @@ void aps::write_pts(){
     array_1d<double> hyper_params;
     double before=double(time(NULL));
     
-    int i,j,k,lling,aps_dex;
+    int i,j,k,ii,jj,lling,aps_dex;
     double mu,sig;
     FILE *output;
 
@@ -2918,14 +2918,24 @@ void aps::write_pts(){
     
     for(i=0;i<nodes.get_dim();i++){
         nodes(i)->flush_candidates(candidates);
-    }
-    
-    if(candidates.get_dim()>0){
-        for(i=0;i<candidates.get_dim();i++){
-            assess_node(candidates.get_data(i));
+        k=nodes.get_dim();
+        for(j=0;j<candidates.get_dim();j++){
+            assess_node(candidates.get_data(j));
         }
+        
+        if(nodes.get_dim()>k){
+            for(j=k;j<nodes.get_dim();j++){
+                nodes(j)->set_time(nodes(i)->get_time());
+                for(ii=0;ii<ggWrap.get_dim();ii++){
+                    for(jj=0;jj<ggWrap.get_dim();jj++){
+                        nodes(j)->set_basis(ii,jj,nodes(i)->get_basis(ii,jj));
+                    }
+                }
+            }
+        }
+        
+        candidates.reset();
     }
-    
     
     /*how much clock time is spent per call to chisquared just calling chisquared*/
     per_chisq=ggWrap.get_chisq_time()/ggWrap.get_called();
@@ -3075,7 +3085,7 @@ void aps::write_pts(){
         ddUnitSpheres.reset();
     }
     
-    int ii,jj,ic;
+    int ic;
    
     n_printed=gg.get_pts();
 

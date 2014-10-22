@@ -45,6 +45,7 @@ class node{
         double get_time_coulomb();
         double get_time_bases();
         double get_time_ricochet();
+        void set_time(double);
         int get_ct_search();
         int get_ct_ricochet();
         int get_ct_coulomb();
@@ -52,6 +53,7 @@ class node{
         int get_calls_to_bases();
         
         double get_basis(int,int);
+        void set_basis(int,int,double);
         
         double volume();
         int is_it_active();

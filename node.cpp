@@ -1240,7 +1240,7 @@ void node::find_bases(){
         return;
     }*/
     
-    printf("finding bases\n");
+    printf("finding bases %d\n",basis_associates.get_dim());
     calls_to_bases++;
     last_nBasisAssociates=basis_associates.get_dim();
     
@@ -1322,6 +1322,7 @@ void node::find_bases(){
     printf("done finding bases %d %d \n",aborted,total_ct);
     printf("criteria %e <> %e // %e <> %e\n",stdev,stdevlim,Ebest,0.01*Ebest0);
     printf("changed bases %d time %e\n",changed_bases,double(time(NULL))-before);
+    printf("\n");
     
     if(changed_bases==1){
         for(i=0;i<gg->get_dim();i++){
@@ -1589,12 +1590,26 @@ double node::get_basis(int ix, int iy){
     return basisVectors.get_data(ix,iy);
 }
 
+void node::set_basis(int ix, int iy, double nn){
+    if(ix>=gg->get_dim() || iy >=gg->get_dim() || ix<0 || iy<0){
+        printf("IN NODE_SET_BASIS %d %d but %d\n",
+        ix,iy,gg->get_dim());
+        exit(1);
+    }
+    
+    basisVectors.set(ix,iy,nn);
+}
+
 int node::get_calls_to_bases(){
     return calls_to_bases;
 }
 
 double node::get_time(){
     return time_search;
+}
+
+void node::set_time(double xx){
+    time_search=xx;
 }
 
 double node::get_time_coulomb(){
