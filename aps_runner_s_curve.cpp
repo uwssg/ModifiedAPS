@@ -96,7 +96,8 @@ i=-1;
 //search parameter space until the
 //chisquared function has been called
 //10000 times
-while(aps_test.get_called()<nsamples || aps_test.get_n_active_nodes()>0){
+//while(aps_test.get_called()<nsamples || aps_test.get_n_active_nodes()>0){
+while(aps_test.get_called()<nsamples){
     aps_test.search();    
 }
 aps_test.write_pts();
