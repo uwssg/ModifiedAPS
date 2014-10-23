@@ -318,6 +318,8 @@ private:
     double simplex_evaluate(array_1d<double>&,int*,
         array_2d<double>&,array_1d<double>&,int);   
     
+    double simplex_cost_function(array_1d<double>&);
+    
     /*
     If simplex_search() does not find any valid candidates to seed a new simplex search,
     it will call refine_center() which will evaluate all of the known centers of

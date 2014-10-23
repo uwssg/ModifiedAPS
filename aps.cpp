@@ -476,6 +476,21 @@ int aps::is_it_a_candidate(int dex){
     else return 0;
 }
 
+double aps::simplex_cost_function(array_1d<double> &pt){
+    if(nodes.get_dim()==0) return 0.0;
+    
+    double dd,cost,normalization;
+    int ic;
+    
+    normalization=ggWrap.get_mean();
+    cost=0.0;
+    for(ic=0;ic<nodes.get_dim();ic++){
+        dd=ggWrap.distance(pt,nodes(ic)->get_center());
+        
+        cost+=normalization/power(dd+1.0e-6,2);
+    }
+    return cost;
+}
 
 double aps::simplex_evaluate(array_1d<double> &pt, int *actually_added){
     array_2d<double> pp;
@@ -523,7 +538,7 @@ double aps::simplex_evaluate(array_1d<double> &pt, int *actually_added,
     }
     
     
-    return mu;
+    return mu+simplex_cost_function(pt);
 }
 
 int aps::find_global_minimum(array_1d<int> &neigh){

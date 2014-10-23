@@ -53,6 +53,9 @@ gpWrapper::gpWrapper(){
     whereCt.set(iRicochet,0);
     iWhere=iAPS;
     
+    sum_value=0.0;
+    sum_ct=0;
+    
 }
 
 gpWrapper::~gpWrapper(){
@@ -337,7 +340,17 @@ void gpWrapper::evaluate(array_1d<double> &pt, double *chiout, int *dex, int val
             whereFrom.set(dex[0],iWhere);
             whereCt.add_val(iWhere,1);
             
+            sum_value+=chiout[0];
+            sum_ct++;
+            
         }
+    }
+}
+
+double gpWrapper::get_mean(){
+    if(sum_ct==0)return get_target();
+    else{
+        return sum_value/double(sum_ct);
     }
 }
 

@@ -235,6 +235,7 @@ class gpWrapper{
         int get_box_contents(int,int);
         double get_box_max(int,int);
         double get_box_min(int,int);
+        double get_mean();
         
         chisquared* get_chifn();
         
@@ -257,7 +258,8 @@ class gpWrapper{
         array_1d<int> good_pts;
         int global_mindex,target_asserted;
         
-        double chimin,delta_chisquared;
+        double chimin,delta_chisquared,sum_value;
+        int sum_ct;
         
         ///////code for diagnostic testing
         int iWhere;
