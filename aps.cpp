@@ -479,15 +479,20 @@ int aps::is_it_a_candidate(int dex){
 double aps::simplex_cost_function(array_1d<double> &pt){
     if(nodes.get_dim()==0) return 0.0;
     
-    double dd,cost,normalization;
-    int ic;
+    double dd,length,cost,normalization;
+    int ic,j;
     
     normalization=ggWrap.get_mean();
     cost=0.0;
     for(ic=0;ic<nodes.get_dim();ic++){
-        dd=10.0*ggWrap.distance(pt,nodes(ic)->get_center());
+        dd=0.0;
+        for(j=0;j<ggWrap.get_dim();j++){
+            length=0.25*(nodes(ic)->get_max(j)-nodes(ic)->get_min(j));
+            if(length<0.001)length=0.001;
+            dd+=power((pt.get_data(j)-ggWrap.get_pt(nodes(ic)->get_center(),j))/length,2);
+        }
+        cost+=normalization/(dd+1.0e-6);
         
-        cost+=normalization/power(dd+1.0e-6,2);
     }
     return cost;
 }
