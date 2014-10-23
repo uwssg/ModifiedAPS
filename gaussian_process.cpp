@@ -227,6 +227,14 @@ int gp::is_kptr_null(){
     else return 0;
 }
 
+int gp::find_box(array_1d<double> &p){
+    return bptr->find_box(p);
+}
+
+int gp::find_box(int dex){
+    return bptr->find_box(*get_pt(dex));
+}
+
 void gp::nn_srch(int dex, int ikk, array_1d<int> &neigh, array_1d<double> &dd)
 const{
     if(kptr==NULL){
@@ -466,6 +474,32 @@ void gp::refactor(){
     neighbor_storage=new neighbor_cache(kptr);
     last_refactored=kptr->get_pts();
 
+}
+
+void gp::freeze_boxes(){
+    if(bptr==NULL){
+        printf("WARNING cannot freeze boxes; bptr is null\n");
+        exit(1);
+    }
+    
+    bptr->freeze_boxes();
+}
+
+void gp::unfreeze_boxes(){
+    if(bptr==NULL){
+        printf("WARNING cannot unfreeze boxes; bptr is null\n");
+        exit(1);
+    }
+    
+    bptr->unfreeze_boxes();
+}
+
+void gp::get_box_quartiles(array_1d<int> &qq){
+    if(bptr==NULL){
+        printf("WARNING cannot get box quartiles; bptr is null\n");
+        exit(1);
+    }
+    bptr->get_box_quartiles(qq);
 }
 
 void gp::add_pt(array_1d<double> &newpt, double newfn){

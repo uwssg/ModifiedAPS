@@ -146,6 +146,9 @@ class gpWrapper{
         or is a "good" point (i.e. whether chisquared<=chisquared_im)
         */
         int add_pt(array_1d<double>&,double);
+        void freeze_boxes();
+        void unfreeze_boxes();
+        void get_box_quartiles(array_1d<int>&);
         
             
         /*
@@ -186,6 +189,8 @@ class gpWrapper{
         double get_target();
         
         void nn_srch(array_1d<double>&,int,array_1d<int>&,array_1d<double>&);
+        int find_box(int);
+        int find_box(array_1d<double>&);
         
         void add_to_unitSpheres(array_1d<double>&);
         void unitSpheres_nn_srch(array_1d<double>&,int,array_1d<int>&,array_1d<double>&);
@@ -231,6 +236,7 @@ class gpWrapper{
         double get_box_max(int,int);
         double get_box_min(int,int);
         
+        chisquared* get_chifn();
         
         /////////code for diagnostic testing
         int set_iWhere(int);

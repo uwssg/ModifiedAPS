@@ -24,12 +24,12 @@ WMAP_LIBRARIES = $(LIBRARIES) $(WMAP_LIB) $(CAMB_LIB) $(CFITSIO_LIB)
 WMAP_INCLUDE = $(INCLUDE) $(CAMB_INC) $(WMAP_INC)
 
 #do not use these compilers with omp
-#gg = g++ -Wno-write-strings -O3
-#ff = gfortran -O3
+gg = g++ -Wno-write-strings -O3
+ff = gfortran -O3
 
 #use these compilers if you are going to use omp
-gg = /opt/local/bin/g++-mp-4.8 -Wno-write-strings -O3 -fopenmp -DUSE_OPENMP -g
-ff = /opt/local/bin/gfortran-mp-4.8 -O3 -g
+#gg = /opt/local/bin/g++-mp-4.8 -Wno-write-strings -O3 -fopenmp -DUSE_OPENMP -g
+#ff = /opt/local/bin/gfortran-mp-4.8 -O3 -g
 
 containers.o: containers.cpp containers.h
 	$(gg) -c containers.cpp
@@ -112,6 +112,12 @@ s_curve: aps_runner_s_curve.cpp aps.o chisq.o
 	gp_wrapper.o chisq.o aps.o node.o box.o \
 	$(LIBRARIES) $(INCLUDE)
 
+coverage: aps_s_curve_coverage.cpp aps.o chisq.o
+	$(gg) -o coverage aps_s_curve_coverage.cpp \
+	goto_tools.o containers.o kd.o eigen_wrapper.o gaussian_process.o \
+	gp_wrapper.o chisq.o aps.o node.o box.o \
+	$(LIBRARIES) $(INCLUDE)
+
 s_curve_analysis: s_curve_analyzer.cpp chisq.o aps_extractor.o
 	$(gg) -o s_curve_analysis s_curve_analyzer.cpp \
 	goto_tools.o containers.o kd.o aps_extractor.o \
@@ -142,7 +148,8 @@ all:
 	make s_curve_analysis
 	make s_curve_mcmc_analysis
 	make s_curve_multinest_analysis
+	make coverage
 clean:
 	rm *.o test_containers test_kd test_box test_eigen ellipse \
 	aps_extract s_curve s_control s_curve_analysis \
-	s_curve_mcmc_analysis s_curve_mcmc_analysis
+	s_curve_mcmc_analysis s_curve_mcmc_analysis coverage

@@ -2,14 +2,16 @@
 #include "gp_wrapper.h"
 #include "aps_extractor.h"
 
-main(int iargc, char *argv[]){
+int main(int iargc, char *argv[]){
 
 int i,j;
-array_1d<double> lnchi_hist,xmin,xmax;
+array_1d<double> lnchi_hist,xmin,xmax,chi_hist;
 array_1d<int> apsHist,simplexHist,coulombHist,compassHist;
 array_1d<int> bisectHist,ricochetHist,totalHist;
+array_1d<int> totalDistLnChi,totalDistChi;
 
 for(i=0;i<120;i++){
+    chi_hist.set(i,i*1.0+0.5);
     lnchi_hist.set(i,-2.0+i*0.1);
     apsHist.set(i,0);
     simplexHist.set(i,0);
@@ -18,9 +20,12 @@ for(i=0;i<120;i++){
     ricochetHist.set(i,0);
     totalHist.set(i,0);
     compassHist.set(i,0);
+    
+    totalDistChi.set(i,0);
+    totalDistLnChi.set(i,0);
 }
 
-char inputName[letters],word[letters];
+char inputName[letters],word[letters],outputRoot[letters];
 
 int dim,ncenters;
 double delta_chi;
@@ -29,9 +34,22 @@ dim=22;
 ncenters=3;
 delta_chi=33.93;
 
-if(iargc>1)ncenters=atoi(argv[1]);
-if(iargc>2)dim=atoi(argv[2]);
-if(iargc>3)delta_chi=atof(argv[3]);
+for(i=0;i<letters-1 && argv[1][i]!=0;i++){
+    inputName[i]=argv[1][i];
+}
+inputName[i]=0;
+
+printf("inputName %s\n",inputName);
+
+for(i=0;i<letters-1 && argv[2][i]!=0;i++){
+    outputRoot[i]=argv[2][i];
+}
+outputRoot[i]=0;
+
+if(iargc>3)ncenters=atoi(argv[3]);
+if(iargc>4)dim=atoi(argv[4]);
+if(iargc>5)delta_chi=atof(argv[5]);
+
 
 array_2d<double> data;
 array_1d<double> chisq,vv,vvprojected,mu,sig;
@@ -56,10 +74,9 @@ vvprojected.set_name("main_vvprojected");
 
 s_curve chifn(dim,ncenters);
 
-sprintf(inputName,"outputFiles/s_curveConvergence_d%d_c%d_output.sav",dim,ncenters);
 FILE *input,*output;
 
-output=fopen("outputFiles/s_curveConvergence_projected.sav","w");
+output=fopen("outputFiles/s_curve_projected.sav","w");
 input=fopen(inputName,"r");
 for(i=0;i<dim+5;i++){
     fscanf(input,"%s",word);
@@ -114,6 +131,14 @@ while(fscanf(input,"%le",&nn)>0){
         totalHist.add_val(i,1);
     }
     
+    if(log(chival)<lnchi_hist.get_data(lnchi_hist.get_dim()-1)+0.1){
+        totalDistLnChi.add_val(hdex,1);
+    }
+    if(chival<chi_hist.get_data(chi_hist.get_dim()-1)+0.5){
+        hdex=get_dex(chi_hist,chival);
+        totalDistChi.add_val(hdex,1);
+    }
+    
     if(chival<=delta_chi){
         for(i=0;i<dim;i++){
             if(vv.get_data(i)<xmin.get_data(i)){
@@ -150,7 +175,7 @@ for(i=0;i<dim;i++){
 printf("\n");
 
 aps_extractor apsExtractor;
-apsExtractor.set_filename("outputFiles/s_curveConvergence_projected.sav");
+apsExtractor.set_filename("outputFiles/s_curve_projected.sav");
 apsExtractor.set_delta_chi(delta_chi);
 
 char outname[letters];
@@ -166,18 +191,18 @@ iy.set(2,17);
 
 for(i=0;i<ix.get_dim();i++){
 
-    sprintf(outname,"processedFiles/s_curveConvergence_d%d_c%d_%d_%d_frequentist.sav",dim,ncenters,ix.get_data(i),iy.get_data(i));
+    sprintf(outname,"%s_%d_%d_frequentist.sav",outputRoot,ix.get_data(i),iy.get_data(i));
     apsExtractor.write_good_points(outname,ix.get_data(i),iy.get_data(i));
         
-    //sprintf(outname,"processedFiles/s_curve_d%d_c%d_%d_%d_bayesian.sav",dim,ncenters,ix.get_data(i),iy.get_data(i));
+    //sprintf(outname,"%s_%d_%d_bayesian.sav",outputRoot,ix.get_data(i),iy.get_data(i));
     //apsExtractor.draw_bayesian_bounds(outname,ix.get_data(i),iy.get_data(i),0.95);
 
 }
 
-apsExtractor.write_good_points("processedFiles/s_curveConvergence_projected_good.sav");
+apsExtractor.write_good_points("processedFiles/s_curve_projected_good.sav");
 
 
-sprintf(outname,"processedFiles/s_curveConvergence_d%d_c%d_histograms.sav",dim,ncenters);
+sprintf(outname,"%s_histograms.sav",outputRoot);
 output=fopen(outname,"w");
 fprintf(output,"#lnchi aps simplex coulomb compass bisect ricochet total\n");
 for(i=0;i<lnchi_hist.get_dim();i++){
@@ -190,6 +215,16 @@ for(i=0;i<lnchi_hist.get_dim();i++){
     bisectHist.get_data(i),
     ricochetHist.get_data(i),
     totalHist.get_data(i));
+}
+fclose(output);
+
+sprintf(outname,"%s_distributions.sav",outputRoot);
+output=fopen(outname,"w");
+fprintf(output,"#lnchi dN/dlnchi chi dN/dchi\n");
+for(i=0;i<lnchi_hist.get_dim();i++){
+    fprintf(output,"%le %d %le %d\n",
+    lnchi_hist.get_data(i),totalDistLnChi.get_data(i),
+    chi_hist.get_data(i),totalDistChi.get_data(i));
 }
 fclose(output);
 

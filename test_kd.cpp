@@ -5,7 +5,7 @@
 #include "containers.h"
 #include "kd.h"
 
-main(int iarg, char *argv[]){
+int main(int iarg, char *argv[]){
 
 double tol=1.0e-12;
 int seed=71;

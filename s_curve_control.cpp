@@ -1,6 +1,6 @@
 #include "chisq.h"
 
-main(){
+int main(){
 
 //d=5 means delta_chisq=11
 int dim=22,ncenters=3;
@@ -13,13 +13,22 @@ FILE *output;
 
 int i,j,k;
 
+printf("centers\n");
+for(i=0;i<dim;i++){
+    for(j=0;j<ncenters;j++){
+        printf("%e ",chifn.get_center(j,i));
+    }
+    printf("\n");
+}
+printf("\n");
+
 //chifn.build_boundary(11.0);
 chifn.build_boundary(33.9);//for 22dof
     
 for(i=0;i<dim;i++){
     for(j=i+1;j<dim;j++){
 
-        sprintf(outname,"controlFiles/s_d%d_c%d_%d_%d.sav",dim,ncenters,i,j);
+        sprintf(outname,"controlFiles/sNarrow_d%d_c%d_%d_%d.sav",dim,ncenters,i,j);
         output=fopen(outname,"w");
         for(k=0;k<chifn.get_n_boundary(i,j);k++){
             fprintf(output,"%e %e %e\n",

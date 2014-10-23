@@ -416,6 +416,9 @@ class gp{
         the array_1d<double> is the point in parameter space;
         the double is the corresponding function value*/
         void add_pt(array_1d<double>&,double);
+        void freeze_boxes();
+        void unfreeze_boxes();
+        void get_box_quartiles(array_1d<int>&);
         
         /*write the data stored in kd_tree to a file whose name is specified by the char* */
         void write_data(char*);
@@ -537,6 +540,9 @@ class gp{
         */
         void nn_srch(array_1d<double>&,int,array_1d<int>&,array_1d<double>&) const;
         void nn_srch(int,int,array_1d<int>&,array_1d<double>&) const;
+        
+        int find_box(int);
+        int find_box(array_1d<double>&);
         
         /*return the number of times predict() was called*/
         int get_ct_predict();

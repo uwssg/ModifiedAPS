@@ -13,7 +13,7 @@ double euclideanDistance(array_1d<double>& p1, array_1d<double> &p2){
 
 }
 
-main(int iargc, char *argv[]){
+int main(int iargc, char *argv[]){
 
 int seed=99;
 
@@ -48,22 +48,27 @@ for(i=0;i<dim;i++){
     
 }
 
+char word[letters];
+sprintf(word,"chains/s_curve_s%d_chains",seed);
+
 printf("time to start declaring stuff\n");
-mcmc mcmc_test(dim,nchains,"chains/s_curve_testchains",min,max,sig,2.0,&chaos);
+mcmc mcmc_test(dim,nchains,word,min,max,sig,2.0,&chaos);
 mcmc_test.set_chisq(&chifn,1);
 
 printf("done with constructor\n");
 
-mcmc_test.set_statname("chains/s_curve_teststatus.sav");
-mcmc_test.set_diagname("chains/s_curve_testdiagnostic.sav");
+sprintf(word,"chains/s_curve_status_s%d.sav",seed);
+mcmc_test.set_statname(word);
+
+sprintf(word,"chains/s_curve_diagnostic_s%d.sav",seed);
+mcmc_test.set_diagname(word);
 mcmc_test.begin_update(5000);
 mcmc_test.step_update(5000);
 mcmc_test.do_gibbs();
-//mcmc_test.cutoff_update(30000);
 
 mcmc_test.generate_random_basis(sig);
 
-mcmc_test.sample(100000);
+mcmc_test.sample(50000);
 
 printf("done sampling\n");
 

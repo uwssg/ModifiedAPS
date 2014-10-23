@@ -244,6 +244,7 @@ private:
     void aps_wide_post_process(int,double,double);
     void get_interesting_boxes(array_1d<int>&);
     int aps_box_wide();
+    double calculate_dchi(int);
     
     /*
     aps_focus() runs the focused search (steps 1B-5B in the paper) about known centers of
@@ -529,10 +530,14 @@ private:
     
     int n_wide,n_box_wide;
     
+    array_1d<int> simplex_start_pts;
+    
     /*buffers so that aps_wide doesn't have to keep computing
     GP's that have not changed*/
     array_1d<int> _aps_wide_contents_buffer;
     array_1d<double> _aps_wide_ss_buffer;
+    
+    double time_penalty;
     
 };
 

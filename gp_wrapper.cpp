@@ -63,6 +63,10 @@ gpWrapper::~gpWrapper(){
 
 }
 
+chisquared* gpWrapper::get_chifn(){
+    return chisq;
+}
+
 void gpWrapper::set_gp(gp *gg_in){
     gg=gg_in;
     good_max.set_dim(gg->get_dim());
@@ -337,6 +341,33 @@ void gpWrapper::evaluate(array_1d<double> &pt, double *chiout, int *dex, int val
     }
 }
 
+void gpWrapper::freeze_boxes(){
+    if(gg==NULL){
+        printf("WARNING cannot freeze boxes; gg is null\n");
+        exit(1);
+    }
+    
+    gg->freeze_boxes();
+}
+
+void gpWrapper::unfreeze_boxes(){
+    if(gg==NULL){
+        printf("WARNING cannot unfreeze boxes; gg is null\n");
+        exit(1);
+    }
+    
+    gg->unfreeze_boxes();
+}
+
+void gpWrapper::get_box_quartiles(array_1d<int> &qq){
+    if(gg==NULL){
+        printf("WARNING cannot get box quartiles; gg is null\n");
+        exit(1);
+    }
+    
+    gg->get_box_quartiles(qq);
+}
+
 int gpWrapper::add_pt(array_1d<double> &vv, double chitrue){
     
     int i;
@@ -595,6 +626,14 @@ int gpWrapper::get_called(){
 
 int gpWrapper::get_pts(){
     return gg->get_pts();
+}
+
+int gpWrapper::find_box(array_1d<double> &p){
+    return gg->find_box(p);
+}
+
+int gpWrapper::find_box(int dex){
+    return gg->find_box(dex);
 }
 
 void gpWrapper::nn_srch(array_1d<double> &pt, int kk, array_1d<int> &neigh,

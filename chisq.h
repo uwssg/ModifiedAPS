@@ -324,6 +324,9 @@ class s_curve : public chisquared{
 
 private:
     double trig_factor;
+    
+    double find_theta_from_x(double);
+    double find_theta_from_y(double);
 
 public:
     ~s_curve();
@@ -333,6 +336,9 @@ public:
     virtual double operator()(array_1d<double>&) const;
     virtual void build_boundary(double);
     virtual double distance_to_center(int,array_1d<double>&);
+    
+    void get_trough_points(array_2d<double>&);
+    void get_border_points(array_2d<double>&);
 
 };
 

@@ -24,6 +24,7 @@ void box::initialize(array_2d<double> *data_in, int pp_per_box,
 array_1d<double> &min_in, array_1d<double> &max_in){
     
     ct_search=0;
+    frozen=0;
     time_search=0.0;
     
     int i,j;
@@ -525,10 +526,16 @@ int box::add_pt(){
     
     int did_it_split=0;
     
-    if(box_contents.get_cols(i_box)>pts_per_box){
+    if(frozen==0){
+        if(box_contents.get_cols(i_box)>pts_per_box){
+            did_it_split=split_box(i_box,i_tree,dir);
+        }
         
-        did_it_split=split_box(i_box,i_tree,dir);
-	
+        for(i=0;i<box_contents.get_rows();i++){
+            if(box_contents.get_cols(i)>min_pts_per_box*data->get_cols()){
+                j=split_box(i,-1,-1);
+            }
+        }
     }
     
     time_split+=double(time(NULL))-before;
@@ -547,6 +554,14 @@ int box::add_pt(){
     
     return did_it_split;
     
+}
+
+void box::freeze_boxes(){
+    frozen=1;
+}
+
+void box::unfreeze_boxes(){
+    frozen=0;
 }
 
 double box::get_time_add_srch(){
@@ -1088,7 +1103,7 @@ int box::get_contents(int dex, int ii){
     }
     
     if(ii<0 || ii>=box_contents.get_cols(dex)){
-        printf("WARNING asked for the %dth content of box %d but only have %d\n",
+        printf("WARNING asked for the %dth content of box %d but only have %d\n",dex,
         ii,box_contents.get_cols(dex));
         
         exit(1);
@@ -1119,6 +1134,24 @@ int box::get_biggest_box(){
     }
     
     return max;
+}
+
+void box::get_box_quartiles(array_1d<int> &qq){
+    array_1d<int> contents,dexes,sorted;
+    contents.set_name("box_quartiles_contents");
+    dexes.set_name("box_quartiles_dexes");
+    sorted.set_name("box_quartiles_sorted");
+    
+    int i;
+    for(i=0;i<box_contents.get_rows();i++){
+        dexes.set(i,i);
+        contents.set(i,box_contents.get_cols(i));
+    }
+    sort_and_check(contents,sorted,dexes);
+    qq.set(0,sorted.get_data(sorted.get_dim()/4));
+    qq.set(1,sorted.get_data(sorted.get_dim()/2));
+    qq.set(2,sorted.get_data((3*sorted.get_dim())/4));
+    
 }
 
 double box::get_mean_box(double *var){

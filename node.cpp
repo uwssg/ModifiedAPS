@@ -7,6 +7,9 @@ void node::set_names(){
     range_max.set_name("node_range_max");
     range_min.set_name("node_range_min");
     candidates.set_name("node_candidates");
+    geographicCenter.set_name("node_geographicCenter");
+    centerCandidates.set_name("node_centerCandidates");
+    oldCenters.set_name("node_oldCenters");
 }
 
 node::node(){
@@ -19,6 +22,7 @@ node::node(){
     last_nAssociates=0;
     last_nBasisAssociates=0;
     center_dex=-1;
+    min_dex=-1;
     last_expanded=0;
     activity=1;
     
@@ -26,6 +30,7 @@ node::node(){
     ct_ricochet=0;
     ct_coulomb=0;
     ct_bases=0;
+    calls_to_bases=0;
     
     farthest_associate=0.0;
     time_penalty=0.5;
@@ -50,6 +55,7 @@ void node::copy(const node &in){
     candidates.reset();
     
     center_dex=in.center_dex;
+    min_dex=in.min_dex;
     last_nAssociates=in.last_nAssociates;
     last_nBasisAssociates=in.last_nBasisAssociates;
     time_ricochet=in.time_ricochet;
@@ -62,6 +68,7 @@ void node::copy(const node &in){
     ct_ricochet=in.ct_ricochet;
     ct_coulomb=in.ct_coulomb;
     ct_bases=in.ct_bases;
+    calls_to_bases=in.calls_to_bases;
     
     last_expanded=in.last_expanded;
     activity=in.activity;
@@ -70,11 +77,25 @@ void node::copy(const node &in){
     
     farthest_associate=in.farthest_associate;
     
+    centerCandidates.reset();
+    for(i=0;i<in.centerCandidates.get_dim();i++){
+        centerCandidates.set(i,in.centerCandidates.get_data(i));
+    }
+    
+    oldCenters.reset();
+    for(i=0;i<in.oldCenters.get_dim();i++){
+        oldCenters.set(i,in.oldCenters.get_data(i));
+    }
+    
+    for(i=0;i<in.geographicCenter.get_dim();i++){
+        geographicCenter.set(i,in.geographicCenter.get_data(i));
+    }
+    
     for(i=0;i<in.range_max.get_dim();i++){
         range_max.set(i,in.range_max.get_data(i));
     }
     
-    for(i=0;i<range_min.get_dim();i++){
+    for(i=0;i<in.range_min.get_dim();i++){
         range_min.set(i,in.range_min.get_data(i));
     }
     
@@ -163,9 +184,14 @@ void node::set_center_dex(int ii){
             for(i=0;i<gg->get_dim();i++){
                 range_max.set(i,gg->get_pt(ii,i));
                 range_min.set(i,gg->get_pt(ii,i));
+                geographicCenter.set(i,gg->get_pt(ii,i));
             }
     
         }
+    }
+    
+    if(min_dex<0 || gg->get_fn(ii)<gg->get_fn(min_dex)){
+        min_dex=ii;
     }
     
 }
@@ -194,19 +220,45 @@ void node::evaluate(array_1d<double> &pt, double *chiout, int *dexout, int doAss
         }
     }
     
-    int i;
+    if(dexout[0]>=0){
+        if(min_dex<0 || gg->get_fn(dexout[0])<gg->get_fn(min_dex)){
+            min_dex=dexout[0];
+        }
+    }
+    
+    int i,rangeChanged=0;
+    double ddCenters,ddTest;
     if(chiout[0]<gg->get_target()){
         for(i=0;i<gg->get_dim();i++){
             if(i>=range_max.get_dim() || pt.get_data(i)>range_max.get_data(i)){
                 range_max.set(i,pt.get_data(i));
+                rangeChanged=1;
             }
             
             if(i>=range_min.get_dim() || pt.get_data(i)<range_min.get_data(i)){
                 range_min.set(i,pt.get_data(i));
+                rangeChanged=1;
             }
             
         }
+        
+        if(rangeChanged==1){
+            for(i=0;i<gg->get_dim();i++){
+                geographicCenter.set(i,0.5*(range_max.get_data(i)+range_min.get_data(i)));
+            }
+        }
+        
+        if(dexout[0]>=0 && chiout[0]<0.9*gg->get_chimin()+0.1*gg->get_target()){
+            ddCenters=gg->distance(center_dex,geographicCenter);
+            ddTest=gg->distance(dexout[0],geographicCenter);
+            
+            if(ddTest<ddCenters){
+                centerCandidates.add(dexout[0]);
+                last_expanded=ct_search;
+            }
+        }
     }
+    
     
 }
 
@@ -326,7 +378,7 @@ array_1d<double> &highball_in, double fhigh_in, int asAssociates){
     }
     
     int iout;
-    double bisection_tolerance=1.0;
+    double bisection_tolerance=0.01*(gg->get_target()-gg->get_chimin());
     
     array_1d<double> trial;
     double ftrial;
@@ -383,7 +435,7 @@ int node::coulomb_search(){
     double before=double(time(NULL));
     int ibefore=gg->get_called();
     
-    double eps=1.0e-6,tol=1.0;
+    double eps=1.0e-6,tol=0.01*(gg->get_target()-gg->get_chimin());
     
     gg->reset_cache(); //so that results of previous GP interpolation are not carried over
     array_1d<double> av_dir,dir;
@@ -514,7 +566,7 @@ int node::coulomb_search(){
  
     delta=0.1;
     dx=1.0;
-    while(dx>1.0e-20 && delta>1.0e-10 && walker_in_bounds==1 && (gg->get_target()-mu>tol || istep<step_max)){
+    while(dx>1.0e-6 && delta>1.0e-6 && walker_in_bounds==1 && (gg->get_target()-mu>tol || istep<step_max)){
         istep++;
         
         for(i=0;i<gg->get_dim();i++){
@@ -1052,6 +1104,10 @@ double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_ass
     multi-dimensional parabola on those bases fits the chisquared data we have observed
     */
     
+    if(min_dex<0){
+        return 2.0*chisq_exception;
+    }
+    
     int i,j,k,jx;
     double nn;
     
@@ -1071,7 +1127,7 @@ double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_ass
         for(j=0;j<gg->get_dim();j++){
             nn=0.0;
             for(jx=0;jx<gg->get_dim();jx++){
-                nn+=(gg->get_pt(k,jx)-gg->get_pt(center_dex,jx))*trial_bases.get_data(j,jx);
+                nn+=(gg->get_pt(k,jx)-gg->get_pt(min_dex,jx))*trial_bases.get_data(j,jx);
             }
             dd.set(i,j,nn*nn);
             
@@ -1087,8 +1143,9 @@ double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_ass
             matrix.set(i*gg->get_dim()+j,0.0);
             for(jx=0;jx<basis_associates.get_dim();jx++){
                 k=basis_associates.get_data(jx);
-                if(gg->get_fn(k)>gg->get_fn(center_dex)){
-                    matrix.add_val(i*gg->get_dim()+j,dd.get_data(jx,i)*dd.get_data(jx,j)/power(gg->get_fn(k)-gg->get_fn(center_dex),2));
+                if(gg->get_fn(k)>gg->get_fn(min_dex)){
+                    matrix.add_val(i*gg->get_dim()+j,
+                    dd.get_data(jx,i)*dd.get_data(jx,j)/power(gg->get_fn(k)-gg->get_fn(min_dex),2));
                 }
             }
         }
@@ -1098,8 +1155,8 @@ double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_ass
         bb.set(i,0.0);
         for(jx=0;jx<basis_associates.get_dim();jx++){
             k=basis_associates.get_data(jx);
-            if(gg->get_fn(k)>gg->get_fn(center_dex)){
-                bb.add_val(i,dd.get_data(jx,i)/(gg->get_fn(k)-gg->get_fn(center_dex)));
+            if(gg->get_fn(k)>gg->get_fn(min_dex)){
+                bb.add_val(i,dd.get_data(jx,i)/(gg->get_fn(k)-gg->get_fn(min_dex)));
             }
         }
     }
@@ -1116,11 +1173,11 @@ double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_ass
     double ans=0.0;
     for(jx=0;jx<basis_associates.get_dim();jx++){
         k=basis_associates.get_data(jx);
-        nn=gg->get_fn(k)-gg->get_fn(center_dex);
+        nn=gg->get_fn(k)-gg->get_fn(min_dex);
         for(i=0;i<gg->get_dim();i++){
             nn-=trial_model.get_data(i)*dd.get_data(jx,i);
         }
-        nn=nn/(gg->get_fn(k)-gg->get_fn(center_dex));
+        nn=nn/(gg->get_fn(k)-gg->get_fn(min_dex));
         ans+=nn*nn;
     }
     
@@ -1128,9 +1185,9 @@ double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_ass
         printf("WARNING in basis_error ans is nan\n");
         for(jx=0;jx<basis_associates.get_dim();jx++){
 	    k=basis_associates.get_data(jx);
-	    nn=gg->get_fn(k)-gg->get_fn(center_dex);
+	    nn=gg->get_fn(k)-gg->get_fn(min_dex);
 	    if(isnan(nn) || nn<1.0e-10){
-	        printf("ggfn %e chisq %e %e\n",gg->get_fn(k),gg->get_fn(center_dex),nn);
+	        printf("ggfn %e chisq %e %e\n",gg->get_fn(k),gg->get_fn(min_dex),nn);
 	    }
 	}
      
@@ -1143,6 +1200,10 @@ double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_ass
 
 void node::find_bases(){
     /*find best basis vectors for this node*/
+    
+    if(min_dex<0){
+        return;
+    }
     
     gg->set_iWhere(iCompass);
     
@@ -1164,19 +1225,23 @@ void node::find_bases(){
     basis_associates.set_name("node_basis_associates");
     
     for(i=0;i<associates.get_dim();i++){
-        if(gg->get_fn(associates.get_data(i))-gg->get_fn(center_dex)>1.0e-10){
+        if(gg->get_fn(associates.get_data(i))-gg->get_fn(min_dex)>1.0e-10){
             basis_associates.add(associates.get_data(i));
         }
     }
     
-    if(basis_associates.get_dim()<100 || 
-      (last_nBasisAssociates>0 && basis_associates.get_dim()<last_nBasisAssociates+1000)){
-      
+    if(basis_associates.get_dim()<10){
         return;
     }
     
-    printf("finding bases\n");
+    /*if(basis_associates.get_dim()<100 || 
+      (last_nBasisAssociates>0 && basis_associates.get_dim()<last_nBasisAssociates+1000)){
+      
+        return;
+    }*/
     
+    printf("finding bases %d\n",basis_associates.get_dim());
+    calls_to_bases++;
     last_nBasisAssociates=basis_associates.get_dim();
     
     double before=double(time(NULL));
@@ -1205,8 +1270,10 @@ void node::find_bases(){
     
     array_1d<double> dx;
     dx.set_name("node_find_bases_dx");
-
-    while(aborted<max_abort && stdev>stdevlim && Ebest>0.01*Ebest0){
+    
+    int go_on=1;
+    
+    while(aborted<max_abort && stdev>stdevlim && Ebest>0.01*Ebest0 && go_on==1){
 
         ix=-1;
         while(ix>=gg->get_dim() || ix<0){
@@ -1245,12 +1312,17 @@ void node::find_bases(){
             If Ebest has not changed by more than 10% in the last 1000 calls,
             just stop trying
             */
-            if((lastEbest-Ebest)/lastEbest<0.1)stdev=-1.0;
+            if((lastEbest-Ebest)/lastEbest<0.1)go_on=0;
             
             lastEbest=Ebest;
         }
         
     }
+    
+    printf("done finding bases %d %d \n",aborted,total_ct);
+    printf("criteria %e <> %e // %e <> %e\n",stdev,stdevlim,Ebest,0.01*Ebest0);
+    printf("changed bases %d time %e\n",changed_bases,double(time(NULL))-before);
+    printf("\n");
     
     if(changed_bases==1){
         for(i=0;i<gg->get_dim();i++){
@@ -1259,7 +1331,7 @@ void node::find_bases(){
             }
         }
         
-        compass_search(center_dex);
+        compass_search(min_dex);
     }
     
     time_bases+=double(time(NULL))-before;
@@ -1360,11 +1432,13 @@ int node::search(){
     }
     
     int iBisection;
+    int triedBasesOrRicochet=0;
     
     iBisection=bisectionAssociate(iLow,iHigh);
     
-    if((associates.get_dim()>last_nAssociates+300 || last_nAssociates==0) && associates.get_dim()>200){
+    if((associates.get_dim()>last_nAssociates+10 || last_nAssociates==0) && associates.get_dim()>20){
         try{
+            triedBasesOrRicochet=1;
             find_bases();
         }
         catch(int iex){}
@@ -1375,7 +1449,9 @@ int node::search(){
     that is closest to chisq_limit as the point where we will begin our ricochet search
     */
     int iStart;
+    double nn;
     if(time_ricochet+ct_ricochet*time_penalty<0.5*(time_search+ct_search*time_penalty) && associates.get_dim()>100){
+        triedBasesOrRicochet=1;
         if(iBisection<0 || fabs(gg->get_fn(iCoulomb)-gg->get_target())<fabs(gg->get_fn(iBisection)-gg->get_target())){
             iStart=iCoulomb;
         }
@@ -1412,23 +1488,108 @@ int node::search(){
         }
     
 
-        if(iStart>=0)ricochet_search(iStart,dir);
-    }
-    
-    ct_search+=gg->get_called()-ibefore;
-    
-    double vend=volume();
-    
-    if(vend>vstart*(1.00001)){
-        last_expanded=ct_search;
-    }
-    else{
-        if(ct_search-last_expanded>gg->get_dim()*100){
-            activity=0;
+        if(iStart>=0){
+            ricochet_search(iStart,dir);
+            
+            //now try ricocheting in the opposite direction relative to the center of the node
+            for(i=0;i<gg->get_dim();i++){
+                dir.set(i,gg->get_pt(center_dex,i)-gg->get_pt(iStart,i));
+            }
+            iLow=center_dex;
+            iHigh=-1;
+            ftrial=-2.0*chisq_exception;
+            nn=1.0;
+            dir.normalize();
+            while(ftrial<gg->get_target()){
+                for(i=0;i<gg->get_dim();i++){
+                    trial.set(i,gg->get_pt(center_dex,i)+nn*dir.get_data(i));
+                }
+                evaluateNoAssociate(trial,&ftrial,&iHigh);
+                nn*=1.5;
+            }
+            
+            if(iHigh>=0){
+                iStart=bisection(iLow,iHigh);
+            }
+            
+            if(iStart>=0){
+                printf("    trying backwards ricochet\n");
+                ricochet_search(iStart,dir);
+            }
+            
         }
     }
     
+    evaluate(geographicCenter,&nn,&i);
+    ct_search+=gg->get_called()-ibefore;
+    ibefore=gg->get_called();
+    
+    double vend=volume();
+    
+    if(triedBasesOrRicochet==1){
+        if(vend>vstart*(1.00001)){
+            last_expanded=ct_search;
+        }
+        else{
+            find_bases();
+            vend=volume();
+
+            if(!(vend>vstart*1.00001) && ct_ricochet>0){
+                activity=0;
+            }
+            else{
+                last_expanded=ct_search;
+            }
+        }
+    }
+    
+    if(centerCandidates.get_dim()>0){
+        recenter();
+    }
+    
+    ct_search+=gg->get_called()-ibefore;
     time_search+=double(time(NULL))-before;
+}
+
+void node::recenter(){
+    
+    //printf("\nrecentering\n");
+    
+    int i,ibest=-1;
+    double dd,ddmin,ddCenter,chiTol;
+    
+    chiTol=0.9*gg->get_chimin()+0.1*gg->get_target();
+    ddCenter=gg->distance(center_dex,geographicCenter);
+    
+    for(i=0;i<centerCandidates.get_dim();i++){
+        if(gg->get_fn(centerCandidates.get_data(i))<chiTol){
+            dd=gg->distance(centerCandidates.get_data(i),geographicCenter);
+            
+            if(dd<ddCenter){
+                if(ibest<0 || dd<ddmin){
+                    ddmin=dd;
+                    ibest=centerCandidates.get_data(i);
+                }
+            }
+        }
+    }
+    
+    if(ibest>=0){
+        oldCenters.add(center_dex);
+        center_dex=ibest;
+        activity=1;
+        last_expanded=ct_search;
+    }
+    
+    centerCandidates.reset();
+}
+
+int node::get_n_oldCenters(){
+    return oldCenters.get_dim();
+}
+
+int node::get_oldCenter(int dex){
+    return oldCenters.get_data(dex);
 }
 
 int node::is_it_active(){
@@ -1451,8 +1612,36 @@ int node::get_ct_bases(){
     return ct_bases;
 }
 
+double node::get_basis(int ix, int iy){
+    if(ix>=gg->get_dim() || iy >=gg->get_dim() || ix<0 || iy<0){
+        printf("IN NODE_GET_BASIS %d %d but %d\n",
+        ix,iy,gg->get_dim());
+        exit(1);
+    }
+    
+    return basisVectors.get_data(ix,iy);
+}
+
+void node::set_basis(int ix, int iy, double nn){
+    if(ix>=gg->get_dim() || iy >=gg->get_dim() || ix<0 || iy<0){
+        printf("IN NODE_SET_BASIS %d %d but %d\n",
+        ix,iy,gg->get_dim());
+        exit(1);
+    }
+    
+    basisVectors.set(ix,iy,nn);
+}
+
+int node::get_calls_to_bases(){
+    return calls_to_bases;
+}
+
 double node::get_time(){
     return time_search;
+}
+
+void node::set_time(double xx){
+    time_search=xx;
 }
 
 double node::get_time_coulomb(){
@@ -1520,7 +1709,7 @@ void arrayOfNodes::add(int cc, Ran *dice, gpWrapper *gg){
         if(ct>0){
             buffer=new node[ct];
             for(i=0;i<ct;i++){
-                buffer->copy(data[i]);
+                buffer[i].copy(data[i]);
             }
             
             delete [] data;

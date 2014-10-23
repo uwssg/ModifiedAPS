@@ -40,6 +40,7 @@ aps::aps(int dim_in, int kk, double dd, int seed){
     range_min.set_name("range_min");
     ddUnitSpheres.set_name("ddUnitSpheres");
     refined_simplex.set_name("refined_simplex");
+    simplex_start_pts.set_name("simplex_start_pts");
     
     _aps_wide_contents_buffer.set_name("_aps_wide_contents_buffer");
     _aps_wide_ss_buffer.set_name("_aps_wide_ss_buffer");
@@ -54,6 +55,8 @@ aps::aps(int dim_in, int kk, double dd, int seed){
     called_focus=0;
     called_wide=0;
     ddNodeRatio=-1.0;
+    
+    time_penalty=0.5;
     
     n_wide=0;
     n_box_wide=0;
@@ -1100,8 +1103,11 @@ void aps::search(){
     double aps_score,simplex_score;
     int i;
     
-    aps_score=ct_aps;
-    simplex_score=ct_simplex;
+    //aps_score=ct_aps;
+    //simplex_score=ct_simplex;
+    
+    aps_score=time_aps+ct_aps*time_penalty;
+    simplex_score=time_simplex+ct_simplex*time_penalty;
     
     int i_simplex;
     if(simplex_score<aps_score){
@@ -1164,6 +1170,48 @@ void aps::get_interesting_boxes(array_1d<int> &acceptableBoxes){
 
 }
 
+double aps::calculate_dchi(int ibox){
+    if(nodes.get_dim()==0)return 0.0;
+    
+    ggWrap.freeze_boxes();
+
+    int i,j,imin;
+    double chimin,chi2,dchi,dchibest;
+    array_1d<double> midpt;
+    midpt.set_name("aps_calculate_dchi_midpt");
+    
+    /*for(i=0;i<ggWrap.get_box_contents(ibox);i++){
+        dchi=ggWrap.get_fn(ggWrap.get_box_contents(ibox,i));
+	if(i==0 || dchi<chimin){
+	    chimin=dchi;
+	    imin=ggWrap.get_box_contents(ibox,i);
+	}
+    }*/
+    
+    for(i=0;i<ggWrap.get_dim();i++){
+        midpt.set(i,0.5*(ggWrap.get_box_max(ibox,i)+ggWrap.get_box_min(ibox,i)));
+    }
+    ggWrap.evaluate(midpt,&chimin);
+
+    int ic;
+    for(ic=0;ic<nodes.get_dim();ic++){
+        i=nodes(ic)->get_center();
+	for(j=0;j<ggWrap.get_dim();j++){
+	    midpt.set(j,0.5*(ggWrap.get_pt(imin,j)+ggWrap.get_pt(i,j)));
+	}
+	
+	ggWrap.evaluate(midpt,&chi2);
+	dchi=chi2-chimin;
+	if(ic==0 || dchi<dchibest){
+	    dchibest=dchi;
+	}
+    }
+    
+    ggWrap.unfreeze_boxes();
+    
+    return dchibest;
+}
+
 int aps::aps_box_wide(){
     /*
     Select the boxes with no good points in them which are sufficiently
@@ -1179,15 +1227,33 @@ int aps::aps_box_wide(){
     
     ggWrap.set_iWhere(iSimplex);
     
+    int i,j,iout;
     array_1d<int> acceptableBoxes;
-    acceptableBoxes.set_name("aps_acceptableBoxes");
+    acceptableBoxes.set_name("aps_simplex_acceptableBoxes");
     
     get_interesting_boxes(acceptableBoxes);
+    if(acceptableBoxes.get_dim()==0){
+        iout=aps_wide();
+        n_wide++;
+        return iout;
+    }
+    
+    /*do not use any boxes containing smallest seeds from previous simplexes*/
+    int ibox,isOkay;
+    for(i=0;i<simplex_start_pts.get_dim();i++){
+        ibox=ggWrap.find_box(simplex_start_pts.get_data(i));
+        isOkay=1;
+        for(j=0;j<acceptableBoxes.get_dim() && isOkay==1;j++){
+            if(acceptableBoxes.get_data(j)==ibox){
+                isOkay=0;
+                acceptableBoxes.remove(j);
+            }
+        }
+    }
     
     array_1d<double> trial;
     trial.set_name("aps_box_wide_trial");
     
-    int i,j,iout;
     if(acceptableBoxes.get_dim()==0){
         printf("\n\nI'm sorry; there were no acceptable boxes\n\n");
         iout=aps_wide();
@@ -1197,11 +1263,19 @@ int aps::aps_box_wide(){
     
     n_box_wide++;
     
+    double volumeBiggest;
+    int iByVolume;
     double pterm,pbest,ptotal,lpterm,volume;
-    int ibox,dex,chosenBox,ii,norm_is_set;
+    int dex,chosenBox,ii,norm_is_set;
     array_1d<int> seed;
     double chitrial,mu,sig,norm,x1,x2,y1,y2,stopping_point,dx;
-
+    
+    array_1d<double> boxProbabilities;
+    array_1d<int> boxDexes;
+    
+    boxProbabilities.set_name("aps_box_search_boxProbabilities");
+    boxDexes.set_name("aps_box_searc_boxDexes");
+    
     seed.set_name("aps_box_search_seed");
     
     chosenBox=-1;
@@ -1313,17 +1387,45 @@ int aps::aps_box_wide(){
             there are no good points in the box*/
             
             ptotal*=volume;
-            
             if(ii==0 || ptotal<pbest){
                 pbest=ptotal;
                 chosenBox=ibox;
             }
             
+            if(ii==0 || volume>volumeBiggest){
+                volumeBiggest=volume;
+                iByVolume=ibox;
+            }
+            
+            boxProbabilities.add(ptotal);
+            boxDexes.add(ibox);
+            
            
         }//loop over the boxes
     
     }
+    printf("\nchosen %d by volume %d\n",chosenBox,iByVolume);
     
+    array_1d<double> sortedProbabilities;
+    sortedProbabilities.set_name("aps_box_search_sortedProbabilities");
+    
+    double dc,dcMax;
+
+    if(nodes.get_dim()>0 && acceptableBoxes.get_dim()>1){
+        sort_and_check(boxProbabilities,sortedProbabilities,boxDexes);
+        for(ii=0;ii<sortedProbabilities.get_dim()/4;ii++){
+            ibox=boxDexes.get_data(ii);
+            dc=calculate_dchi(ibox);
+            if(ii==0 || dc>dcMax){
+                dcMax=dc;
+                chosenBox=ibox;
+            }
+        }
+        printf("chosen by lpold %d\n\n",chosenBox);
+    }
+    
+    
+    int iSmallestSeed;
     double smallestSeed=2.0*chisq_exception;
     if(chosenBox>=0){
         while(seed.get_dim()<ggWrap.get_dim()+1){
@@ -1337,12 +1439,16 @@ int aps::aps_box_wide(){
             ggWrap.evaluate(trial,&chitrial,&dex);
             
             if(dex>=0){
-                if(chitrial<smallestSeed)smallestSeed=chitrial;
+                if(chitrial<smallestSeed){
+                    smallestSeed=chitrial;
+                    iSmallestSeed=dex;
+                }
                 seed.add(dex);
             }
         } 
     
         i=find_global_minimum(seed);
+        simplex_start_pts.add(iSmallestSeed);
         
         if(i>=0){
             printf("    box found %e from %e\n",ggWrap.get_fn(i),smallestSeed);
@@ -2131,7 +2237,7 @@ void aps::bisection(array_1d<double> &inpt, double chi_in){
     double dd,ddmin;
     int origin_dex,i,j,k,use_it_parabola,i_center=-1;
     
-    double bisection_tolerance=0.1*ggWrap.get_delta_chisquared();
+    double bisection_tolerance=0.01*ggWrap.get_delta_chisquared();
     
     /*
     The code will work by finding one point with chisquared<chisquared_lim which will
@@ -2801,7 +2907,7 @@ void aps::write_pts(){
     array_1d<double> hyper_params;
     double before=double(time(NULL));
     
-    int i,j,k,lling,aps_dex;
+    int i,j,k,ii,jj,lling,aps_dex;
     double mu,sig;
     FILE *output;
 
@@ -2812,14 +2918,24 @@ void aps::write_pts(){
     
     for(i=0;i<nodes.get_dim();i++){
         nodes(i)->flush_candidates(candidates);
-    }
-    
-    if(candidates.get_dim()>0){
-        for(i=0;i<candidates.get_dim();i++){
-            assess_node(candidates.get_data(i));
+        k=nodes.get_dim();
+        for(j=0;j<candidates.get_dim();j++){
+            assess_node(candidates.get_data(j));
         }
+        
+        if(nodes.get_dim()>k){
+            for(j=k;j<nodes.get_dim();j++){
+                nodes(j)->set_time(nodes(i)->get_time());
+                for(ii=0;ii<ggWrap.get_dim();ii++){
+                    for(jj=0;jj<ggWrap.get_dim();jj++){
+                        nodes(j)->set_basis(ii,jj,nodes(i)->get_basis(ii,jj));
+                    }
+                }
+            }
+        }
+        
+        candidates.reset();
     }
-    
     
     /*how much clock time is spent per call to chisquared just calling chisquared*/
     per_chisq=ggWrap.get_chisq_time()/ggWrap.get_called();
@@ -2969,7 +3085,7 @@ void aps::write_pts(){
         ddUnitSpheres.reset();
     }
     
-    int ii,jj,ic;
+    int ic;
    
     n_printed=gg.get_pts();
 
@@ -3034,8 +3150,11 @@ void aps::write_pts(){
     printf("Ricochet: %d\n",ggWrap.get_whereCt(iRicochet));
     printf("nodes: %d\n",nodes.get_dim());
     for(i=0;i<nodes.get_dim();i++){
-        printf("node %d associates %d vv %.4e active %d\n",i,nodes(i)->get_n_associates(),
-        nodes(i)->volume(),nodes(i)->is_it_active());
+        printf("node %d associates %d vv %.4e active %d -- bases %d %d\n",
+        nodes(i)->get_center(),nodes(i)->get_n_associates(),
+        nodes(i)->volume(),nodes(i)->is_it_active(),
+        nodes(i)->get_calls_to_bases(),
+        nodes(i)->get_ct_bases());
     }
     printf("called time_tot coulomb ricochet bases\n");
     for(i=0;i<nodes.get_dim();i++){
@@ -3051,6 +3170,10 @@ void aps::write_pts(){
     ggWrap.get_search_time_solo(),ggWrap.get_search_ct_solo(),
     ggWrap.get_search_time_solo()/double(ggWrap.get_search_ct_solo()));
     
+    array_1d<int> quartiles;
+    quartiles.set_name("aps_quartiles");
+    ggWrap.get_box_quartiles(quartiles);
+    
     printf("search time box %e ct %d -- %e\n",
     ggWrap.get_search_time_box(),ggWrap.get_search_ct_box(),
     ggWrap.get_search_time_box()/double(ggWrap.get_search_ct_box()));
@@ -3060,10 +3183,24 @@ void aps::write_pts(){
     printf("n boxes %d\n",ggWrap.get_nboxes());
     printf("n small boxes %d\n",ggWrap.get_n_small_boxes());
     printf("n optimal boxes %d\n",ggWrap.get_n_optimal_boxes());
-    printf("total time %e\n",time_now-start_time);
+    printf("box quartiles %d %d %d\n",
+    quartiles.get_data(0),quartiles.get_data(1),quartiles.get_data(2));
+    printf("\ntotal time %e\n",time_now-start_time);
+    printf("pts %d\n",ggWrap.get_pts());
     printf("n wide %d n box wide %d\n",n_wide,n_box_wide);
     printf("\n");
     
+    output=fopen("node_dump.sav","w");
+    for(i=0;i<nodes.get_dim();i++){
+        for(j=0;j<ggWrap.get_dim();j++){
+           for(k=0;k<ggWrap.get_dim();k++){
+               fprintf(output,"%le ",nodes(i)->get_basis(k,j));
+           }
+           fprintf(output,"\n");
+        }
+        fprintf(output,"\n\n");
+    }
+    fclose(output);
        
     set_where("nowhere");
     time_writing+=double(time(NULL))-before;
@@ -3108,6 +3245,7 @@ void aps::assess_node(int dex){
     midpt.set_name("aps_assess_node_midpt");
     double ftrial,dd,ddmin;
     int j,itrial,inode,iclosest=-1;
+    int iGhost;
     
     use_it=1;
     for(i=0;i<nodes.get_dim() && (use_it==1 || used_because_distance==1);i++){
@@ -3124,6 +3262,14 @@ void aps::assess_node(int dex){
             used_because_distance=0;
         }
         
+        //make the same test on old centers of nodes
+        for(iGhost=0;iGhost<nodes(i)->get_n_oldCenters();iGhost++){
+            dd=gg.distance(nodes(i)->get_oldCenter(iGhost),dex);
+            if(dd<ddNodeRatio*nodes(i)->get_farthest_associate() && ddNodeRatio>1.0e-10){
+                used_because_distance=0;
+            }
+        }
+        
         for(j=0;j<gg.get_dim();j++){
             midpt.set(j,0.5*(gg.get_pt(inode,j)+gg.get_pt(dex,j)));
         }
@@ -3132,6 +3278,17 @@ void aps::assess_node(int dex){
         
         if(ftrial<strad.get_target()){
             use_it=0;
+        }
+        
+        //make the same test on old centers of nodes
+        for(iGhost=0;iGhost<nodes(i)->get_n_oldCenters();iGhost++){
+            for(j=0;j<gg.get_dim();j++){
+                midpt.set(j,0.5*(gg.get_pt(nodes(i)->get_oldCenter(iGhost),j)+gg.get_pt(dex,j)));
+            }
+            ggWrap.evaluate(midpt,&ftrial);
+            if(ftrial<strad.get_target()){
+                use_it=0;
+            }
         }
     }
     
@@ -3152,6 +3309,7 @@ void aps::assess_node(int dex){
     
     
     for(i=0;i<nodes.get_dim();i++){
+        //printf("about to try node center %d\n",nodes(i)->get_center());
         if(gg.get_fn(nodes(i)->get_center())>strad.get_target()){
             nodes.remove(i);
             i--;

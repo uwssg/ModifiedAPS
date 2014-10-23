@@ -6,7 +6,7 @@
 #include <time.h>
 
 #define box_exception -1
-#define min_pts_per_box 10
+#define min_pts_per_box 2
 
 class box{
 
@@ -35,7 +35,7 @@ private:
     double split_error(array_1d<int>&,int,int*,int*);
     
     double time_search;
-    int ct_search;
+    int ct_search,frozen;
     
 public:
     
@@ -67,6 +67,7 @@ public:
     int get_smallest_box();
     int get_biggest_box();
     double get_mean_box(double*);
+    void get_box_quartiles(array_1d<int>&);
     int get_ntree();
     int get_contents(int);
     int get_contents(int,int);
@@ -102,6 +103,8 @@ public:
     void get_avg_box_bounds(array_1d<double>&,array_1d<double>&,
         array_1d<double>&,array_1d<double>&);
     
+    void freeze_boxes();
+    void unfreeze_boxes();
     
 };
 

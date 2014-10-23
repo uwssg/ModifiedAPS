@@ -6,7 +6,7 @@
 #include "containers.h"
 #include "eigen_wrapper.h"
 
-main(int iargc, char *argv[]){
+int main(int iargc, char *argv[]){
 
 int seed=67;
 

@@ -1,6 +1,6 @@
 #include "box.h"
 
-main(){
+int main(){
 
 Ran chaos(99);
 

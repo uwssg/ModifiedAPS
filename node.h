@@ -45,10 +45,15 @@ class node{
         double get_time_coulomb();
         double get_time_bases();
         double get_time_ricochet();
+        void set_time(double);
         int get_ct_search();
         int get_ct_ricochet();
         int get_ct_coulomb();
         int get_ct_bases();
+        int get_calls_to_bases();
+        
+        double get_basis(int,int);
+        void set_basis(int,int,double);
         
         double volume();
         int is_it_active();
@@ -58,17 +63,21 @@ class node{
         
         void flush_candidates(array_1d<int>&);
         
+        int get_n_oldCenters();
+        int get_oldCenter(int);
+        
     private:
         
         array_1d<int> associates,boundaryPoints;
         array_2d<double> basisVectors;
-        array_1d<double> range_max,range_min;
+        array_1d<double> range_max,range_min,geographicCenter;
         
-        array_1d<int> candidates;
+        array_1d<int> candidates,centerCandidates,oldCenters;
         
         int ct_search,ct_coulomb,ct_bases,ct_ricochet;
+        int calls_to_bases;
         int last_expanded,activity;
-        int center_dex,last_nBasisAssociates,last_nAssociates;
+        int center_dex,min_dex,last_nBasisAssociates,last_nAssociates;
         double time_ricochet,time_coulomb,time_search,time_bases;
         double farthest_associate,time_penalty;
         
@@ -89,6 +98,7 @@ class node{
         void find_bases();
         int perturb_bases(array_2d<double>&,int,array_1d<double>&,array_2d<double>&);
         double basis_error(array_2d<double>&,array_1d<int>&);
+        void recenter();
 
 };
 
