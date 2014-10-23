@@ -1513,6 +1513,7 @@ int node::search(){
             }
             
             if(iStart>=0){
+                printf("    trying backwards ricochet\n");
                 ricochet_search(iStart,dir);
             }
             
