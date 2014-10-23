@@ -485,7 +485,7 @@ double aps::simplex_cost_function(array_1d<double> &pt){
     normalization=ggWrap.get_mean();
     cost=0.0;
     for(ic=0;ic<nodes.get_dim();ic++){
-        dd=ggWrap.distance(pt,nodes(ic)->get_center());
+        dd=10.0*ggWrap.distance(pt,nodes(ic)->get_center());
         
         cost+=normalization/power(dd+1.0e-6,2);
     }
