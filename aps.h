@@ -507,9 +507,10 @@ private:
     for a detailed explanation of how they are used.
     */
     int _min_ct,_last_found,_mindex;
-    double _simplex_min,_last_min;
+    double _simplex_min,_last_min,_simplex_temp;
+    int _local_simplex_ct;
     array_2d<double> _last_simplex;
-    array_1d<double> _last_ff;
+    array_1d<double> _last_ff,_simplex_length;
     
     /*
     These are the variables which store the projection of boundary points onto unit spheres

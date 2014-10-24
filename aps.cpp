@@ -41,6 +41,7 @@ aps::aps(int dim_in, int kk, double dd, int seed){
     ddUnitSpheres.set_name("ddUnitSpheres");
     refined_simplex.set_name("refined_simplex");
     simplex_start_pts.set_name("simplex_start_pts");
+    _simplex_length.set_name("aps_simplex_length");
     
     _aps_wide_contents_buffer.set_name("_aps_wide_contents_buffer");
     _aps_wide_ss_buffer.set_name("_aps_wide_ss_buffer");
@@ -479,22 +480,26 @@ int aps::is_it_a_candidate(int dex){
 double aps::simplex_cost_function(array_1d<double> &pt){
     if(nodes.get_dim()==0) return 0.0;
     
-    double dd,length,cost,normalization;
-    int ic,j;
-    
+    double dd,cost,normalization;
+    int ic,jc,j;
+
     normalization=ggWrap.get_mean();
     cost=0.0;
     for(ic=0;ic<nodes.get_dim();ic++){
         dd=0.0;
         for(j=0;j<ggWrap.get_dim();j++){
-            length=0.25*(nodes(ic)->get_max(j)-nodes(ic)->get_min(j));
-            if(length<0.001)length=0.001;
-            dd+=power((pt.get_data(j)-ggWrap.get_pt(nodes(ic)->get_center(),j))/length,2);
+            dd+=power((pt.get_data(j)-ggWrap.get_pt(nodes(ic)->get_center(),j))/_simplex_length.get_data(j),2);
         }
         cost+=normalization/(dd+1.0e-6);
         
     }
-    return cost;
+    
+    _local_simplex_ct++;
+    if(_local_simplex_ct%(10*ggWrap.get_dim())==0){
+        _simplex_temp*=0.5;
+    }
+    
+    return exp(-1.0/_simplex_temp)*cost;
 }
 
 double aps::simplex_evaluate(array_1d<double> &pt, int *actually_added){
@@ -578,6 +583,32 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
     }
     
     int i_before=ggWrap.get_called();
+    int ic,jc,i,j;
+    double dd;
+    
+    _simplex_length.reset();
+    if(nodes.get_dim()>1){
+        for(ic=0;ic<nodes.get_dim();ic++){
+            for(jc=ic+1;jc<nodes.get_dim();jc++){
+                for(j=0;j<ggWrap.get_dim();j++){
+                   dd=0.2*fabs(ggWrap.get_pt(nodes(ic)->get_center(),j)-ggWrap.get_pt(nodes(jc)->get_center(),j));
+                   if(_simplex_length.get_dim()<j || dd<_simplex_length.get_data(j)){
+               
+                       _simplex_length.set(j,dd+1.0e-6);
+                   
+                   }
+                }
+            }
+        }
+    }
+    else if(nodes.get_dim()==1){
+        for(j=0;j<ggWrap.get_dim();j++){
+            _simplex_length.set(j,0.2*fabs(nodes(0)->get_max(j)-nodes(0)->get_min(j))+1.0e-6);
+        }
+    }
+    
+    _simplex_temp=100.0;
+    _local_simplex_ct=0;
 
     array_1d<double> vv;
     array_1d<int> simplex_candidates;
@@ -600,7 +631,7 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
     length.set_name("find_global_min_length");
     
     double fstar,fstarstar,dx;
-    int ih,il,i,j,k,actually_added;
+    int ih,il,k,actually_added;
     double alpha=1.0,beta=0.5,gamma=2.1;
     
     /*
@@ -1000,7 +1031,7 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
     known_minima.add(_mindex);
     j=nodes.get_dim();
     
-    int ic,acutally_added,use_it,inode;
+    int acutally_added,use_it,inode;
     array_1d<double> midpt;
     double chimid;
     
