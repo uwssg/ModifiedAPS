@@ -480,17 +480,16 @@ int aps::is_it_a_candidate(int dex){
 double aps::simplex_cost_function(array_1d<double> &pt){
     if(nodes.get_dim()==0) return 0.0;
     
-    double dd,cost,normalization;
+    double dd,cost;
     int ic,jc,j;
 
-    normalization=ggWrap.get_mean();
     cost=0.0;
     for(ic=0;ic<nodes.get_dim();ic++){
         dd=0.0;
         for(j=0;j<ggWrap.get_dim();j++){
             dd+=power((pt.get_data(j)-ggWrap.get_pt(nodes(ic)->get_center(),j))/_simplex_length.get_data(j),2);
         }
-        cost+=normalization/(dd+1.0e-6);
+        cost+=_simplex_normalization/(dd+1.0e-6);
         
     }
     
@@ -608,6 +607,7 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
     }
     
     _simplex_temp=100.0;
+    _simplex_normalization=ggWrap.get_mean();
     _local_simplex_ct=0;
 
     array_1d<double> vv;
