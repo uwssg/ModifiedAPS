@@ -1274,7 +1274,7 @@ void aps::search(){
     simplex_score=time_simplex+ct_simplex*time_penalty;
     
     int i_simplex;
-    if(simplex_score<3*aps_score){
+    if(simplex_score<aps_score){
         i=ggWrap.get_called();
         aps_box_wide();
         ct_simplex+=ggWrap.get_called()-i;
