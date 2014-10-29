@@ -48,6 +48,9 @@ aps::aps(int dim_in, int kk, double dd, int seed){
     _last_ff.set_name("find_global_min_last_ff");
     _last_simplex.set_name("find_global_min_last_simplex");
     
+    _simplex_length_sq.set_name("_simplex_length_sq");
+    _simplex_norm.set_name("_simplex_norm");
+    
     write_every=1000;
     n_printed=0;
     do_bisection=1;
@@ -476,6 +479,161 @@ int aps::is_it_a_candidate(int dex){
     else return 0;
 }
 
+double aps::simplex_cost_distance_sq(array_1d<double> &pt, int inode){
+    array_1d<double> xx;
+    return simplex_cost_distance_sq(pt,inode,xx);
+}
+
+double aps::simplex_cost_distance_sq(array_1d<double> &pt, int inode, array_1d<double> &projected){
+    array_1d<double> dir;
+    dir.set_name("aps_simplex_cost_distance_dir");
+    int i,j;
+    
+    for(i=0;i<ggWrap.get_dim();i++){
+        dir.set(i,pt.get_data(i)-ggWrap.get_pt(nodes(inode)->get_mindex(),i));
+    }
+    
+    projected.reset();
+    for(i=0;i<ggWrap.get_dim();i++){
+        projected.set(i,0.0);
+        for(j=0;j<ggWrap.get_dim();j++){
+            projected.add_val(i,dir.get_data(j)*nodes(inode)->get_basis(i,j));
+        }
+    }
+    
+    double ans=0.0;
+    for(i=0;i<ggWrap.get_dim();i++){
+        ans+=projected.get_data(i)*projected.get_data(i)*fabs(nodes(inode)->get_basis_model(i));;
+    }
+    
+    return ans;
+}
+
+void aps::initialize_simplex_cost(array_1d<int> &seed){
+    if(nodes.get_dim()==0){
+       _simplex_temp=1000.0;
+       return;
+    }
+    
+    _simplex_temp=0.01;
+    _local_simplex_ct=0;
+    _simplex_length_sq.reset();
+    _simplex_norm.reset();
+    
+    int i,j,inode,ii;
+    
+    array_1d<double> center,model,trial,dir,projected;
+    center.set_name("aps_initialize_simplex_center");
+    model.set_name("aps_initialize_simplex_model");
+    trial.set_name("aps_initialize_simplex_trial");
+    dir.set_name("aps_initialize_simplex_dir");
+    projected.set_name("aps_initialize_simplex_projected");
+    
+    for(i=0;i<ggWrap.get_dim();i++){
+        center.set(i,0.0);
+        for(j=0;j<seed.get_dim();j++){
+            center.add_val(i,ggWrap.get_pt(seed.get_data(j),i));
+        }
+        center.divide_val(i,double(seed.get_dim()));
+    }
+    
+    double fcenter,ftrial,gradient,xx1,xx2,dell,ell,xx,yy,ellbest,yybest,ellmin,ellmax;
+    int icenter,itrial;
+    
+    ggWrap.evaluate(center,&fcenter,&icenter);
+    
+    for(ii=0;ii<nodes.get_dim();ii++){
+        inode=nodes(ii)->get_mindex();
+        _simplex_norm.set(ii,1.05*fabs(fcenter-ggWrap.get_fn(inode)));
+        xx1=simplex_cost_distance_sq(center,ii,projected);
+        
+        projected.normalize();
+        
+        for(i=0;i<ggWrap.get_dim();i++){
+            trial.set(i,center.get_data(i));
+            for(j=0;j<ggWrap.get_dim();j++){
+                xx2=fabs(nodes(ii)->get_basis_model(j));
+                if(xx2>1.0e-3){
+                    trial.subtract_val(i,0.01*projected.get_data(j)*nodes(ii)->get_basis(j,i)/sqrt(xx2));
+                }
+            }
+        }
+        
+        ggWrap.evaluate(trial,&ftrial,&itrial);
+        if(itrial==icenter){
+            printf("WARNING in initialize_simplex_cost trial did not step away from center\n");
+            exit(1);
+        }
+        
+        xx2=simplex_cost_distance_sq(trial,ii);
+        gradient=(ftrial-fcenter)/(xx2-xx1);
+        
+        printf("    gradient %d %e (should be positive)\n",ii,gradient);
+        if(gradient<0.0){
+            printf("WARNING when initializing simplex cost gradient was %e\n",gradient);
+            exit(1);
+        }
+        
+        for(i=0;i<ggWrap.get_dim();i++){
+            model.set(i,0.5*(trial.get_data(i)+center.get_data(i)));
+        }
+        
+        xx=simplex_cost_distance_sq(model,ii);
+        dell=0.01*xx;
+        ellbest=-1.0;
+        ellmin=0.01*xx;
+        ellmax=2.0*xx;
+        while(dell>1.0e-6*xx){
+            for(ell=ellmin;ell<1.01*ellmax;ell+=dell){
+                yy=_simplex_norm.get_data(ii)*sqrt(xx)*exp(-0.5*xx/ell)/ell;
+                
+                if(ellbest<0.0 || fabs(yy-gradient)<yybest){
+                    yybest=fabs(yy-gradient);
+                    ellbest=ell;
+                }
+            }
+            
+            ellmin=ellbest-dell+1.0e-6*xx;
+            ellmax=ellbest+dell;
+            dell*=0.1;
+            
+        }
+        
+        _simplex_length_sq.set(ii,ellbest);
+        printf("    ellbest %e xx %e yybest %e\n",ellbest,xx,yybest);
+        xx=_simplex_norm.get_data(ii);
+        _simplex_norm.set(ii,log(xx));
+        
+    }
+
+}
+
+double aps::simplex_cost(array_1d<double> &pt){
+    
+    if(nodes.get_dim()==0 || _simplex_temp>23.0)return 0.0;
+    
+    _local_simplex_ct++;
+    double LNcost,LNcostMax,xx;
+    int ii;
+    for(ii=0;ii<nodes.get_dim();ii++){
+        xx=simplex_cost_distance_sq(pt,ii);
+        //cost=_simplex_norm.get_data(ii)*exp(-0.5*xx/_simplex_length_sq.get_data(ii));
+        LNcost = _simplex_norm.get_data(ii)-0.5*xx/_simplex_length_sq.get_data(ii);
+        
+        if(ii==0 || LNcost>LNcostMax){
+            LNcostMax=LNcost;
+        }
+    }
+    
+    LNcostMax-=_simplex_temp;
+    
+    if(_local_simplex_ct%100==0){
+        _simplex_temp*=2.0;
+    }
+    
+    return exp(LNcostMax);
+
+}
 
 double aps::simplex_evaluate(array_1d<double> &pt, int *actually_added){
     array_2d<double> pp;
@@ -500,9 +658,12 @@ double aps::simplex_evaluate(array_1d<double> &pt, int *actually_added,
     
     /*increment the number of calls made by the current simplex search to chisquared*/
     _min_ct++;
+    if(_simplex_temp<20.0)_last_found=_min_ct;
     
     /*actually call chisquared*/
     ggWrap.evaluate(pt,&mu,actually_added);
+    
+    mu+=simplex_cost(pt);
     
     /*if _simplex_min is improved upon...*/
     if(mu<_simplex_min){
@@ -597,6 +758,7 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
     actual values of parameters when we pass them to evaluate.
     */
     
+    initialize_simplex_cost(neigh);
     
     true_var.set_dim(dim);
     max.set_dim(dim);
@@ -627,7 +789,9 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
             nn=(vv.get_data(j)-min.get_data(j))/length.get_data(j);
             pts.set(i,j,nn);
         }
-        ff.set(i,gg.get_fn(neigh.get_data(i)));
+        nn=simplex_cost(vv);
+        
+        ff.set(i,gg.get_fn(neigh.get_data(i))+nn);
         if(i==0 || ff.get_data(i)<ff.get_data(il))il=i;
         if(i==0 || ff.get_data(i)>ff.get_data(ih))ih=i;
     }
@@ -1452,6 +1616,7 @@ int aps::aps_box_wide(){
         
         if(i>=0){
             printf("    box found %e from %e\n",ggWrap.get_fn(i),smallestSeed);
+            printf("    temp %e\n",_simplex_temp);
         }
         else{
             printf("    box found junk\n");

@@ -10,6 +10,7 @@ void node::set_names(){
     geographicCenter.set_name("node_geographicCenter");
     centerCandidates.set_name("node_centerCandidates");
     oldCenters.set_name("node_oldCenters");
+    basisModel.set_name("node_basisModel");
 }
 
 node::node(){
@@ -50,6 +51,7 @@ void node::copy(const node &in){
     associates.reset();
     boundaryPoints.reset();
     basisVectors.reset();
+    basisModel.reset();
     range_min.reset();
     range_max.reset();
     candidates.reset();
@@ -116,6 +118,7 @@ void node::copy(const node &in){
             
             basisVectors.set_cols(gg->get_dim());
             for(i=0;i<gg->get_dim();i++){
+                basisModel.set(i,in.basisModel.get_data(i));
                 for(j=0;j<gg->get_dim();j++){
                     basisVectors.set(i,j,in.basisVectors.get_data(i,j));
                 }
@@ -160,6 +163,7 @@ void node::set_gpWrapper(gpWrapper *ggin){
     basisVectors.set_dim(gg->get_dim(),gg->get_dim());
     
     for(i=0;i<gg->get_dim();i++){
+        basisModel.set(i,1.0);
         for(j=0;j<gg->get_dim();j++){
             if(i==j)basisVectors.set(i,j,1.0);
             else basisVectors.set(i,j,0.0);
@@ -1097,7 +1101,8 @@ int node::perturb_bases(array_2d<double> &bases_in, int ix, array_1d<double> &dx
 }
 
 
-double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_associates){    
+double node::basis_error(array_2d<double> &trial_bases, 
+array_1d<int> &basis_associates, array_1d<double> &trial_model){    
     /*
     trial_bases is now made up of a bunch of orthonormal vectors which resulted from
     the small perturbation of the original best_bases.  Now we will see how well a
@@ -1160,9 +1165,6 @@ double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_ass
             }
         }
     }
-    
-    array_1d<double> trial_model;
-    trial_model.set_name("node_basis_error_trial_model");
     
     try{
         naive_gaussian_solver(matrix,bb,trial_model,gg->get_dim());
@@ -1248,8 +1250,11 @@ void node::find_bases(){
     int ibefore=gg->get_called();
     
     array_2d<double> bases_best,bases_trial;
+    array_1d<double> model_best,model_trial;
     bases_best.set_name("node_find_bases_bases_best");
     bases_trial.set_name("node_find_bases_bases_trial");
+    model_best.set_name("node_find_bases_model_best");
+    model_trial.set_name("node_find_bases_model_trial");
     
     bases_best.set_dim(gg->get_dim(),gg->get_dim());
     
@@ -1260,7 +1265,7 @@ void node::find_bases(){
         }
     }
     
-    Ebest0=basis_error(bases_best,basis_associates);
+    Ebest0=basis_error(bases_best,basis_associates,model_best);
     Ebest=Ebest0;
     lastEbest=Ebest0;
     
@@ -1285,12 +1290,13 @@ void node::find_bases(){
         total_ct++;
         
         perturb_bases(bases_best,ix,dx,bases_trial);
-        Etrial=basis_error(bases_trial,basis_associates);
+        Etrial=basis_error(bases_trial,basis_associates,model_trial);
         
         if(Etrial<Ebest){
             aborted=0;
             changed_bases=1;
             for(i=0;i<gg->get_dim();i++){
+                model_best.set(i,model_trial.get_data(i));
                 for(j=0;j<gg->get_dim();j++){
                     bases_best.set(i,j,bases_trial.get_data(i,j));
                 }
@@ -1326,6 +1332,7 @@ void node::find_bases(){
     
     if(changed_bases==1){
         for(i=0;i<gg->get_dim();i++){
+            basisModel.set(i,model_best.get_data(i));
             for(j=0;j<gg->get_dim();j++){
                 basisVectors.set(i,j,bases_best.get_data(i,j));
             }
@@ -1622,6 +1629,17 @@ double node::get_basis(int ix, int iy){
     return basisVectors.get_data(ix,iy);
 }
 
+double node::get_basis_model(int ix){
+    if(ix<0 || ix>=gg->get_dim()){
+        printf("WARNING cannot get basisModel %d %d\n",
+        ix,gg->get_dim());
+        
+        exit(1);
+    }
+    
+    return basisModel.get_data(ix);
+}
+
 void node::set_basis(int ix, int iy, double nn){
     if(ix>=gg->get_dim() || iy >=gg->get_dim() || ix<0 || iy<0){
         printf("IN NODE_SET_BASIS %d %d but %d\n",
@@ -1666,6 +1684,10 @@ gpWrapper* node::get_gpWrapper(){
 
 int node::get_center(){
     return center_dex;
+}
+
+int node::get_mindex(){
+    return min_dex;
 }
 
 void node::set_farthest_associate(double xx){

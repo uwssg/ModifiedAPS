@@ -32,6 +32,7 @@ class node{
         Ran* get_Ran();
         gpWrapper* get_gpWrapper();
         int get_center();
+        int get_mindex();
         
         void copy(const node&);
         
@@ -53,6 +54,7 @@ class node{
         int get_calls_to_bases();
         
         double get_basis(int,int);
+        double get_basis_model(int);
         void set_basis(int,int,double);
         
         double volume();
@@ -70,7 +72,7 @@ class node{
         
         array_1d<int> associates,boundaryPoints;
         array_2d<double> basisVectors;
-        array_1d<double> range_max,range_min,geographicCenter;
+        array_1d<double> range_max,range_min,geographicCenter,basisModel;
         
         array_1d<int> candidates,centerCandidates,oldCenters;
         
@@ -97,7 +99,7 @@ class node{
         void compass_search(int);
         void find_bases();
         int perturb_bases(array_2d<double>&,int,array_1d<double>&,array_2d<double>&);
-        double basis_error(array_2d<double>&,array_1d<int>&);
+        double basis_error(array_2d<double>&,array_1d<int>&,array_1d<double>&);
         void recenter();
 
 };

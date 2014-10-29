@@ -318,6 +318,16 @@ private:
     double simplex_evaluate(array_1d<double>&,int*,
         array_2d<double>&,array_1d<double>&,int);   
     
+    double simplex_cost(array_1d<double>&);
+    void initialize_simplex_cost(array_1d<int>&);
+    double simplex_cost_distance_sq(array_1d<double>&, int, array_1d<double>&);
+    double simplex_cost_distance_sq(array_1d<double>&, int);
+    
+    double _simplex_temp;
+    int _local_simplex_ct;
+    array_1d<double> _simplex_length_sq,_simplex_norm;
+    
+    
     /*
     If simplex_search() does not find any valid candidates to seed a new simplex search,
     it will call refine_center() which will evaluate all of the known centers of
