@@ -1100,6 +1100,19 @@ int node::perturb_bases(array_2d<double> &bases_in, int ix, array_1d<double> &dx
     return 1;
 }
 
+double node::apply_model(array_1d<double> &pt){
+    int i,ix;
+    double dd,ans=gg->get_fn(min_dex);
+    for(ix=0;ix<gg->get_dim();ix++){
+        dd=0.0;
+        for(i=0;i<gg->get_dim();i++){
+            dd+=(pt.get_data(i)-gg->get_pt(min_dex,i))*basisVectors.get_data(ix,i);
+        }
+        ans+=basisModel.get_data(ix)*dd*dd;
+    }
+    
+    return ans;
+}
 
 double node::basis_error(array_2d<double> &trial_bases, 
 array_1d<int> &basis_associates, array_1d<double> &trial_model){    
