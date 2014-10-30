@@ -620,12 +620,14 @@ double aps::simplex_cost(array_1d<double> &pt){
     
     if(_freeze_temp==0)_local_simplex_ct++;
 
-    double LNcost,LNcostMin,xx;
+    double LNcost,LNcostMin,xx,arg,argmin;
     int ii;
     for(ii=0;ii<nodes.get_dim();ii++){
-        LNcost = log(nodes(ii)->apply_model(pt));
+        arg=nodes(ii)->apply_model(pt);
+        LNcost=log(arg);
         if(ii==0 || LNcost<LNcostMin){
             LNcostMin=LNcost;
+            argmin=arg;
         }
     }
     
@@ -635,8 +637,16 @@ double aps::simplex_cost(array_1d<double> &pt){
         _simplex_temp*=2.0;
     }
     
-    return exp(LNcostMin);
-
+    double ans=exp(LNcostMin);
+    if(isnan(ans)){
+        printf("WARNING cost is nan -- ln %e arg %e\n",LNcostMin,arg);
+        for(ii=0;ii<ggWrap.get_dim();ii++){
+            printf("    %e\n",nodes(0)->get_basis_model(ii));
+        }
+        exit(1);
+    }
+    return ans;
+    
 }
 
 double aps::simplex_evaluate(array_1d<double> &pt, int *actually_added){
@@ -663,13 +673,13 @@ double aps::simplex_evaluate(array_1d<double> &pt, int *actually_added,
     double start_temp=_simplex_temp;
     
     /*increment the number of calls made by the current simplex search to chisquared*/
-    if(_simplex_temp>20.0)_min_ct++;
+    _min_ct++;
     
     /*actually call chisquared*/
     ggWrap.evaluate(pt,&mu,actually_added);
     
     /*if _simplex_min is improved upon...*/
-    if(mu<_simplex_min){
+    if(mu<_simplex_min || _simplex_temp<20.0){
        if(do_log==1){
            if(_last_simplex.get_rows()==0 || mu<_last_min-0.1){
               for(i=0;i<gg.get_dim()+1;i++){
@@ -680,7 +690,7 @@ double aps::simplex_evaluate(array_1d<double> &pt, int *actually_added,
            }
        }
         _simplex_min=mu;
-        _last_found=_min_ct;
+        if(_min_ct>=0)_last_found=_min_ct;
         if(actually_added[0]>=0){
             _mindex=actually_added[0];
         }
@@ -708,7 +718,7 @@ double aps::simplex_evaluate(array_1d<double> &pt, int *actually_added,
         }
         _freeze_temp=0;
     }
-
+    printf("    ans %e\n",ans);
     return ans;
 }
 
@@ -1213,6 +1223,8 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
     
     assess_node(_mindex);
     
+    printf("minct %d last_found %d\n",_min_ct,_last_found);
+    
     return _mindex;
 }
 
@@ -1309,7 +1321,7 @@ void aps::search(){
     simplex_score=time_simplex+ct_simplex*time_penalty;
     
     int i_simplex;
-    if(simplex_score<aps_score){
+    if(simplex_score<3*aps_score){
         i=ggWrap.get_called();
         aps_box_wide();
         ct_simplex+=ggWrap.get_called()-i;
@@ -1652,6 +1664,7 @@ int aps::aps_box_wide(){
         if(i>=0){
             printf("    box found %e from %e\n",ggWrap.get_fn(i),smallestSeed);
             printf("    temp %e\n",_simplex_temp);
+            if(_simplex_temp<900.0) exit(1);
         }
         else{
             printf("    box found junk\n");
