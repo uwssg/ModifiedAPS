@@ -520,6 +520,8 @@ void aps::initialize_simplex_cost(array_1d<int> &seed){
     _simplex_length_sq.reset();
     _simplex_norm.reset();
     
+    return;
+    
     int i,j,inode,ii;
     
     array_1d<double> center,model,trial,dir,projected;
@@ -613,25 +615,22 @@ double aps::simplex_cost(array_1d<double> &pt){
     if(nodes.get_dim()==0 || _simplex_temp>23.0)return 0.0;
     
     _local_simplex_ct++;
-    double LNcost,LNcostMax,xx;
+    double LNcost,LNcostMin,xx;
     int ii;
     for(ii=0;ii<nodes.get_dim();ii++){
-        xx=simplex_cost_distance_sq(pt,ii);
-        //cost=_simplex_norm.get_data(ii)*exp(-0.5*xx/_simplex_length_sq.get_data(ii));
-        LNcost = _simplex_norm.get_data(ii)-0.5*xx/_simplex_length_sq.get_data(ii);
-        
-        if(ii==0 || LNcost>LNcostMax){
-            LNcostMax=LNcost;
+        LNcost = log(nodes(ii)->apply_model(pt));
+        if(ii==0 || LNcost<LNcostMin){
+            LNcostMin=LNcost;
         }
     }
     
-    LNcostMax-=_simplex_temp;
+    LNcostMin-=_simplex_temp;
     
     if(_local_simplex_ct%100==0){
         _simplex_temp*=2.0;
     }
     
-    return exp(LNcostMax);
+    return exp(LNcostMin);
 
 }
 
@@ -657,13 +656,12 @@ double aps::simplex_evaluate(array_1d<double> &pt, int *actually_added,
     int i,j;
     
     /*increment the number of calls made by the current simplex search to chisquared*/
-    _min_ct++;
-    if(_simplex_temp<20.0)_last_found=_min_ct;
+    if(_simplex_temp>20.0)_min_ct++;
     
     /*actually call chisquared*/
     ggWrap.evaluate(pt,&mu,actually_added);
     
-    mu+=simplex_cost(pt);
+    mu-=simplex_cost(pt);
     
     /*if _simplex_min is improved upon...*/
     if(mu<_simplex_min){
