@@ -324,8 +324,9 @@ private:
     double simplex_cost_distance_sq(array_1d<double>&, int);
     
     double _simplex_temp;
-    int _local_simplex_ct;
-    array_1d<double> _simplex_length_sq,_simplex_norm;
+    int _local_simplex_ct,_freeze_temp;
+    array_1d<double> _simplex_length_sq,_simplex_norm,_simplex_transform_min;
+    array_1d<double> _simplex_transform;
     
     
     /*

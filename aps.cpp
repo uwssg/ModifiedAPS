@@ -51,6 +51,9 @@ aps::aps(int dim_in, int kk, double dd, int seed){
     _simplex_length_sq.set_name("_simplex_length_sq");
     _simplex_norm.set_name("_simplex_norm");
     
+    _simplex_transform_min.set_name("_simplex_min");
+    _simplex_transform.set_name("_simplex_transform");
+    
     write_every=1000;
     n_printed=0;
     do_bisection=1;
@@ -510,6 +513,7 @@ double aps::simplex_cost_distance_sq(array_1d<double> &pt, int inode, array_1d<d
 }
 
 void aps::initialize_simplex_cost(array_1d<int> &seed){
+    _freeze_temp=0;
     if(nodes.get_dim()==0){
        _simplex_temp=1000.0;
        return;
@@ -614,7 +618,8 @@ double aps::simplex_cost(array_1d<double> &pt){
     
     if(nodes.get_dim()==0 || _simplex_temp>23.0)return 0.0;
     
-    _local_simplex_ct++;
+    if(_freeze_temp==0)_local_simplex_ct++;
+
     double LNcost,LNcostMin,xx;
     int ii;
     for(ii=0;ii<nodes.get_dim();ii++){
@@ -626,7 +631,7 @@ double aps::simplex_cost(array_1d<double> &pt){
     
     LNcostMin-=_simplex_temp;
     
-    if(_local_simplex_ct%100==0){
+    if(_local_simplex_ct%100==0 && _freeze_temp==0){
         _simplex_temp*=2.0;
     }
     
@@ -655,13 +660,13 @@ double aps::simplex_evaluate(array_1d<double> &pt, int *actually_added,
     double mu;
     int i,j;
     
+    double start_temp=_simplex_temp;
+    
     /*increment the number of calls made by the current simplex search to chisquared*/
     if(_simplex_temp>20.0)_min_ct++;
     
     /*actually call chisquared*/
     ggWrap.evaluate(pt,&mu,actually_added);
-    
-    mu-=simplex_cost(pt);
     
     /*if _simplex_min is improved upon...*/
     if(mu<_simplex_min){
@@ -681,8 +686,30 @@ double aps::simplex_evaluate(array_1d<double> &pt, int *actually_added,
         }
     }
     
+    //if the temperature has changed, we should reset
+    //the mu-cost values in ff
+    double nn,ans;
     
-    return mu;
+    ans=mu-simplex_cost(pt);
+    
+    array_1d<double> true_var;
+    true_var.set_name("simplex_evaluate_true_var");
+    if(do_log==1 && _simplex_temp-start_temp>0.1*start_temp){
+        _freeze_temp=1;
+        for(i=0;i<pp.get_rows();i++){
+            for(j=0;j<pp.get_cols();j++){
+                true_var.set(j,_simplex_transform_min.get_data(j)+pp.get_data(i,j)*_simplex_transform.get_data(j));
+            }
+        
+        
+            ggWrap.evaluate(true_var,&mu);
+            nn=simplex_cost(true_var);
+            ff.set(i,mu-nn);
+        }
+        _freeze_temp=0;
+    }
+
+    return ans;
 }
 
 int aps::find_global_minimum(array_1d<int> &neigh){
@@ -859,9 +886,18 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
     are made to chisquared without improving _simplex_min, then the simplex search
     will end.
     */
+    
+    double start_temp;
+    
+    for(i=0;i<dim;i++){
+        _simplex_transform_min.set(i,min.get_data(i));
+        _simplex_transform.set(i,length.get_data(i));
+    }
+    
     while(_min_ct-_last_found<200 && (limit<0 || ggWrap.get_called()-ibefore<limit)){
         simplex_ct++;
-        
+        start_temp=_simplex_temp;
+
         for(i=0;i<dim;i++){
             pbar.set(i,0.0);
             for(j=0;j<dim+1;j++){
@@ -965,7 +1001,7 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
                 }
             }
         }
-        
+      
         for(i=0;i<dim+1;i++){
             if(i==0 || ff.get_data(i)<ff.get_data(il)){
                 il=i;
@@ -991,6 +1027,7 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
         
         //used to be 0.1
         if(spread<1.0){
+            _freeze_temp=1;
             /*
             If it appears that the simplex is converging into a valley in chisquared, 
             try a modified gradient descent from the current minimum point of the simplex, 
@@ -1130,7 +1167,7 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
                 if(i==0 || ff.get_data(i)>ff.get_data(ih))ih=i;
             }
             
-            
+            _freeze_temp=0;
         }
         
     }
