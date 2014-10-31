@@ -1165,13 +1165,17 @@ array_1d<double> &dd){
 }
 
 double node::apply_model(array_1d<double> &pt){
+    return apply_model(pt,basisVectors,basisModel);
+}
+
+double node::apply_model(array_1d<double> &pt, array_2d<double> &_bases, array_1d<double> &_model){
     double ans=gg->get_fn(min_dex);
     array_1d<double> dd;
     dd.set_name("node_apply_model_dd");
-    project_distance(pt,min_dex,basisVectors,dd);
+    project_distance(pt,min_dex,_bases,dd);
     int i;
     for(i=0;i<gg->get_dim();i++){
-        ans+=basisModel.get_data(i)*power(dd.get_data(i),2);
+        ans+=_model.get_data(i)*power(dd.get_data(i),2);
     }
     return ans;
 }

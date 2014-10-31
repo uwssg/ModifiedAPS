@@ -55,6 +55,8 @@ class node{
         double get_basis(int,int);
         double get_basis_model(int);
         double apply_model(array_1d<double>&);
+        
+        double apply_model(array_1d<double>&,array_2d<double>&,array_1d<double>&);
         void set_basis(int,int,double);
         
         double volume();
