@@ -1104,6 +1104,77 @@ int node::perturb_bases(array_2d<double> &bases_in, int ix, array_1d<double> &dx
     return 1;
 }
 
+void node::project_distance(array_1d<double> &p1, int ip, array_2d<double> &bb, array_1d<double> &dd){
+    project_distance(ip,p1,bb,dd);
+}
+
+void node::project_distance(int ip, array_1d<double> &p2, array_2d<double> &bb, array_1d<double> &dd){
+    if(ip<0 || ip>=gg->get_pts()){
+        printf("WARNING want to project distance to %d but %d\n",
+        ip,gg->get_pts());
+        
+        exit(1);
+    }
+
+    array_1d<double> p1;
+    p1.set_name("node_projection_int_p1");
+    int i;
+    for(i=0;i<gg->get_dim();i++){
+        p1.set(i,gg->get_pt(ip,i));
+    }
+    project_distance(p1,p2,bb,dd);
+}
+
+void node::project_distance(int i1, int i2, array_2d<double> &bb, array_1d<double> &dd){
+    if(i1<0 || i2<0 || i1>=gg->get_pts() || i2>=gg->get_pts()){
+        printf("WARNING want to project distance between %d and %d but %d\n",
+        i1,i2,gg->get_pts());
+        
+        exit(1);
+    }
+
+    array_1d<double> p1,p2;
+    p1.set_name("node_projection_p1");
+    p2.set_name("node_projection_p2");
+    int i;
+    for(i=0;i<gg->get_dim();i++){
+        p1.set(i,gg->get_pt(i1,i));
+        p2.set(i,gg->get_pt(i2,i));
+    }
+    project_distance(p1,p2,bb,dd);
+}
+
+void node::project_distance(array_1d<double> &p1, array_1d<double> &p2, array_2d<double> &_bases,
+array_1d<double> &dd){
+    
+    if(_bases.get_rows()!=gg->get_dim() || _bases.get_cols()!=gg->get_dim()){
+        printf("WARNING in project_distance bases is %d by %d but dim %d\n",
+        _bases.get_rows(),_bases.get_cols(),gg->get_dim());
+        
+        exit(1);
+    }
+    
+    dd.reset();
+    int i,ix;
+    for(ix=0;ix<_bases.get_rows();ix++){
+        dd.set(ix,0.0);
+        for(i=0;i<gg->get_dim();i++){
+            dd.add_val(ix,(p1.get_data(i)-p2.get_data(i))*_bases.get_data(ix,i));
+        }
+    }
+}
+
+double node::apply_model(array_1d<double> &pt){
+    double ans=gg->get_fn(min_dex);
+    array_1d<double> dd;
+    dd.set_name("node_apply_model_dd");
+    project_distance(pt,min_dex,basisVectors,dd);
+    int i;
+    for(i=0;i<gg->get_dim();i++){
+        ans+=basisModel.get_data(i)*power(dd.get_data(i),2);
+    }
+    return ans;
+}
 
 double node::basis_error(array_2d<double> &trial_bases, 
 array_1d<int> &basis_associates, array_1d<double> &trial_model){    
@@ -1125,7 +1196,9 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
     bb.set_name("node_basis_error_bb");
     
     array_2d<double> dd;
+    array_1d<double> ddvector;
     dd.set_name("node_basis_error_dd");
+    ddvector.set_name("node_basis_error_ddvector");
     
     matrix.set_dim(gg->get_dim()*gg->get_dim());
     bb.set_dim(gg->get_dim());
@@ -1133,13 +1206,9 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
     
     for(i=0;i<basis_associates.get_dim();i++){
         k=basis_associates.get_data(i);
+        project_distance(k,min_dex,trial_bases,ddvector);
         for(j=0;j<gg->get_dim();j++){
-            nn=0.0;
-            for(jx=0;jx<gg->get_dim();jx++){
-                nn+=(gg->get_pt(k,jx)-gg->get_pt(min_dex,jx))*trial_bases.get_data(j,jx);
-            }
-            dd.set(i,j,nn*nn);
-            
+            dd.set(i,j,power(ddvector.get_data(j),2));
             if(isnan(dd.get_data(i,j))){
                 printf("WARNING in basis_error dd is nan\n");
                 exit(1);
