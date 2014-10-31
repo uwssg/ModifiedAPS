@@ -4,6 +4,7 @@ void node::set_names(){
     associates.set_name("node_associates");
     boundaryPoints.set_name("node_boundaryPoints");
     basisVectors.set_name("node_basisVectors");
+    basisModel.set_name("node_basisModel");
     range_max.set_name("node_range_max");
     range_min.set_name("node_range_min");
     candidates.set_name("node_candidates");
@@ -50,6 +51,7 @@ void node::copy(const node &in){
     associates.reset();
     boundaryPoints.reset();
     basisVectors.reset();
+    basisModel.reset();
     range_min.reset();
     range_max.reset();
     candidates.reset();
@@ -111,6 +113,11 @@ void node::copy(const node &in){
         candidates.add(in.candidates.get_data(i));
     }
     
+    
+    for(i=0;i<in.basisModel.get_dim();i++){
+        basisModel.set(i,in.basisModel.get_data(i));
+    }
+    
     if(gg!=NULL){
         if(gg->is_gp_null()==0){
             
@@ -160,6 +167,7 @@ void node::set_gpWrapper(gpWrapper *ggin){
     basisVectors.set_dim(gg->get_dim(),gg->get_dim());
     
     for(i=0;i<gg->get_dim();i++){
+        basisModel.set(i,1.0);
         for(j=0;j<gg->get_dim();j++){
             if(i==j)basisVectors.set(i,j,1.0);
             else basisVectors.set(i,j,0.0);
@@ -1097,7 +1105,8 @@ int node::perturb_bases(array_2d<double> &bases_in, int ix, array_1d<double> &dx
 }
 
 
-double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_associates){    
+double node::basis_error(array_2d<double> &trial_bases, 
+array_1d<int> &basis_associates, array_1d<double> &trial_model){    
     /*
     trial_bases is now made up of a bunch of orthonormal vectors which resulted from
     the small perturbation of the original best_bases.  Now we will see how well a
@@ -1160,9 +1169,6 @@ double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_ass
             }
         }
     }
-    
-    array_1d<double> trial_model;
-    trial_model.set_name("node_basis_error_trial_model");
     
     try{
         naive_gaussian_solver(matrix,bb,trial_model,gg->get_dim());
@@ -1260,9 +1266,13 @@ void node::find_bases(){
         }
     }
     
-    Ebest0=basis_error(bases_best,basis_associates);
+    Ebest0=basis_error(bases_best,basis_associates,basisModel);
     Ebest=Ebest0;
     lastEbest=Ebest0;
+    
+    array_1d<double> trial_model,best_model;
+    trial_model.set_name("find_bases_trial_model");
+    best_model.set_name("find_bases_best_model");
     
     int ix,changed_bases=0,aborted=0,max_abort=10*gg->get_dim(),total_aborted=0,total_ct=0;
     double stdevlim=1.0e-5/sqrt(double(gg->get_dim()));
@@ -1285,12 +1295,13 @@ void node::find_bases(){
         total_ct++;
         
         perturb_bases(bases_best,ix,dx,bases_trial);
-        Etrial=basis_error(bases_trial,basis_associates);
+        Etrial=basis_error(bases_trial,basis_associates,trial_model);
         
         if(Etrial<Ebest){
             aborted=0;
             changed_bases=1;
             for(i=0;i<gg->get_dim();i++){
+                best_model.set(i,trial_model.get_data(i));
                 for(j=0;j<gg->get_dim();j++){
                     bases_best.set(i,j,bases_trial.get_data(i,j));
                 }
@@ -1326,6 +1337,7 @@ void node::find_bases(){
     
     if(changed_bases==1){
         for(i=0;i<gg->get_dim();i++){
+            basisModel.set(i,best_model.get_data(i));
             for(j=0;j<gg->get_dim();j++){
                 basisVectors.set(i,j,bases_best.get_data(i,j));
             }
@@ -1610,6 +1622,24 @@ int node::get_ct_coulomb(){
 
 int node::get_ct_bases(){
     return ct_bases;
+}
+
+double node::get_basis_model(int ix){
+    if(basisModel.get_dim()!=gg->get_dim()){
+        printf("WARNING basis model has %d but dim %d\n",
+        basisModel.get_dim(),gg->get_dim());
+        
+        exit(1);
+    }
+    
+    if(ix<0 || ix>=basisModel.get_dim()){
+        printf("WARNING asked for basis model %d but %d\n",
+        ix,basisModel.get_dim());
+        
+        exit(1);
+    }
+    
+    return basisModel.get_data(ix);
 }
 
 double node::get_basis(int ix, int iy){
