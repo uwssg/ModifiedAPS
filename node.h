@@ -103,6 +103,9 @@ class node{
         void find_bases();
         int perturb_bases(array_2d<double>&,int,array_1d<double>&,array_2d<double>&);
         double basis_error(array_2d<double>&,array_1d<int>&,array_1d<double>&);
+        
+        double basis_error_fn(array_2d<double>&, array_1d<int>&, array_1d<double>&);
+        
         void recenter();
         
         void project_distance(int,array_1d<double>&,array_2d<double>&,

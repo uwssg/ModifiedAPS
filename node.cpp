@@ -1180,6 +1180,44 @@ double node::apply_model(array_1d<double> &pt, array_2d<double> &_bases, array_1
     return ans;
 }
 
+double node::basis_error_fn(array_2d<double> &trial_bases, array_1d<int> &basis_associates,
+array_1d<double> &trial_model){
+    /*
+    This is the function that basis_error is trying to minimize (with the constraint that all
+    of the model coefficients are positive) using a simplex
+    */
+    
+    int i;
+    for(i=0;i<trial_model.get_dim();i++){
+        if(trial_model.get_data(i)<0.0)return 2.0*chisq_exception;
+    }
+    
+    array_1d<double> vv;
+    vv.set_name("node_basis_error_fn_vv");
+    double ans=0.0,chisqModel,ratio;
+    int ix,ipt;
+    for(ix=0;ix<basis_associates.get_dim();ix++){
+        ipt=basis_associates.get_data(ix);
+        for(i=0;i<gg->get_dim();i++){
+            vv.set(i,gg->get_pt(ipt,i));
+        }
+        chisqModel=apply_model(vv,trial_bases,trial_model);
+        
+        ans+=fabs(1.0-chisqModel/gg->get_fn(ipt));
+    }
+    
+    if(isnan(ans)){
+        printf("WARNING in basis_error_fn ans is nan\n");
+        for(ix=0;ix<basis_associates.get_dim();ix++){
+            printf("%e\n",gg->get_fn(basis_associates.get_data(ix)));
+        }
+        exit(1);
+    }
+    
+    return ans/double(basis_associates.get_dim());;
+
+}
+
 double node::basis_error(array_2d<double> &trial_bases, 
 array_1d<int> &basis_associates, array_1d<double> &trial_model){    
     /*
@@ -1192,86 +1230,123 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
         return 2.0*chisq_exception;
     }
     
-    int i,j,k,jx;
-    double nn;
+    /*this will have to do a simplex to find the best model that is positive definite*/
     
-    array_1d<double> matrix,bb;
-    matrix.set_name("node_basis_error_matrix");
-    bb.set_name("node_basis_error_bb");
+    double ans;
+    double alpha=1.0,best=0.5,gamma=2.1;
+    double fstar,fstarstar,nn;
+    int ih,il,i,j,k;
+    array_2d<double> pts;
+    array_1d<double> pbar,ff,pstar,pstarstar;
     
-    array_2d<double> dd;
-    array_1d<double> ddvector;
-    dd.set_name("node_basis_error_dd");
-    ddvector.set_name("node_basis_error_ddvector");
+    pts.set_name("node_basis_error_pts");
+    pbar.set_name("node_basis_error_pbar");
+    ff.set_name("node_basis_error_ff");
+    pstar.set_name("node_basis_error_pstar");
+    pstarstar.set_name("node_basis_error_pstarstar");
     
-    matrix.set_dim(gg->get_dim()*gg->get_dim());
-    bb.set_dim(gg->get_dim());
-    dd.set_dim(basis_associates.get_dim(),gg->get_dim());
-    
-    for(i=0;i<basis_associates.get_dim();i++){
-        k=basis_associates.get_data(i);
-        project_distance(k,min_dex,trial_bases,ddvector);
+    for(i=0;i<gg->get_dim()+1;i++){
         for(j=0;j<gg->get_dim();j++){
-            dd.set(i,j,power(ddvector.get_data(j),2));
-            if(isnan(dd.get_data(i,j))){
-                printf("WARNING in basis_error dd is nan\n");
-                exit(1);
-            }
+            pts.set(i,j,1000.0*dice->doub());
+        }
+        
+        nn=basis_error_fn(trial_bases,basis_associates,pts(i)[0])
+        ff.set(i,nn);
+        if(i==0 || nn<ff.get_data(il)){
+            il=i;
+        }
+        
+        if(i==0 || nn>ff.get_data(ih)){
+            ih=i;
         }
     }
     
-    for(i=0;i<gg->get_dim();i++){
-        for(j=0;j<gg->get_dim();j++){
-            matrix.set(i*gg->get_dim()+j,0.0);
-            for(jx=0;jx<basis_associates.get_dim();jx++){
-                k=basis_associates.get_data(jx);
-                if(gg->get_fn(k)>gg->get_fn(min_dex)){
-                    matrix.add_val(i*gg->get_dim()+j,
-                    dd.get_data(jx,i)*dd.get_data(jx,j)/power(gg->get_fn(k)-gg->get_fn(min_dex),2));
+    
+    int maxAbort,iterations,last_found;
+    double oldmin;
+    
+    iterations=0;
+    last_found=0;
+    maxAbort=10*gg->get_dim();
+    
+    int dim=gg->get_dim();
+    
+    while(iterations-last_found<maxAbort){
+        iterations++;
+        oldmin=ff.get_data(il);
+        
+        for(i=0;i<dim;i++){
+            pbar.set(i,0.0);
+            for(j=0;j<dim+1;j++){
+                if(j!=ih){
+                    pbar.add_val(i,pts.get_data(j,i));
+                }
+            }
+            pbar.divide_val(i,double(dim));
+        }
+        fstar=basis_error_fn(trial_bases,basis_associates,pbar);
+        
+        if(fstar<ff.get_data(ih) && fstar>ff.get_data(il)){
+            ff.set(ih,fstar);
+            for(i=0;i<dim;i++){
+                pts.set(ih,i,pstar.get_data(i));
+            }
+        }
+        else if(fstar<ff.get_data(il)){
+            for(i=0;i<dim;i++){
+                pstarstar.set(i,gamma*pstar.get_data(i)+(1.0-gamma)*pbar.get_data(i));
+            }
+            fstarstar=basis_error_fn(trial_bases,basis_associates,pstarstar);
+            
+            if(fstarstar<ff.get_data(il)){
+                for(i=0;i<dim;i++)pst.set(ih,i,pstarstar.get_data(i));
+                ff.set(ih,fstarstar);
+            }
+            else{
+                for(i=0;i<dim;i++)pts.set(ih,i,pstar.get_data(i));
+                ff.set(ih,fstar);
+            }
+        }
+        
+        for(i=0;i<dim+1;i++){
+            if(i==0 || ff.get_data(i)<ff.get_data(il))il=i;
+            if(i==0 || ff.get_data(i)>ff.get_data(ih))ih=i;
+        }
+        
+        j=1;
+        for(i=0;i<dim+1;i++){
+            if(fstar<ff.get_data(i) && i!=ih){
+                j=0;
+            }
+        }
+        
+        if(j==1){
+            for(i=0;i<dim;i++){
+                pstarstar.set(i,beta*pts.get_data(ih,i)+(1.0-beta)*pbar.get_data(i));
+            }
+            fstarstar=basis_error_fn(trial_bases,basis_associates,pstarstar);
+            
+            if(fstarstar<ff.get_data(ih)){
+                for(i=0;i<dim;i++)pts.set(ih,i,pstarstar.get_data(i));
+                ff.set(ih,fstarstar);
+            }
+            else{
+                for(i=0;i<dim+1;i++){
+                    if(i==0 || ff.get_data(i)<ff.get_data(il)){
+                        il=i;
+                    }
+                }
+                for(i=0;i<dim+1;i++){
+                    if(i!=il){
+                        for(j=0;j<dim;j++){
+                            nn=0.5*(pts.get_data(i,j)+pts.get_data(il,j));
+                            pts.set(i,j,nn);
+                        }
+                        nn=basis_error_fn(trial_bases,basis_associates,pts(i)[0]);spock
+                    }
                 }
             }
         }
-    }
-    
-    for(i=0;i<gg->get_dim();i++){
-        bb.set(i,0.0);
-        for(jx=0;jx<basis_associates.get_dim();jx++){
-            k=basis_associates.get_data(jx);
-            if(gg->get_fn(k)>gg->get_fn(min_dex)){
-                bb.add_val(i,dd.get_data(jx,i)/(gg->get_fn(k)-gg->get_fn(min_dex)));
-            }
-        }
-    }
-    
-    try{
-        naive_gaussian_solver(matrix,bb,trial_model,gg->get_dim());
-    }
-    catch(int iex){
-    }
-    
-    double ans=0.0;
-    for(jx=0;jx<basis_associates.get_dim();jx++){
-        k=basis_associates.get_data(jx);
-        nn=gg->get_fn(k)-gg->get_fn(min_dex);
-        for(i=0;i<gg->get_dim();i++){
-            nn-=trial_model.get_data(i)*dd.get_data(jx,i);
-        }
-        nn=nn/(gg->get_fn(k)-gg->get_fn(min_dex));
-        ans+=nn*nn;
-    }
-    
-    if(isnan(ans)){
-        printf("WARNING in basis_error ans is nan\n");
-        for(jx=0;jx<basis_associates.get_dim();jx++){
-	    k=basis_associates.get_data(jx);
-	    nn=gg->get_fn(k)-gg->get_fn(min_dex);
-	    if(isnan(nn) || nn<1.0e-10){
-	        printf("ggfn %e chisq %e %e\n",gg->get_fn(k),gg->get_fn(min_dex),nn);
-	    }
-	}
-     
-        return 2.0*chisq_exception;
-    
     }
     
     return ans/double(basis_associates.get_dim());
