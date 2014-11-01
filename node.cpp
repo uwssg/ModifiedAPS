@@ -1249,7 +1249,7 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
     
     for(i=0;i<gg->get_dim()+1;i++){
         for(j=0;j<gg->get_dim();j++){
-            pts.set(i,j,1000.0*dice->doub());
+            pts.set(i,j,dice->doub()*2.0*basisModel.get_data(j));
         }
         
         nn=basis_error_fn(trial_bases,basis_associates,pts(i)[0]);
@@ -1358,7 +1358,7 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
         }
         
         for(i=0;i<dim+1;i++){
-            if(i=0 || ff.get_data(i)<ff.get_data(il)){
+            if(i==0 || ff.get_data(i)<ff.get_data(il)){
                 il=i;
             }
             if(i==0 || ff.get_data(i)>ff.get_data(ih)){
@@ -1371,7 +1371,13 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
         }
     }
     
-    return ans/double(basis_associates.get_dim());
+    printf("    iterations %d -- %e\n",iterations,ff.get_data(il));
+    
+    for(i=0;i<dim;i++){
+        trial_model.set(i,pts.get_data(il,i));
+    }
+    
+    return ff.get_data(il);
 }
 
 void node::find_bases(){
@@ -1472,6 +1478,7 @@ void node::find_bases(){
             changed_bases=1;
             for(i=0;i<gg->get_dim();i++){
                 best_model.set(i,trial_model.get_data(i));
+                basisModel.set(i,trial_model.get_data(i));
                 for(j=0;j<gg->get_dim();j++){
                     bases_best.set(i,j,bases_trial.get_data(i,j));
                 }
