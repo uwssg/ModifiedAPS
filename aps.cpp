@@ -797,7 +797,7 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
                         }
                         
                         mu=simplex_evaluate(true_var,&actually_added,pts,ff);
-                        
+                        ff.set(i,mu);
                         
                     }
                 }
