@@ -1659,7 +1659,7 @@ int node::search(){
     
     iBisection=bisectionAssociate(iLow,iHigh);
     
-    if(time_bases+time_penalty*ct_bases > 0.5*(time_search+time_penalty*ct_search) && 
+    if(time_bases+time_penalty*ct_bases<0.5*(time_search+time_penalty*ct_search) && 
       (associates.get_dim()>last_nAssociates+20 || last_nAssociates==0) && 
       associates.get_dim()>20){
         try{
