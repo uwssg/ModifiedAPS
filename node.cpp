@@ -1245,6 +1245,8 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
     pstar.set_name("node_basis_error_pstar");
     pstarstar.set_name("node_basis_error_pstarstar");
     
+    pts.set_cols(gg->get_dim());
+    
     for(i=0;i<gg->get_dim()+1;i++){
         for(j=0;j<gg->get_dim();j++){
             pts.set(i,j,1000.0*dice->doub());
