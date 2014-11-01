@@ -1180,7 +1180,7 @@ double node::apply_model(array_1d<double> &pt, array_2d<double> &_bases, array_1
     return ans;
 }
 
-double node::basis_error_fn(array_2d<double> &trial_bases, array_1d<int> &basis_associates,
+double node::basis_error_fn(array_2d<double> &trial_ddsq, array_1d<int> &basis_associates,
 array_1d<double> &trial_model){
     /*
     This is the function that basis_error is trying to minimize (with the constraint that all
@@ -1192,18 +1192,15 @@ array_1d<double> &trial_model){
         if(trial_model.get_data(i)<0.0)return 2.0*chisq_exception;
     }
     
-    array_1d<double> vv;
-    vv.set_name("node_basis_error_fn_vv");
-    double ans=0.0,chisqModel,ratio;
-    int ix,ipt;
+    double ans=0.0,chisqModel,ratio,chi0;
+    chi0=gg->get_fn(min_dex);
+    int ix;
     for(ix=0;ix<basis_associates.get_dim();ix++){
-        ipt=basis_associates.get_data(ix);
+        chisqModel=chi0;
         for(i=0;i<gg->get_dim();i++){
-            vv.set(i,gg->get_pt(ipt,i));
+            chisqModel+=trial_ddsq.get_data(ix,i)*trial_model.get_data(i);
         }
-        chisqModel=apply_model(vv,trial_bases,trial_model);
-        
-        ans+=fabs(1.0-chisqModel/gg->get_fn(ipt));
+        ans+=fabs(1.0-(chisqModel-chi0)/(gg->get_fn(basis_associates.get_data(ix))-chi0));
     }
     
     if(isnan(ans)){
@@ -1214,7 +1211,7 @@ array_1d<double> &trial_model){
         exit(1);
     }
     
-    return ans/double(basis_associates.get_dim());;
+    return ans/double(basis_associates.get_dim());
 
 }
 
@@ -1239,6 +1236,18 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
     array_2d<double> pts;
     array_1d<double> pbar,ff,pstar,pstarstar;
     
+    array_1d<double> vv;
+    array_2d<double> ddsq;
+    vv.set_name("node_basis_error_vv");
+    ddsq.set_name("node_basis_error_ddsq");
+    ddsq.set_cols(gg->get_dim());
+    for(i=0;i<basis_associates.get_dim();i++){
+        project_distance(basis_associates.get_data(i),min_dex,trial_bases,vv);
+        for(j=0;j<gg->get_dim();j++){
+            ddsq.set(i,j,vv.get_data(j)*vv.get_data(j));
+        }
+    }
+    
     pts.set_name("node_basis_error_pts");
     pbar.set_name("node_basis_error_pbar");
     ff.set_name("node_basis_error_ff");
@@ -1249,10 +1258,10 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
     
     for(i=0;i<gg->get_dim()+1;i++){
         for(j=0;j<gg->get_dim();j++){
-            pts.set(i,j,dice->doub()*2.0*basisModel.get_data(j));
+            pts.set(i,j,(0.5+dice->doub())*basisModel.get_data(j));
         }
         
-        nn=basis_error_fn(trial_bases,basis_associates,pts(i)[0]);
+        nn=basis_error_fn(ddsq,basis_associates,pts(i)[0]);
         ff.set(i,nn);
         if(i==0 || nn<ff.get_data(il)){
             il=i;
@@ -1273,7 +1282,7 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
     if(maxAbort<200)maxAbort=200;
     
     int dim=gg->get_dim();
-    
+    //printf("starting %e\n",ff.get_data(il));
     while(iterations-last_found<maxAbort){
         iterations++;
         oldmin=ff.get_data(il);
@@ -1292,7 +1301,7 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
             pstar.set(i,(1.0+alpha)*pbar.get_data(i)-alpha*pts.get_data(ih,i));
         }
         
-        fstar=basis_error_fn(trial_bases,basis_associates,pstar);
+        fstar=basis_error_fn(ddsq,basis_associates,pstar);
         
         if(fstar<ff.get_data(ih) && fstar>ff.get_data(il)){
             ff.set(ih,fstar);
@@ -1304,7 +1313,7 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
             for(i=0;i<dim;i++){
                 pstarstar.set(i,gamma*pstar.get_data(i)+(1.0-gamma)*pbar.get_data(i));
             }
-            fstarstar=basis_error_fn(trial_bases,basis_associates,pstarstar);
+            fstarstar=basis_error_fn(ddsq,basis_associates,pstarstar);
             
             if(fstarstar<ff.get_data(il)){
                 for(i=0;i<dim;i++)pts.set(ih,i,pstarstar.get_data(i));
@@ -1332,7 +1341,7 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
             for(i=0;i<dim;i++){
                 pstarstar.set(i,beta*pts.get_data(ih,i)+(1.0-beta)*pbar.get_data(i));
             }
-            fstarstar=basis_error_fn(trial_bases,basis_associates,pstarstar);
+            fstarstar=basis_error_fn(ddsq,basis_associates,pstarstar);
             
             if(fstarstar<ff.get_data(ih)){
                 for(i=0;i<dim;i++)pts.set(ih,i,pstarstar.get_data(i));
@@ -1350,7 +1359,7 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
                             nn=0.5*(pts.get_data(i,j)+pts.get_data(il,j));
                             pts.set(i,j,nn);
                         }
-                        nn=basis_error_fn(trial_bases,basis_associates,pts(i)[0]);
+                        nn=basis_error_fn(ddsq,basis_associates,pts(i)[0]);
                         ff.set(i,nn);
                     }
                 }
@@ -1365,16 +1374,17 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
                 ih=i;
             }
         }
-        
+        //if(iterations%200==0)printf("    %e \n",ff.get_data(il));
         if(ff.get_data(il)<oldmin){
             last_found=iterations;
         }
     }
     
-    printf("    iterations %d -- %e\n",iterations,ff.get_data(il));
+    //printf("    iterations %d -- %e\n",iterations,ff.get_data(il));
     
     for(i=0;i<dim;i++){
         trial_model.set(i,pts.get_data(il,i));
+       // printf("        %e\n",pts.get_data(il,i));
     }
     
     return ff.get_data(il);
@@ -1474,7 +1484,14 @@ void node::find_bases(){
         Etrial=basis_error(bases_trial,basis_associates,trial_model);
         
         if(Etrial<Ebest){
-            aborted=0;
+            //printf("    improved %e < %e -- %d\n",Etrial,Ebest,aborted);
+            if(Ebest-Etrial>1.0e-5*Etrial){
+                aborted=0;
+            }
+            else{
+                aborted++;
+                total_aborted++;
+            }
             changed_bases=1;
             for(i=0;i<gg->get_dim();i++){
                 best_model.set(i,trial_model.get_data(i));
@@ -1510,7 +1527,7 @@ void node::find_bases(){
     printf("done finding bases %d %d \n",aborted,total_ct);
     printf("criteria %e <> %e // %e <> %e\n",stdev,stdevlim,Ebest,0.01*Ebest0);
     printf("changed bases %d time %e\n",changed_bases,double(time(NULL))-before);
-    printf("\n");
+    printf("Ebest %e\n",Ebest);
     
     if(changed_bases==1){
         for(i=0;i<gg->get_dim();i++){
@@ -1520,6 +1537,23 @@ void node::find_bases(){
             }
         }
         
+    }
+    
+    array_1d<double> vv;
+    array_2d<double> ddsq;
+    ddsq.set_cols(gg->get_dim());
+    for(i=0;i<basis_associates.get_dim();i++){
+        project_distance(min_dex,basis_associates.get_data(i),basisVectors,vv);
+        for(j=0;j<gg->get_dim();j++){
+            ddsq.set(i,j,vv.get_data(j)*vv.get_data(j));
+        }
+    }
+    
+    printf("basis error %e\n",
+    basis_error_fn(ddsq,basis_associates,basisModel));
+    printf("\n");
+    
+    if(changed_bases==1){
         compass_search(min_dex);
     }
     
