@@ -1233,7 +1233,7 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
     /*this will have to do a simplex to find the best model that is positive definite*/
     
     double ans;
-    double alpha=1.0,best=0.5,gamma=2.1;
+    double alpha=1.0,beta=0.5,gamma=2.1;
     double fstar,fstarstar,nn;
     int ih,il,i,j,k;
     array_2d<double> pts;
@@ -1250,7 +1250,7 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
             pts.set(i,j,1000.0*dice->doub());
         }
         
-        nn=basis_error_fn(trial_bases,basis_associates,pts(i)[0])
+        nn=basis_error_fn(trial_bases,basis_associates,pts(i)[0]);
         ff.set(i,nn);
         if(i==0 || nn<ff.get_data(il)){
             il=i;
@@ -1268,6 +1268,7 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
     iterations=0;
     last_found=0;
     maxAbort=10*gg->get_dim();
+    if(maxAbort<200)maxAbort=200;
     
     int dim=gg->get_dim();
     
@@ -1284,7 +1285,12 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
             }
             pbar.divide_val(i,double(dim));
         }
-        fstar=basis_error_fn(trial_bases,basis_associates,pbar);
+        
+        for(i=0;i<dim;i++){
+            pstar.set(i,(1.0+alpha)*pbar.get_data(i)-alpha*pts.get_data(ih,i));
+        }
+        
+        fstar=basis_error_fn(trial_bases,basis_associates,pstar);
         
         if(fstar<ff.get_data(ih) && fstar>ff.get_data(il)){
             ff.set(ih,fstar);
@@ -1299,7 +1305,7 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
             fstarstar=basis_error_fn(trial_bases,basis_associates,pstarstar);
             
             if(fstarstar<ff.get_data(il)){
-                for(i=0;i<dim;i++)pst.set(ih,i,pstarstar.get_data(i));
+                for(i=0;i<dim;i++)pts.set(ih,i,pstarstar.get_data(i));
                 ff.set(ih,fstarstar);
             }
             else{
@@ -1342,10 +1348,24 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
                             nn=0.5*(pts.get_data(i,j)+pts.get_data(il,j));
                             pts.set(i,j,nn);
                         }
-                        nn=basis_error_fn(trial_bases,basis_associates,pts(i)[0]);spock
+                        nn=basis_error_fn(trial_bases,basis_associates,pts(i)[0]);
+                        ff.set(i,nn);
                     }
                 }
             }
+        }
+        
+        for(i=0;i<dim+1;i++){
+            if(i=0 || ff.get_data(i)<ff.get_data(il)){
+                il=i;
+            }
+            if(i==0 || ff.get_data(i)>ff.get_data(ih)){
+                ih=i;
+            }
+        }
+        
+        if(ff.get_data(il)<oldmin){
+            last_found=iterations;
         }
     }
     
