@@ -916,6 +916,7 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
                 //printf("    gradient norm %e\n",mu2);
             }//if _last_ff.get_dim()>0
             else{
+                mu=1.0;
                 for(i=0;i<dim;i++)step.set(i,gradient.get_data(i));
             }
             
