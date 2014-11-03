@@ -85,6 +85,9 @@ eigen_wrapper.o containers.o box.o
 gp_wrapper.o: gp_wrapper.h gp_wrapper.cpp chisq.o gaussian_process.o
 	$(gg) -c gp_wrapper.cpp
 
+simplex.o: gp_wrapper.o simplex.h simplex.cpp
+	$(gg) -c simplex.cpp
+
 node.o: node.cpp node.h gp_wrapper.o
 	$(gg) -c node.cpp
 
