@@ -45,9 +45,6 @@ aps::aps(int dim_in, int kk, double dd, int seed){
     _aps_wide_contents_buffer.set_name("_aps_wide_contents_buffer");
     _aps_wide_ss_buffer.set_name("_aps_wide_ss_buffer");
     
-    _last_ff.set_name("find_global_min_last_ff");
-    _last_simplex.set_name("find_global_min_last_simplex");
-    
     write_every=1000;
     n_printed=0;
     do_bisection=1;
@@ -476,56 +473,6 @@ int aps::is_it_a_candidate(int dex){
     else return 0;
 }
 
-
-double aps::simplex_evaluate(array_1d<double> &pt, int *actually_added){
-    array_2d<double> pp;
-    array_1d<double> ff;
-    
-    return simplex_evaluate(pt,actually_added,pp,ff,0);
-}
-
-double aps::simplex_evaluate(array_1d<double> &pt, int *actually_added,
-    array_2d<double> &pp, array_1d<double> &ff){
-
-
-    return simplex_evaluate(pt,actually_added,pp,ff,1);
-    
-}
-
-double aps::simplex_evaluate(array_1d<double> &pt, int *actually_added, 
-     array_2d<double> &pp, array_1d<double> &ff, int do_log){
-          
-    double mu;
-    int i,j;
-    
-    /*increment the number of calls made by the current simplex search to chisquared*/
-    _min_ct++;
-    
-    /*actually call chisquared*/
-    ggWrap.evaluate(pt,&mu,actually_added);
-    
-    /*if _simplex_min is improved upon...*/
-    if(mu<_simplex_min){
-       if(do_log==1){
-           if(_last_simplex.get_rows()==0 || mu<_last_min-0.1){
-              for(i=0;i<gg.get_dim()+1;i++){
-                  _last_simplex.set_row(i,*pp(i));
-                  _last_ff.set(i,ff.get_data(i));
-              }    
-              _last_min=mu;
-           }
-       }
-        _simplex_min=mu;
-        _last_found=_min_ct;
-        if(actually_added[0]>=0){
-            _mindex=actually_added[0];
-        }
-    }
-    
-    
-    return mu;
-}
-
 int aps::find_global_minimum(array_1d<int> &neigh){
     return find_global_minimum(neigh,-1);
 }
@@ -557,465 +504,56 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
         exit(1);
     }
     
-    int i_before=ggWrap.get_called();
-
-    array_1d<double> vv;
-    array_1d<int> simplex_candidates;
-    
-    vv.set_name("find_global_min_vv");
-    
-    array_2d<double> pts;
-    array_1d<double> pbar,ff,pstar,pstarstar;
-    array_1d<double> min,max,true_var,length;
-    
-    vv.set_name("find_global_min_vv");
-    pts.set_name("find_global_min_pts");
-    pbar.set_name("find_global_min_pbar");
-    ff.set_name("find_global_min_ff");
-    pstar.set_name("find_global_min_pstar");
-    pstarstar.set_name("find_global_min_pstarstar");
-    min.set_name("find_global_min_min");
-    max.set_name("find_global_min_max");
-    true_var.set_name("find_global_min_true_var");
-    length.set_name("find_global_min_length");
-    
-    double fstar,fstarstar,dx;
-    int ih,il,i,j,k,actually_added;
-    double alpha=1.0,beta=0.5,gamma=2.1;
-    
-    /*
-    In order to ensure that the simplex search is not unduly influenced
-    by the different allowed ranges of different parameters, we are going
-    to normalize the coordinates of the points searched by the simplex by
-    the class member variables range_max.get_data(i)-range_min.get_data(i)
-    
-    Unfortunately, this means that, before calculating chisquared at a new
-    point, we need to undo this normalization, since evaluate() expects
-    the actual values of the parameters in its arguments.
-    
-    This is what the array true_var is for: a buffer to store the
-    actual values of parameters when we pass them to evaluate.
-    */
-    
-    
-    true_var.set_dim(dim);
-    max.set_dim(dim);
-    min.set_dim(dim);
-  
-    pstar.set_dim(dim);
-    pstarstar.set_dim(dim);
-    pts.set_dim(dim+1,dim);
-    pbar.set_dim(dim);
-    ff.set_dim(dim+1);
-    
-    
-    for(i=0;i<dim;i++){
-        max.set(i,range_max.get_data(i));
-        min.set(i,range_min.get_data(i));
-        
-        length.set(i,0.1*(gg.get_max(i)-gg.get_min(i)));
-    }
-    
-    /*
-    Here is where we actually renormalize the seed points
-    and build the initial simplex
-    */
-    double nn;
-    for(i=0;i<dim+1;i++){
-        for(j=0;j<dim;j++)vv.set(j,gg.get_pt(neigh.get_data(i),j));
-        for(j=0;j<dim;j++){
-            nn=(vv.get_data(j)-min.get_data(j))/length.get_data(j);
-            pts.set(i,j,nn);
-        }
-        ff.set(i,gg.get_fn(neigh.get_data(i)));
-        if(i==0 || ff.get_data(i)<ff.get_data(il))il=i;
-        if(i==0 || ff.get_data(i)>ff.get_data(ih))ih=i;
-    }
-    
-    double mu=0.1,spread=1.0;
-    
-    /*
-    _simplex_min will store the local minimum of chisquared
-    as discovered by this simplex
-    
-    _mindex is the index of the point associated with that value
-    
-    they will not necessarily correspond to an actual local minimum
-    of chisquared (e.g. they will not if the simplex is converging
-    to a false minimum)
-    */
-    _simplex_min=ff.get_data(il);
-    _mindex=neigh.get_data(il);
-    
-    double time_last_found=double(time(NULL));
-    
-    array_1d<double> p_min,p_max,step,deviation;
-    array_1d<int> ix_candidates;
-    
-    p_min.set_name("find_global_min_p_min");
-    p_max.set_name("find_global_min_p_max");
-    step.set_name("find_global_min_step");
-    deviation.set_name("find_global_min_deviation");
-    ix_candidates.set_name("find_global_min_ix_candidates");
-    
-    int ix;
-    double theta;
-    
-    array_1d<double> trial,gradient;
-    double mu1,mu2,x1,x2,mean_value;
-    
-    trial.set_name("find_global_min_trial");
-    gradient.set_name("find_global_min_gradient");
-    
-    int delta_max=0;
-    
-    /*
-    Here we reset the class member variables that will store
-    the configuration of the simplex at the last time _simplex_min
-    was improved upon.  These variables will be used if it appears
-    that the simplex is about to converge to a local minimum.
-    At this point, the code will use a modified gradient descent
-    method to make sure that the simplex is not simply getting trapped in
-    a narrow valley that it cannot navigate.
-    */
-    _min_ct=0;
-    _last_found=0;
-    _last_min=2.0*chisq_exception;
-    _last_simplex.reset();
-    _last_ff.reset();
-    
+    array_1d<double> found_minimum;
+    array_2d<double> simplex_seeds;
+    found_minimum.set_name("aps_found_minimum");
+    simplex_seeds.set_name("aps_simplex_seeds");
+    int i,j;
     
     int ibefore=ggWrap.get_called();
-    
-    /*
-    The while loop below is where we actually implement the simplex algorithm
-    as described by Nelder and Mead in The Computer Journal, volume 7, pg 308 (1965)
-    
-    _min_ct is the number of calls made to chisquared by this simplex search. 
-     _last_found is the number of calls that this simplex search had
-    made to chisquared at the last time _simplex_min was improved upon.  If 200 calls
-    are made to chisquared without improving _simplex_min, then the simplex search
-    will end.
-    */
-    while(_min_ct-_last_found<200 && (limit<0 || ggWrap.get_called()-ibefore<limit)){
-        simplex_ct++;
-        
-        for(i=0;i<dim;i++){
-            pbar.set(i,0.0);
-            for(j=0;j<dim+1;j++){
-                if(j!=ih){
-                    pbar.add_val(i,pts.get_data(j,i));
-                }
-            }
-            pbar.divide_val(i,double(dim));
-        }
-        
-        for(i=0;i<dim;i++){
-            pstar.set(i,(1.0+alpha)*pbar.get_data(i)-alpha*pts.get_data(ih,i));
-            true_var.set(i,min.get_data(i)+pstar.get_data(i)*length.get_data(i));
-        }
-        
-        
-        /*
-        Whenever we evaluate chisquared in this algorithm, we call simplex_evaluate.
-        
-        This is a wrapper for the class method evaluate().  It has the additional 
-        functionality of, if _simplex_min is improved upon, storing the current 
-        configuration of pts and ff.  These will be used by the modified gradient
-        descent method which is implemented whenever the simplex appears to be
-        trapped in a vally of chisquared.
-        
-        simplex_evaluate will also keep track of how many calls this simplex search
-        makes to chisquared as well as how many calls have been made since _simplex_min
-        was last impoved upon (_min_ct and _last_found).  If 200 calls
-        to chisquared are made without improving upon _simplex_min, the simplex
-        search will end.
-        */
-        fstar=simplex_evaluate(true_var,&actually_added,pts,ff);
-     
-        if(fstar<ff.get_data(ih) && fstar>ff.get_data(il)){
-            ff.set(ih,fstar);
-            for(i=0;i<dim;i++){
-                pts.set(ih,i,pstar.get_data(i));
-            }
-        }
-        else if(fstar<ff.get_data(il)){
-            for(i=0;i<dim;i++){
-                pstarstar.set(i,gamma*pstar.get_data(i)+(1.0-gamma)*pbar.get_data(i));
-                true_var.set(i,min.get_data(i)+pstarstar.get_data(i)*length.get_data(i));
-            }
-            
-            fstarstar=simplex_evaluate(true_var,&actually_added,pts,ff);
-            
-            if(fstarstar<ff.get_data(il)){
-                for(i=0;i<dim;i++)pts.set(ih,i,pstarstar.get_data(i));
-                ff.set(ih,fstarstar);
-            }
-            else{
-                for(i=0;i<dim;i++)pts.set(ih,i,pstar.get_data(i));
-                ff.set(ih,fstar);
-            }
-            
-        }
-        
-        for(i=0;i<dim+1;i++){
-            if(i==0 || ff.get_data(i)<ff.get_data(il))il=i;
-            if(i==0 || ff.get_data(i)>ff.get_data(ih))ih=i;
-        }
-        
-        j=1;
-        for(i=0;i<dim+1;i++){
-            if(fstar<ff.get_data(i) && i!=ih){
-                j=0;
-            }
-        }
-        
-        if(j==1){
-            for(i=0;i<dim;i++){
-                pstarstar.set(i,beta*pts.get_data(ih,i)+(1.0-beta)*pbar.get_data(i));
-                true_var.set(i,min.get_data(i)+pstarstar.get_data(i)*length.get_data(i));
-            }
-            
-            fstarstar=simplex_evaluate(true_var,&actually_added,pts,ff);
-            
-            if(fstarstar<ff.get_data(ih)){
-                for(i=0;i<dim;i++)pts.set(ih,i,pstarstar.get_data(i));
-                ff.set(ih,fstarstar);
-            }
-            else{
-                for(i=0;i<dim+1;i++){
-                    if(i==0 || ff.get_data(i)<ff.get_data(il)){
-                        il=i;
-                    }
-                }
-                for(i=0;i<dim+1;i++){
-                    if(i!=il){
-                        for(j=0;j<dim;j++){
-                            mu=0.5*(pts.get_data(i,j)+pts.get_data(il,j));
-                            pts.set(i,j,mu);
-                            true_var.set(j,min.get_data(j)+pts.get_data(i,j)*length.get_data(j));
-                        }
-                        
-                        mu=simplex_evaluate(true_var,&actually_added,pts,ff);
-                        ff.set(i,mu);
-                        
-                    }
-                }
-            }
-        }
-        
-        for(i=0;i<dim+1;i++){
-            if(i==0 || ff.get_data(i)<ff.get_data(il)){
-                il=i;
-            }
-            if(i==0 || ff.get_data(i)>ff.get_data(ih)){
-                ih=i;
-            }
-        }
-        
-        if(_min_ct-_last_found>delta_max)delta_max=_min_ct-_last_found;
-        
-        /*
-        what is the difference between the current maximum and minimum
-        chisquared values in the simplex
-        */
-        spread=ff.get_data(ih)-ff.get_data(il);
-        
-        mean_value=0.0;
-        for(i=0;i<dim+1;i++){
-            mean_value+=ff.get_data(i);
-        }
-        mean_value=mean_value/double(dim);
-        
-        //used to be 0.1
-        if(spread<1.0){
-            /*
-            If it appears that the simplex is converging into a valley in chisquared, 
-            try a modified gradient descent from the current minimum point of the simplex, 
-            just to make sure that the search has not settled into a very narrow valley from 
-            which the simplex cannot escape.
-            
-            First: numerically approximate the gradient in chisquared about the point
-            pts(il) (the current minimum of the simplex)
-            */
-            gradient.reset();
-            for(ix=0;ix<dim;ix++){
-                for(i=0;i<dim;i++)trial.set(i,pts.get_data(il,i));
-                x1=trial.get_data(ix)-0.1;
-                x2=trial.get_data(ix)+0.1;
-                
-                dx=0.1;
-                k=0;
-                mu1=2.0*chisq_exception;
-                while(!(mu1<chisq_exception) && k<5){
-                    k++;
-                    trial.set(ix,x1);
-                    for(i=0;i<dim;i++){
-                        true_var.set(i,trial.get_data(i)*length.get_data(i)+min.get_data(i));
-                    }
-                    mu1=simplex_evaluate(true_var,&actually_added);
-                    
-                    if(!(mu1<chisq_exception)){
-                        dx*=0.5;
-                        x1=pts.get_data(il,ix)-dx;
-                    }
-                }
-                
-                k=0;
-                mu2=2.0*chisq_exception;
-                dx=0.1;
-                while(!(mu2<chisq_exception) && k<5){
-                    k++;
-                    trial.set(ix,x2);
-                    for(i=0;i<dim;i++){
-                        true_var.set(i,trial.get_data(i)*length.get_data(i)+min.get_data(i));
-                    }
-                    mu2=simplex_evaluate(true_var,&actually_added);
-                    if(!(mu2<chisq_exception)){
-                        dx*=0.5;
-                        x2=pts.get_data(il,ix)+dx;
-                    }
-                }
-                gradient.set(ix,(mu1-mu2)/(x1-x2));
-                
-            }
-            
-            mu2=gradient.normalize();
-            
-            if(_last_ff.get_dim()>0){
-                /*
-                Find the vector between the current simplex minimum point and the point that
-                was the minimum of the simplex the last time that _simplex_min was improved.
-            
-                This vector will be stored in the array_1d<double> step
-                */
-                for(i=0;i<dim+1;i++){
-                    if(i==0 || _last_ff.get_data(i)<_last_ff.get_data(j))j=i;
-                }
-            
-                for(i=0;i<dim;i++){
-                    step.set(i,pts.get_data(il,i)-_last_simplex.get_data(j,i));
-                }
-            
-                mu=step.normalize();
-              
-                /*
-                Take the algebraic mean of gradient and step.
-            
-                Store this in step
-                */
-                if(!(isnan(mu2))){
-                    for(i=0;i<dim;i++){
-                        mu1=0.5*(step.get_data(i)-gradient.get_data(i));
-                        step.set(i,mu1);
-                    }
-                }
-                else{
-                    printf("    WARNING gradient had nan norm\n");
-                }
-                //printf("    gradient norm %e\n",mu2);
-            }//if _last_ff.get_dim()>0
-            else{
-                mu=1.0;
-                for(i=0;i<dim;i++)step.set(i,gradient.get_data(i));
-            }
-            
-            step.normalize();
-            
-            /*
-            Take each point in the simplex and move it slightly along the 
-            direction currently stored in step.  The hope is that this will
-            move _simplex_min towards a lower value of chisquared.
-            
-            For points that are not currently the minimum of the simplex, we will
-            add a small deviation in a random direction perpendicular to step
-            so that the simplex will be re-randomized and have a decent change of
-            converging to a better minimum.
-            */
-            for(i=0;i<dim+1;i++){
-                for(j=0;j<dim;j++){
-                    pts.add_val(i,j,mu*step.get_data(j));
-                }
-                
-                if(i!=il){
-                    theta=0.0;
-                    mu1=-1.0;
-                    while(mu1<0.0 || isnan(mu1)){
-                        for(j=0;j<dim;j++){
-                            deviation.set(j,normal_deviate(dice,0.0,1.0));
-                            theta+=deviation.get_data(j)*step.get_data(j);
-                        }
-                        for(j=0;j<dim;j++){
-                            deviation.subtract_val(j,theta*step.get_data(j));
-                        }
-                        mu1=deviation.normalize();
-                    }
-                    
-                    for(j=0;j<dim;j++){
-                        pts.add_val(i,j,0.1*deviation.get_data(j));
-                    }
-                    
-                }
-                
-            }
-            
-            for(i=0;i<dim+1;i++){
-                for(j=0;j<dim;j++){
-                    true_var.set(j,pts.get_data(i,j)*length.get_data(j)+min.get_data(j));
-                }
-                mu=simplex_evaluate(true_var,&actually_added);
-                ff.set(i,mu);
-                if(i==0 || ff.get_data(i)<ff.get_data(il))il=i;
-                if(i==0 || ff.get_data(i)>ff.get_data(ih))ih=i;
-            }
-            
-            
-        }
-        
-    }
-    
-    /*
-    The end point of this simplex search will be added to the list of known local_minima
-    which cannot be used as the seed to a simplex search again.
-    */
-    known_minima.add(_mindex);
-    j=nodes.get_dim();
-    
-    int ic,acutally_added,use_it,inode;
-    array_1d<double> midpt;
-    double chimid;
-    
-    midpt.set_name("find_global_min_midpt");
-    
-    /*
-    Now we must assess whether the point to which this simplex search converged is an
-    actual center to an independent, un-discovered region of low chisquared
-    */
-    use_it=1;
-    if(gg.get_fn(_mindex)>strad.get_target())use_it=0;
-    
-    for(ic=0;ic<nodes.get_dim() && use_it==1;ic++){
-        inode=nodes(ic)->get_center();
-        for(i=0;i<gg.get_dim();i++){
-            midpt.set(i,0.5*(gg.get_pt(inode,i)+gg.get_pt(_mindex,i)));
-        }
-        
-        ggWrap.evaluate(midpt,&chimid,&actually_added);
-        
-        if(chimid<strad.get_target()){
-            use_it=0;
-            if(gg.get_fn(_mindex)<gg.get_fn(inode)){
-                nodes(ic)->set_center_dex(_mindex);
-            }
-            
+    double start_min;
+    for(i=0;i<ggWrap.get_dim()+1;i++){
+        if(i==0 || ggWrap.get_fn(neigh.get_data(i))<start_min){
+            start_min=ggWrap.get_fn(neigh.get_data(i));
         }
     }
     
-    set_where("nowhere");
+    for(i=0;i<ggWrap.get_dim()+1;i++){
+        for(j=0;j<ggWrap.get_dim();j++){
+            simplex_seeds.set(i,j,ggWrap.get_pt(neigh.get_data(i),j));
+        }
+    }
     
-    assess_node(_mindex);
+    simplex_minimizer ffmin;
+    array_1d<double> min,max;
+    min.set_name("find_global_minimum_min");
+    max.set_name("find_global_maximum_max");
     
-    return _mindex;
+    for(i=0;i<ggWrap.get_dim();i++){
+        max.set(i,range_min.get_data(i)+0.1*(range_max.get_data(i)-range_min.get_data(i)));
+        min.set(i,range_min.get_data(i));
+    }
+    
+    ffmin.set_minmax(min,max);
+    ffmin.set_chisquared(&ggWrap);
+    ffmin.set_dice(dice);
+    ffmin.use_gradient();
+    ffmin.find_minimum(simplex_seeds,found_minimum);
+    
+    array_1d<int> mindex;
+    array_1d<double> dd;
+    ggWrap.nn_srch(found_minimum,1,mindex,dd);
+    if(dd.get_data(0)>1.0e-10){
+        printf("WARNING after simplex search dd %e\n",dd.get_data(0));
+    }
+    
+    assess_node(mindex.get_data(0));
+    
+    printf("    simplex found %e from %e\n",
+    ggWrap.get_fn(mindex.get_data(0)),start_min);
+    printf("    in %d\n",ggWrap.get_called()-ibefore);
+    
+    return mindex.get_data(0);
 }
 
 

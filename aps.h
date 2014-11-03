@@ -14,6 +14,7 @@
 #include "gaussian_process.h"
 #include "chisq.h"
 #include "gp_wrapper.h"
+#include "simplex.h"
 #include "node.h"
 
 
@@ -291,32 +292,7 @@ private:
     */
     int find_global_minimum(array_1d<int>&);
     int find_global_minimum(array_1d<int>&,int);
-    
-    /*
-    These are wrappers of the function evaluate() specifically designed
-    for calls by the simplex search.
-    
-    In the simplest form, simplex_evaluate(array_1d<double>&, int*) will evaluate
-    chisquared at the point stored in the array_1d<double>.  It will return the value
-    of chisquared.  The int* will store the index of the newly sampled point.
-    
-    If the more complex version is called, the user should pass the current simplex of
-    points in the array_2d<double> and the current array of chisquared values (used by the
-    simplex) in the second array_1d<double>&.  In that case, if a new local chisquared minimum
-    is found, then the current simplex of points will be stored in the class member variable
-    _last_simplex and the current array of chisquared values will be stored in the class
-    member variable _last_ff.  These will be used in the event that the simplex search
-    starts to converge to a local minimum, in which case find_global_minimum uses a modified
-    gradient descent search to make sure that the simplex is not converging towards a false minimum.
-    
-    The user should examine the function find_global_minimum to see how this works
-    */
-    double simplex_evaluate(array_1d<double>&,int*);
-    double simplex_evaluate(array_1d<double>&,int*,
-              array_2d<double>&,array_1d<double>&);
-    
-    double simplex_evaluate(array_1d<double>&,int*,
-        array_2d<double>&,array_1d<double>&,int);   
+     
     
     /*
     If simplex_search() does not find any valid candidates to seed a new simplex search,
@@ -496,18 +472,6 @@ private:
     /*the object that stores the target value of chisquared and calculates the S statistic*/
     straddle_parameter strad;
 
-       
-    /*
-    These variables are used by find_global_minimum() to keep track
-    of the convergence of the simplex search.
-    
-    The user should see the source code for find_global_minimum in aps.cpp
-    for a detailed explanation of how they are used.
-    */
-    int _min_ct,_last_found,_mindex;
-    double _simplex_min,_last_min;
-    array_2d<double> _last_simplex;
-    array_1d<double> _last_ff;
     
     /*
     These are the variables which store the projection of boundary points onto unit spheres
