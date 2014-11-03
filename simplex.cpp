@@ -124,11 +124,13 @@ double simplex_minimizer::evaluate(array_1d<double> &pt){
         for(i=0;i<pt.get_dim();i++){
             _min_pt.set(i,vv.get_data(i));
         }
-        
-        for(i=0;i<_pts.get_rows();i++){
-            _last_improved_ff.set(i,_ff.get_data(i));
-            for(j=0;j<_pts.get_cols();j++){
-                _last_improved_pts.set(i,j,_pts.get_data(i,j));
+
+        if(_ff.get_dim()==pt.get_dim()+1){
+            for(i=0;i<_pts.get_rows();i++){
+                _last_improved_ff.set(i,_ff.get_data(i));
+                for(j=0;j<_pts.get_cols();j++){
+                    _last_improved_pts.set(i,j,_pts.get_data(i,j));
+                }    
             }
         }
     }
@@ -210,6 +212,7 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
     
     int j;
     _pts.set_cols(seed.get_cols());
+    _last_improved_pts.set_cols(seed.get_cols());
     for(i=0;i<seed.get_rows();i++){
         for(j=0;j<seed.get_cols();j++){
             _pts.set(i,j,(seed.get_data(i,j)-_origin.get_data(j))/_transform.get_data(j));
@@ -221,7 +224,7 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
         mu=evaluate(_pts(i)[0]);
         _ff.set(i,mu);
     }
-    
+
     find_il();
     
     int abort_max=_abort_max_factor*seed.get_cols();
@@ -326,7 +329,7 @@ void simplex_minimizer::gradient_minimizer(){
         exit(1);
     }
     find_il();
-    
+
     array_1d<double> gradient,trial;
     gradient.set_name("simplex_gradient");
     trial.set_name("simplex_gradient_trial");
@@ -413,13 +416,17 @@ void simplex_minimizer::gradient_minimizer(){
             theta=0.0;
             mu1=-1.0;
             while(mu1<0.0 || isnan(mu1)){
-                deviation.set(j,normal_deviate(dice,0.0,1.0));
-                theta+=deviation.get_data(j)*step.get_data(j);
+                theta=0.0;
+                for(j=0;j<dim;j++){
+                    deviation.set(j,normal_deviate(dice,0.0,1.0));
+                    theta+=deviation.get_data(j)*step.get_data(j);
+                }
+            
+                for(j=0;j<dim;j++){
+                    deviation.subtract_val(j,theta*step.get_data(j));
+                }
+                mu1=deviation.normalize();
             }
-            for(j=0;j<dim;j++){
-                deviation.subtract_val(j,theta*step.get_data(j));
-            }
-            mu1=deviation.normalize();
             
             for(j=0;j<dim;j++){
                 _pts.add_val(i,j,0.1*deviation.get_data(j));

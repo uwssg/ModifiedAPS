@@ -512,6 +512,9 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
     
     int ibefore=ggWrap.get_called();
     double start_min;
+    
+    simplex_seeds.set_cols(ggWrap.get_dim());
+    
     for(i=0;i<ggWrap.get_dim()+1;i++){
         if(i==0 || ggWrap.get_fn(neigh.get_data(i))<start_min){
             start_min=ggWrap.get_fn(neigh.get_data(i));
