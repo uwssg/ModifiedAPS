@@ -2,6 +2,7 @@
 #define SIMPLEX_H
 
 #include "containers.h"
+#include "goto_tools.h"
 #include "gp_wrapper.h"
 
 class simplex_minimizer{
@@ -14,6 +15,7 @@ public:
     
     void set_chisquared(function_wrapper*);
     void set_cost(function_wrapper*);
+    void set_dice(Ran*);
     void set_minmax(array_1d<double>&, array_1d<double>&);
     void use_gradient();
     
@@ -39,9 +41,10 @@ private:
     int _il,_ih,_called_cost,_freeze_temp,_use_gradient;
     int _last_found,_called_evaluate,_abort_max_factor;
     array_1d<double> _transform, _origin,_ff,_pstar,_pstarstar,_min_pt;
-    array_2d<double> _pts;
+    array_1d<double> _last_improved_ff;
+    array_2d<double> _pts,_last_improved_pts;
     
-    
+    Ran *dice;
     function_wrapper *chisquared, *cost;
     /*
     cost will need to be a function_wrapper sub-class
