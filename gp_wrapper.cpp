@@ -1,5 +1,14 @@
 #include "aps.h"
 
+function_wrapper::function_wrapper(){}
+
+function_wrapper::~function_wrapper(){}
+
+void function_wrapper::evaluate(array_1d<double> &pp, double *cc){
+    printf("WARNING calling default function_wrapper::evaluate; should not do that\n");
+    exit(1);
+}
+
 straddle_parameter::straddle_parameter(){
     target=-1.0;
 }

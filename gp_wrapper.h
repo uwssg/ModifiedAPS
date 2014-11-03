@@ -18,6 +18,13 @@
 enum{iAPS,iSimplex,iCoulomb,iCompass,iBisect,iNodeBisect,iRicochet};
 ///////////////
 
+class function_wrapper{
+public:
+    function_wrapper();
+    ~function_wrapper();
+    virtual void evaluate(array_1d<double>&, double*);
+    
+};
 
 class straddle_parameter{
     /*
@@ -47,7 +54,7 @@ private:
     double target;
 };
 
-class gpWrapper{
+class gpWrapper : public function_wrapper{
     /*
     This class will contain both the chisquared function and the
     gaussian_process for ModifiedAPS.  That way, the node objects can
@@ -100,7 +107,7 @@ class gpWrapper{
         */
         void evaluate(array_1d<double>&,double*,int*,int);
         void evaluate(array_1d<double>&,double*,int*);
-        void evaluate(array_1d<double>&,double*);
+        virtual void evaluate(array_1d<double>&,double*);
         
         void set_gp(gp*);
         void set_chisq(chisquared*);
