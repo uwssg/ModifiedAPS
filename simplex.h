@@ -36,9 +36,10 @@ private:
     
     void initialize();
     
-    double _temp,_min_ff,_fstar,_fstarstar;
+    double _temp,_min_ff,_true_min_ff,_fstar,_fstarstar,_min_temp;
     double _alpha,_beta,_gamma;
     int _il,_ih,_called_cost,_freeze_temp,_use_gradient;
+    int _freeze_called,_last_called_gradient;
     int _last_found,_called_evaluate,_abort_max_factor;
     array_1d<double> _transform, _origin,_ff,_pstar,_pstarstar,_min_pt;
     array_1d<double> _last_improved_ff;

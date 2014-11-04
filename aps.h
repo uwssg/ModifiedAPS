@@ -17,6 +17,22 @@
 #include "simplex.h"
 #include "node.h"
 
+class node_cost_function : public function_wrapper{
+
+public:
+    
+    node_cost_function();
+    node_cost_function(arrayOfNodes&);
+    ~node_cost_function();
+    
+    virtual void evaluate(array_1d<double>&, double*);
+    
+private:
+
+    node **nodes;
+    int _n_nodes;
+
+};
 
 class aps{
 

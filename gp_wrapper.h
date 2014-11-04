@@ -23,6 +23,7 @@ public:
     function_wrapper();
     ~function_wrapper();
     virtual void evaluate(array_1d<double>&, double*);
+    virtual int get_called();
     
 };
 

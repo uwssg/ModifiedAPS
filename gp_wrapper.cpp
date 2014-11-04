@@ -4,6 +4,10 @@ function_wrapper::function_wrapper(){}
 
 function_wrapper::~function_wrapper(){}
 
+int function_wrapper::get_called(){
+    return -1;
+}
+
 void function_wrapper::evaluate(array_1d<double> &pp, double *cc){
     printf("WARNING calling default function_wrapper::evaluate; should not do that\n");
     exit(1);

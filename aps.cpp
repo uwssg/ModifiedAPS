@@ -1,5 +1,53 @@
 #include "aps.h"
 
+node_cost_function::~node_cost_function(){
+    if(nodes!=NULL)delete [] nodes;
+
+}
+
+node_cost_function::node_cost_function(){
+    printf("WARNING default constructor not implemented for node_cost_function\n");
+    exit(1);
+}
+
+node_cost_function::node_cost_function(arrayOfNodes &nn){
+    _n_nodes=nn.get_dim();
+    int i;
+    
+    
+    if(_n_nodes>0){
+    
+        nodes = new node*[_n_nodes];
+    
+        for(i=0;i<_n_nodes;i++){
+            nodes[i]=nn(i);
+        }
+    }
+    else{
+        nodes=NULL;
+    }
+}
+
+void node_cost_function::evaluate(array_1d<double> &pt, double *out){
+    
+    if(_n_nodes==0){
+        out[0]=0.0;
+        return;
+    }
+    
+    double cost,costMin;
+    int i;
+    
+    for(i=0;i<_n_nodes;i++){
+        cost=nodes[i]->apply_model(pt);
+        if(i==0 || cost<costMin){
+            costMin=cost;
+        }
+    }
+    
+    out[0]=-1.0*costMin;
+}
+
 aps::aps(){
     printf("you called the APS constructor without paramters\n");
     printf("do not do that\n");
@@ -527,6 +575,8 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
         }
     }
     
+    node_cost_function cost(nodes);
+    
     simplex_minimizer ffmin;
     array_1d<double> min,max;
     min.set_name("find_global_minimum_min");
@@ -541,6 +591,7 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
     ffmin.set_chisquared(&ggWrap);
     ffmin.set_dice(dice);
     ffmin.use_gradient();
+    ffmin.set_cost(&cost);
     ffmin.find_minimum(simplex_seeds,found_minimum);
     
     array_1d<int> mindex;
@@ -550,11 +601,15 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
         printf("WARNING after simplex search dd %e\n",dd.get_data(0));
     }
     
-    assess_node(mindex.get_data(0));
+
     
     printf("    simplex found %e from %e\n",
     ggWrap.get_fn(mindex.get_data(0)),start_min);
     printf("    in %d\n",ggWrap.get_called()-ibefore);
+    
+    //if(nodes.get_dim()>0)exit(1);
+    
+    assess_node(mindex.get_data(0));
     
     return mindex.get_data(0);
 }
@@ -1003,7 +1058,6 @@ int aps::aps_box_wide(){
         printf("\n\nThat's odd... chosenBox %d\n",chosenBox);
     }
     
-
 }
 
 int aps::aps_wide(){

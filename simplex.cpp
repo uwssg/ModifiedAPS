@@ -23,15 +23,11 @@ void simplex_minimizer::initialize(){
     chisquared=NULL;
     dice=NULL;
     
-    _called_cost=0;
-    _freeze_temp=0;
-    _temp=-0.1;
+    _min_temp=-8.0;
+    
     _use_gradient=0;
     
-    _last_found=0;
-    _called_evaluate=0;
     _abort_max_factor=10;
-    _min_ff=2.0*chisq_exception;
     
     _transform.set_name("simplex_transform");
     _origin.set_name("simplex_origin");
@@ -106,8 +102,9 @@ double simplex_minimizer::evaluate(array_1d<double> &pt){
         exit(1);
     }
     
-    _called_evaluate++;
+    if(_freeze_called==0)_called_evaluate++;
     
+    double start_temp=_temp;
     int i,j;
     array_1d<double> vv;
     vv.set_name("simplex_minimizer_vv");
@@ -115,15 +112,31 @@ double simplex_minimizer::evaluate(array_1d<double> &pt){
         vv.set(i,_origin.get_data(i)+pt.get_data(i)*_transform.get_data(i));
     }
     
-    double fval;
+    double fval,raw;
     chisquared->evaluate(vv,&fval);
+    
+    if(fval<_true_min_ff){
+        _true_min_ff=fval;
+        for(i=0;i<pt.get_dim();i++){
+            _min_pt.set(i,vv.get_data(i));
+        }
+    }
+    
+    raw=fval;
+    
+    double cval;
+    if(cost!=NULL){
+        cval=evaluate_cost(vv);
+        fval+=cval;
+    }
+    
+   /* printf("    %e %e %d %d -- %d\n",
+    fval,raw,_called_evaluate,chisquared->get_called(),
+    chisquared->get_called()-_called_evaluate);*/
     
     if(fval<_min_ff){
         _last_found=_called_evaluate;
         _min_ff=fval;
-        for(i=0;i<pt.get_dim();i++){
-            _min_pt.set(i,vv.get_data(i));
-        }
 
         if(_ff.get_dim()==pt.get_dim()+1){
             for(i=0;i<_pts.get_rows();i++){
@@ -135,10 +148,28 @@ double simplex_minimizer::evaluate(array_1d<double> &pt){
         }
     }
     
-    double cval;
-    if(cost!=NULL){
-        cval=evaluate_cost(vv);
-        fval+=cval;
+    double mu;
+    if(start_temp-_temp>-0.1*start_temp){
+        _freeze_called=1;
+        _freeze_temp=1;
+        if(_pstar.get_dim()>0){
+            _fstar=evaluate(_pstar);
+        }
+        
+        if(_pstarstar.get_dim()>0){
+            _fstarstar=evaluate(_pstarstar);
+        }
+        
+        for(i=0;i<_pts.get_rows();i++){
+            mu=evaluate(_pts(i)[0]);
+            _ff.set(i,mu);
+        }
+        
+        find_il();
+        _min_ff=_ff.get_data(_il);
+        
+        _freeze_temp=0;
+        _freeze_called=0;
     }
     
     return fval;
@@ -155,41 +186,17 @@ double simplex_minimizer::evaluate_cost(array_1d<double> &vv){
         exit(1);
     }
 
-    if(_temp<-20.0)return 0.0;
+    if(_temp<_min_temp)return 0.0;
 
     double cval;
-    int temp_changed=0;
     cost->evaluate(vv,&cval);
 
     if(_freeze_temp==0)_called_cost++;
 
     if(_called_cost%(vv.get_dim()*10)==0 && _freeze_temp==0){
-        _temp*=2.0;
-        temp_changed=1;
+        _temp-=1.0;
     }
-    
-    double mu;
-    int i;
-    if(temp_changed==1){
-        _freeze_temp=1;
-        if(_pstar.get_dim()>0){
-            _fstar=evaluate(_pstar);
-        }
         
-        if(_pstarstar.get_dim()>0){
-            _fstarstar=evaluate(_pstarstar);
-        }
-        
-        for(i=0;i<_pts.get_rows();i++){
-            mu=evaluate(_pts(i)[0]);
-            _ff.set(i,mu);
-        }
-        
-        find_il();
-        
-        _freeze_temp=0;
-    }
-    
     return exp(_temp)*cval;
 }
 
@@ -201,6 +208,31 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
         printf("Need dim+1 points\n");
         exit(1);
     }
+    
+    
+    if(cost!=NULL){
+        _temp=0.0;
+    }
+    else{
+        _temp=-1000.0;
+    }
+    
+    _freeze_temp=0;
+    _freeze_called=0;
+    _called_cost=0;
+    _last_found=0;
+    _called_evaluate=0;
+    _last_called_gradient=0;
+    
+    
+    _min_ff=2.0*chisq_exception;
+    _true_min_ff=2.0*chisq_exception;
+    _min_pt.reset();
+    _pstar.reset();
+    _pstarstar.reset();
+    _last_improved_ff.reset();
+    _pts.reset();
+    _last_improved_pts.reset();
     
     int i;
     if(_origin.get_dim()==0){
@@ -301,6 +333,7 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
                    if(i!=_il){
                        for(j=0;j<dim;j++){
                            mu=0.5*(_pts.get_data(i,j)+_pts.get_data(_il,j));
+                           _pts.set(i,j,mu);
                        }
                        mu=evaluate(_pts(i)[0]);
                        _ff.set(i,mu);
@@ -311,16 +344,37 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
        
        find_il();
        spread=_ff.get_data(_ih)-_ff.get_data(_il);
-       if(spread<1.0 && _use_gradient==1){
+       if(spread<0.1*_min_ff && _use_gradient==1 && _called_evaluate>abort_max/2+_last_called_gradient){
+           //printf("implementing gradient %e\n",_temp);
            _freeze_temp=1;
            gradient_minimizer();
            _freeze_temp=0;
        }
+       
+       if(_called_evaluate-_last_found>=abort_max && _temp>_min_temp){
+           _freeze_called=1;
+           _freeze_temp=1;
+           for(i=0;i<dim+1;i++){
+               if(i!=_il){
+                   for(j=0;j<dim;j++){
+                       _pts.set(i,j,_pts.get_data(_il,j)+dice->doub()*0.5);
+                   }
+                   mu=evaluate(_pts(i)[0]);
+                   _ff.set(i,mu);
+               }
+           }
+           _freeze_called=0;
+           _freeze_temp=0;
+           _last_found=_called_evaluate;
+       }
+       //printf("spread %e %e %e\n\n",spread,_temp,_min_ff);
     }
     
     for(i=0;i<dim;i++){
         min_pt.set(i,_min_pt.get_data(i));
     }
+    printf("    leaving simplex %d %d %d\n",_called_evaluate,_last_found,abort_max);
+    printf("    temp %e\n",_temp);
 }
 
 void simplex_minimizer::gradient_minimizer(){
@@ -421,9 +475,11 @@ void simplex_minimizer::gradient_minimizer(){
                     deviation.set(j,normal_deviate(dice,0.0,1.0));
                     theta+=deviation.get_data(j)*step.get_data(j);
                 }
-            
-                for(j=0;j<dim;j++){
-                    deviation.subtract_val(j,theta*step.get_data(j));
+                
+                if(!(_temp>_min_temp)){
+                    for(j=0;j<dim;j++){
+                        deviation.subtract_val(j,theta*step.get_data(j));
+                    }
                 }
                 mu1=deviation.normalize();
             }
@@ -439,5 +495,6 @@ void simplex_minimizer::gradient_minimizer(){
         _ff.set(i,mu);
     }
     find_il();
+    _last_called_gradient=_called_evaluate;
     
 }
