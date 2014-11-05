@@ -10,10 +10,18 @@ node_cost_function::node_cost_function(){
     exit(1);
 }
 
-node_cost_function::node_cost_function(arrayOfNodes &nn){
+node_cost_function::node_cost_function(arrayOfNodes &nn,
+array_1d<double> &min, array_1d<double> &max){
     _n_nodes=nn.get_dim();
     int i;
     
+    _min.set_name("node_cost_function_min");
+    _max.set_name("node_cost_function_max");
+    
+    for(i=0;i<min.get_dim();i++){
+        _min.set(i,min.get_data(i));
+        _max.set(i,max.get_data(i));
+    }
     
     if(_n_nodes>0){
     
@@ -37,6 +45,18 @@ void node_cost_function::evaluate(array_1d<double> &pt, double *out){
     
     double cost,costMin;
     int i;
+    
+    for(i=0;i<pt.get_dim();i++){
+        if(pt.get_data(i)<_min.get_data(i)){
+            out[0]=0.0;
+            return;
+        }
+        
+        if(pt.get_data(i)>_max.get_data(i)){
+            out[0]=0.0;
+            return;
+        }
+    }
     
     for(i=0;i<_n_nodes;i++){
         cost=nodes[i]->apply_model(pt);
@@ -575,7 +595,7 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
         }
     }
     
-    node_cost_function cost(nodes);
+    node_cost_function cost(nodes,range_min,range_max);
     
     simplex_minimizer ffmin;
     array_1d<double> min,max;
