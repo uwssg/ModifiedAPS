@@ -193,7 +193,7 @@ double simplex_minimizer::evaluate_cost(array_1d<double> &vv){
 
     if(_freeze_temp==0)_called_cost++;
 
-    if(_called_cost%(vv.get_dim()*10)==0 && _freeze_temp==0){
+    if(_called_cost%20)==0 && _freeze_temp==0){
         _temp-=1.0;
     }
         
