@@ -618,11 +618,23 @@ void gpWrapper::reset_cache(){
 }
 
 double gpWrapper::user_predict(array_1d<double> &x, double *s) const{
-    return gg->user_predict(x,s,0);
+    int flag;
+    double mu;
+    mu=gg->user_predict(x,s,0,&flag);
+    if(flag==-1){
+        printf("Box failure %d\n",iWhere);
+    }
+    return mu;
 }
 
 double gpWrapper::user_predict(array_1d<double> &x) const{
-    return gg->user_predict(x,0);
+    int flag;
+    double mu;
+    mu=gg->user_predict(x,0,&flag);
+    if(flag==-1){
+        printf("Box failure %d\n",iWhere);
+    }
+    return mu;
 }
 
 void gpWrapper::actual_gradient(array_1d<double> &x, array_1d<double> &y){

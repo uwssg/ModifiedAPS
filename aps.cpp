@@ -1298,7 +1298,7 @@ double aps::simplex_metric(array_1d<double> &pt, array_1d<double> &min_bound, ar
     
    
     double mu,sig,stradval;
-    mu=gg.user_predict(pt,&sig,0);
+    mu=ggWrap.user_predict(pt,&sig);
     
     stradval=strad(mu,sig);
     
@@ -1683,7 +1683,7 @@ void aps::corner_focus(int ic){
                         stradval=-2.0*chisq_exception;
                     }
                     else{
-                        mu=gg.user_predict(trial,&sig,0);
+                        mu=ggWrap.user_predict(trial,&sig);
                         stradval=strad(mu,sig);
                     }
                 
