@@ -1659,7 +1659,16 @@ int node::search(){
     
     iBisection=bisectionAssociate(iLow,iHigh);
     
-    if(time_bases+time_penalty*ct_bases<0.33*(time_search+time_penalty*ct_search) && 
+    double effective_time_search,effective_time_bases,effective_time_ricochet;
+    double effective_time_coulomb;
+    
+    effective_time_search=time_search+ct_search*time_penalty;
+    effective_time_bases=time_bases+time_penalty*ct_bases;
+    effective_time_ricochet=time_ricochet+time_penalty*ct_ricochet;
+    effective_time_coulomb=effective_time_search-effective_time_ricochet-effective_time_bases;
+    
+    if(effective_time_bases<0.33*effective_time_search && 
+       effective_time_coulomb>0.33*effective_time_search &&
       (associates.get_dim()>last_nAssociates+20 || last_nAssociates==0) && 
       associates.get_dim()>20){
         try{
@@ -1675,7 +1684,9 @@ int node::search(){
     */
     int iStart;
     double nn;
-    if(time_ricochet+ct_ricochet*time_penalty<0.33*(time_search+ct_search*time_penalty) && associates.get_dim()>100){
+    if(effective_time_ricochet<0.33*effective_time_search &&
+       effective_time_coulomb>0.33*effective_time_search && 
+       associates.get_dim()>100){
         triedBasesOrRicochet=1;
         if(iBisection<0 || fabs(gg->get_fn(iCoulomb)-gg->get_target())<fabs(gg->get_fn(iBisection)-gg->get_target())){
             iStart=iCoulomb;
