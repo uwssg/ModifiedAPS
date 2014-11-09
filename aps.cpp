@@ -121,7 +121,7 @@ aps::aps(int dim_in, int kk, double dd, int seed){
     called_wide=0;
     ddNodeRatio=-1.0;
     
-    time_penalty=0.1;
+    time_penalty=0.5;
     
     n_wide=0;
     n_box_wide=0;

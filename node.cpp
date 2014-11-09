@@ -34,7 +34,7 @@ node::node(){
     calls_to_bases=0;
     
     farthest_associate=0.0;
-    time_penalty=0.1;
+    time_penalty=0.5;
     
     gg=NULL;
     dice=NULL;
