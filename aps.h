@@ -135,6 +135,8 @@ public:
     
     int get_n_active_nodes();
     
+    int get_n_simplex();
+    
     /*return the number of low-chisquared centers discovered*/
     int get_n_centers();
     

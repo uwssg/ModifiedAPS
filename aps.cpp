@@ -762,6 +762,10 @@ int aps::get_n_pts(){
     return gg.get_pts();
 }
 
+int aps::get_n_simplex(){
+    return n_box_wide;
+}
+
 int aps::get_n_active_nodes(){
     int i,ans=0;
     for(i=0;i<nodes.get_dim();i++){
