@@ -722,7 +722,9 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
     ffmin.set_chisquared(&ggWrap);
     ffmin.set_dice(dice);
     ffmin.use_gradient();
-    ffmin.set_cost(&cost);
+    if(nodes.get_dim()>0){
+        ffmin.set_cost(&cost);
+    }
     ffmin.find_minimum(simplex_seeds,found_minimum);
     
     array_1d<int> mindex;
