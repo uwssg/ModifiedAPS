@@ -25,9 +25,15 @@ void gp_cost_function::evaluate(array_1d<double> &pt, double *out){
     nugget=1.0e-4;
     
     dd.set_name("gp_cost_function_dd");
-    neigh.set_name("gp_cost_function_nn");
+    neigh.set_name("gp_cost_function_neigh");
     
     kptr->nn_srch(pt,npts+1,neigh,dd);
+    if(dd.get_data(0)<1.0e-8){
+        dd.remove(0);
+        neigh.remove(0);
+    }
+    
+    
     ell=dd.get_data(2);
    
     array_2d<double> covar,covarin;
@@ -45,6 +51,7 @@ void gp_cost_function::evaluate(array_1d<double> &pt, double *out){
     }
     
     if(calculate==1){
+        covar.set_cols(kptr->get_dim());
         for(i=0;i<npts;i++){
             for(j=i;j<npts;j++){
                 covar.set(i,j,exp(-0.5*power(kptr->distance(neigh.get_data(i),neigh.get_data(j))/ell,2)));
