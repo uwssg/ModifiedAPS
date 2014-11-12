@@ -1,5 +1,91 @@
 #include "aps.h"
 
+gp_cost_function::gp_cost_function(){
+    printf("WARNING default constructor not implemented for gp_cost_function\n");
+    exit(1);
+}
+
+gp_cost_function::gp_cost_function(kd_tree *g, array_1d<double> *ff){
+    kptr=g;
+    fn=ff;
+    
+    _covarin.set_name("gp_cost_cached_covarin");
+    _neigh.set_name("gp_cost_cached_neigh");
+}
+
+gp_cost_function::~gp_cost_function(){}
+
+void gp_cost_function::evaluate(array_1d<double> &pt, double *out){
+    array_1d<double> dd;
+    array_1d<int> neigh;
+    double ell,nugget;
+    int i,j,npts;
+    
+    npts=5;
+    nugget=1.0e-4;
+    
+    dd.set_name("gp_cost_function_dd");
+    neigh.set_name("gp_cost_function_nn");
+    
+    kptr->nn_srch(pt,npts+1,neigh,dd);
+    ell=dd.get_data(2);
+   
+    array_2d<double> covar,covarin;
+    covar.set_name("gp_cost_covar");
+    covarin.set_name("gp_cost_covar");
+    
+    int calculate=0;
+    if(_neigh.get_dim()!=npts)calculate=1;
+    else{
+        for(i=0;i<npts && calculate==0;i++){
+            for(j=0;j<npts && calculate==0;j++){
+                if(_neigh.get_data(j)==neigh.get_data(i))calculate=1;
+            }
+        }
+    }
+    
+    if(calculate==1){
+        for(i=0;i<npts;i++){
+            for(j=i;j<npts;j++){
+                covar.set(i,j,exp(-0.5*power(kptr->distance(neigh.get_data(i),neigh.get_data(j))/ell,2)));
+                if(i==j){
+                    covar.add_val(i,j,nugget);
+                }
+            }
+        }
+    
+        invert_lapack(covar,covarin,0);
+        
+        for(i=0;i<npts;i++){
+            _neigh.set(i,neigh.get_data(i));
+            for(j=0;j<npts;j++){
+                _covarin.set(i,j,covarin.get_data(i,j));
+            }
+        }
+        _ell=ell;
+    }
+    
+    array_1d<double> covar_q;
+    covar_q.set_name("gp_cost_covar_q");
+    for(i=0;i<npts;i++){
+        covar_q.set(i,exp(-0.5*power(kptr->distance(_neigh.get_data(i),pt)/_ell,2)));
+    }
+    
+    double fbar=0.0;
+    for(i=0;i<npts;i++){
+        fbar+=fn->get_data(_neigh.get_data(i));
+    }
+    fbar=fbar/double(npts);
+    
+    out[0]=0.0;
+    for(i=0;i<npts;i++){
+        for(j=0;j<npts;j++){
+            out[0]+=covar_q.get_data(i)*_covarin.get_data(i,j)*(fn->get_data(_neigh.get_data(j))-fbar);
+        }
+    }
+    
+}
+
 node_cost_function::~node_cost_function(){
     if(nodes!=NULL)delete [] nodes;
 
@@ -595,7 +681,32 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
         }
     }
     
-    node_cost_function cost(nodes,range_min,range_max);
+    //node_cost_function cost(nodes,range_min,range_max);
+    
+    array_2d<double> copy_data;
+    array_1d<double> copy_ff,k_min,k_max;
+    
+    copy_data.set_name("aps_copy_data");
+    copy_ff.set_name("aps_copy_ff");
+    k_min.set_name("aps_k_min");
+    k_max.set_name("aps_k_max");
+    
+    for(i=0;i<ggWrap.get_dim();i++){
+        k_min.set(i,0.0);
+        k_max.set(i,characteristic_length.get_data(i));
+    }
+    
+    copy_data.set_cols(ggWrap.get_dim());
+    for(i=0;i<ggWrap.get_pts();i++){
+        copy_ff.set(i,ggWrap.get_fn(i));
+        for(j=0;j<ggWrap.get_dim();j++){
+            copy_data.set(i,j,ggWrap.get_pt(i,j));
+        }
+    }
+    
+    kd_tree copy_kd(copy_data,k_min,k_max);
+    
+    gp_cost_function cost(&copy_kd, &copy_ff);
     
     simplex_minimizer ffmin;
     array_1d<double> min,max;

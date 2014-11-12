@@ -17,6 +17,24 @@
 #include "simplex.h"
 #include "node.h"
 
+class gp_cost_function : public function_wrapper{
+
+public:
+    gp_cost_function();
+    gp_cost_function(kd_tree*, array_1d<double>*);
+    ~gp_cost_function();
+    virtual void evaluate(array_1d<double>&, double*);
+
+private:
+    kd_tree *kptr;
+    array_1d<double> *fn;
+    
+    double _ell;
+    array_2d<double> _covarin;
+    array_1d<int> _neigh;
+
+};
+
 class node_cost_function : public function_wrapper{
 
 public:
