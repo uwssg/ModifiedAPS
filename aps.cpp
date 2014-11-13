@@ -218,7 +218,7 @@ aps::aps(int dim_in, int kk, double dd, int seed){
     time_penalty=0.5;
     
     n_wide=0;
-    n_box_wide=0;
+    n_simplex=0;
         
     last_optimized=0;
     time_optimizing=0.0;
@@ -773,7 +773,7 @@ int aps::get_n_pts(){
 }
 
 int aps::get_n_simplex(){
-    return n_box_wide;
+    return n_simplex;
 }
 
 int aps::get_n_active_nodes(){
@@ -1003,7 +1003,7 @@ int aps::aps_box_wide(){
         return iout;
     }
     
-    n_box_wide++;
+    n_simplex++;
     
     double volumeBiggest;
     int iByVolume;
@@ -2928,7 +2928,7 @@ void aps::write_pts(){
     quartiles.get_data(0),quartiles.get_data(1),quartiles.get_data(2));
     printf("\ntotal time %e\n",time_now-start_time);
     printf("pts %d\n",ggWrap.get_pts());
-    printf("n wide %d n box wide %d\n",n_wide,n_box_wide);
+    printf("n wide %d n box wide %d\n",n_wide,n_simplex);
     printf("\n");
     
     output=fopen("node_dump.sav","w");
