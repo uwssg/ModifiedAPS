@@ -51,7 +51,8 @@ void gp_cost_function::evaluate(array_1d<double> &pt, double *out){
     }
     
     if(calculate==1){
-        covar.set_cols(kptr->get_dim());
+        covar.set_cols(npts);
+        _covarin.set_cols(npts);
         for(i=0;i<npts;i++){
             for(j=i;j<npts;j++){
                 covar.set(i,j,exp(-0.5*power(kptr->distance(neigh.get_data(i),neigh.get_data(j))/ell,2)));
@@ -84,10 +85,10 @@ void gp_cost_function::evaluate(array_1d<double> &pt, double *out){
     }
     fbar=fbar/double(npts);
     
-    out[0]=0.0;
+    out[0]=-1.0*fbar;
     for(i=0;i<npts;i++){
         for(j=0;j<npts;j++){
-            out[0]+=covar_q.get_data(i)*_covarin.get_data(i,j)*(fn->get_data(_neigh.get_data(j))-fbar);
+            out[0]-=covar_q.get_data(i)*_covarin.get_data(i,j)*(fn->get_data(_neigh.get_data(j))-fbar);
         }
     }
     
