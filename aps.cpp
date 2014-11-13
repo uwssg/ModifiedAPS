@@ -219,6 +219,7 @@ aps::aps(int dim_in, int kk, double dd, int seed){
     
     n_wide=0;
     n_simplex=0;
+    n_simplex_found=0;
         
     last_optimized=0;
     time_optimizing=0.0;
@@ -1189,7 +1190,11 @@ int aps::simplex_search(){
             }
         } 
     
+        j=nodes.get_dim();
         i=find_global_minimum(seed);
+        if(nodes.get_dim()>j){
+            n_simplex_found++;
+        }
         simplex_start_pts.add(iSmallestSeed);
         
         if(i>=0){
@@ -2720,6 +2725,7 @@ void aps::write_pts(){
     if(ggWrap.is_unitSpheres_null()==0){
         fprintf(output,"unitSpheres engaged %d ",ggWrap.get_unitSpheres_pts());
     }
+    fprintf(output,"-- %d %d",n_simplex,n_simplex_found);
     fprintf(output,"\n");
     
     fclose(output);

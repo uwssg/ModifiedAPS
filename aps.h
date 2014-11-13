@@ -524,7 +524,7 @@ private:
     void assess_node(int);
     double ddNodeRatio;
     
-    int n_wide,n_simplex;
+    int n_wide,n_simplex,n_simplex_found;
     
     array_1d<int> simplex_start_pts;
     
