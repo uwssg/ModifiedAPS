@@ -170,11 +170,6 @@ public:
     void aps_search();
     
     /*
-    Perform the simplex search
-    */
-    int simplex_search();
-    
-    /*
     Sample chisquared at the point specified by the array_1d
     */
     void guess(array_1d<double>&);
@@ -281,7 +276,7 @@ private:
     int aps_wide();
     void aps_wide_post_process(int,double,double);
     void get_interesting_boxes(array_1d<int>&);
-    int aps_box_wide();
+    int simplex_search();
     double calculate_dchi(int);
     
     /*

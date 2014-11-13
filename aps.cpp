@@ -854,7 +854,7 @@ void aps::search(){
     int i_simplex;
     if(simplex_score<aps_score){
         i=ggWrap.get_called();
-        aps_box_wide();
+        simplex_search();
         ct_simplex+=ggWrap.get_called()-i;
         time_simplex+=double(time(NULL))-before;
     }
@@ -871,7 +871,7 @@ void aps::search(){
 void aps::get_interesting_boxes(array_1d<int> &acceptableBoxes){
 
     array_1d<double> trial;
-    trial.set_name("aps_box_wide_trial");
+    trial.set_name("get_interesting_boxes_trial");
     int ic;
     
     double span,allowedDistance,dd;
@@ -954,7 +954,7 @@ double aps::calculate_dchi(int ibox){
     return dchibest;
 }
 
-int aps::aps_box_wide(){
+int aps::simplex_search(){
     /*
     Select the boxes with no good points in them which are sufficiently
     far from their nearest nodes.
@@ -994,7 +994,7 @@ int aps::aps_box_wide(){
     }
     
     array_1d<double> trial;
-    trial.set_name("aps_box_wide_trial");
+    trial.set_name("simplex_search_trial");
     
     if(acceptableBoxes.get_dim()==0){
         printf("\n\nI'm sorry; there were no acceptable boxes\n\n");
@@ -2239,163 +2239,6 @@ double aps::distance(int i1, int i2, array_1d<double> &range){
     }
     
     return sqrt(dd);
-}
-
-int aps::simplex_search(){
-    
-    ggWrap.set_iWhere(iSimplex);
-    
-    //printf("\ngradient searching\n");
-    set_where("simplex_search");
-  
-    double before=double(time(NULL));
-    int ibefore=ggWrap.get_called();
-    
-    int ix,i,j,imin,iout=-1;
-    
-    array_1d<int> candidates;
-    array_1d<double> local_max,local_min,local_range;
-
-    for(i=0;i<wide_pts.get_dim();i++){
-        if(ct_simplex<10 || is_it_a_candidate(wide_pts.get_data(i))>0){
-            candidates.add(wide_pts.get_data(i));
-        }
-    }
-    
-    //printf("    candidates %d\n",candidates.get_dim());
-    if(candidates.get_dim()<gg.get_dim()+1){
-        
-        if(candidates.get_dim()==0){
-            refine_center();
-        }
-        else{
-            simplex_too_few_candidates(candidates);
-        }
-        
-    
-        ct_simplex+=ggWrap.get_called()-ibefore;
-        time_simplex+=double(time(NULL))-before;
-        return -1;
-    }
-    
-    
-    for(i=0;i<candidates.get_dim();i++){
-        ix=candidates.get_data(i);
-        for(j=0;j<dim;j++){
-            if(i==0 || gg.get_pt(ix,j)<local_min.get_data(j)){
-                local_min.set(j,gg.get_pt(ix,j));
-            }
-            
-            if(i==0 || gg.get_pt(ix,j)>local_max.get_data(j)){
-                local_max.set(j,gg.get_pt(ix,j));
-            }
-        }
-    }
-    
-    for(i=0;i<dim;i++){
-        local_range.set(i,local_max.get_data(i)-local_min.get_data(i));
-    }
-    
-    array_1d<double> vv;
-    vv.set_name("simplex_search_vv");
-   
-    
-    int o_mindex=ggWrap.get_global_mindex();
-
-    array_1d<int> seed;
-    double nn,nnmin,nnchosen;
-        
-    int ii;
-    
-    array_1d<double> delta,mu,sig,delta_out;
-    double ss,delta_max;
-    int ichosen;
-    
-    for(i=0;i<candidates.get_dim();i++){
-       mu.set(i,gg.self_predict(candidates.get_data(i),&ss));
-       sig.set(i,ss);
-       delta.set(i,(mu.get_data(i)-gg.get_fn(candidates.get_data(i)))/sig.get_data(i));
-
-    }
-    
-    for(ii=0;ii<dim+1;ii++){
-        if(forbidden_candidates.get_dim()==0 && known_minima.get_dim()==0 && seed.get_dim()==0){
-            for(i=0;i<candidates.get_dim();i++){     
-                if(i==0 || delta.get_data(i)>delta_max){
-                    delta_max=delta.get_data(i);
-                    ichosen=i;
-                }
-            }
-        }
-        else{
-        
-            for(i=0;i<candidates.get_dim();i++){
-                nnmin=chisq_exception;
-                for(j=0;j<known_minima.get_dim();j++){
-                    nn=distance(candidates.get_data(i),known_minima.get_data(j),local_range);
-                    if(nn<nnmin)nnmin=nn;
-                }
-            
-                for(j=0;j<forbidden_candidates.get_dim();j++){
-                    nn=distance(candidates.get_data(i),forbidden_candidates.get_data(j),local_range);
-                    if(nn<nnmin)nnmin=nn;
-                } 
-                
-                for(j=0;j<seed.get_dim();j++){
-                    nn=distance(candidates.get_data(i),seed.get_data(j),local_range);
-                    if(nn<nnmin)nnmin=nn;
-                }
-                
-                ss=delta.get_data(i)+nn;
-                if(i==0 || ss>delta_max){
-                    ichosen=i;
-                    delta_max=ss;
-                }
-            }
-    
-        }
-        
-        seed.set(ii,candidates.get_data(ichosen));
-        delta_out.set(ii,delta.get_data(ichosen));
-        candidates.remove(ichosen);
-        delta.remove(ichosen);
-        
-    }//loop over ii
-
-
-    if(mindex_is_candidate==1 && ggWrap.get_global_mindex()>=0){
-        /*
-        Replace the seed point with the highest chisquared value
-        with the index of the current chisquared minimum.
-        
-        This will only happen the first time find_global_minimum() 
-        is run
-        */
-        for(i=0;i<dim+1;i++){
-            if(i==0 || gg.get_fn(seed.get_data(i))>nn){
-                nn=gg.get_fn(seed.get_data(i));
-                ix=i;
-            }
-        }
-        
-        seed.set(ix,ggWrap.get_global_mindex());
-    }
-    
-    if(ix<0){
-        printf("WARNING could not find proper candidate to remove\n");
-        exit(1);
-    }
-
-    iout=find_global_minimum(seed);
-    
-    mindex_is_candidate=0;
-    
-    ct_simplex+=ggWrap.get_called()-ibefore;
-    time_simplex+=double(time(NULL))-before;
-    
-    set_where("nowhere");
-    return iout;
-    //printf("done gradient searching\n");
 }
 
 void aps::simplex_too_few_candidates(array_1d<int> &candidates){
