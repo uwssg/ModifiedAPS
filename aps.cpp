@@ -5,12 +5,21 @@ gp_cost_function::gp_cost_function(){
     exit(1);
 }
 
-gp_cost_function::gp_cost_function(kd_tree *g, array_1d<double> *ff){
+gp_cost_function::gp_cost_function(kd_tree *g, array_1d<double> *ff,
+array_1d<double> &min, array_1d<double> &max){
     kptr=g;
     fn=ff;
     
     _covarin.set_name("gp_cost_cached_covarin");
     _neigh.set_name("gp_cost_cached_neigh");
+    _min.set_name("gp_cost_min");
+    _max.set_name("gp_cost_max");
+    
+    int i;
+    for(i=0;i<min.get_dim();i++){
+        _min.set(i,min.get_data(i));
+        _max.set(i,max.get_data(i));
+    }
 }
 
 gp_cost_function::~gp_cost_function(){}
@@ -20,6 +29,18 @@ void gp_cost_function::evaluate(array_1d<double> &pt, double *out){
     array_1d<int> neigh;
     double ell,nugget;
     int i,j,npts;
+    
+    for(i=0;i<pt.get_dim();i++){
+        if(pt.get_data(i)>_max.get_data(i)){
+            out[0]=0.0;
+            return;
+        }
+        
+        if(pt.get_data(i)<_min.get_data(i)){
+            out[0]=0.0;
+            return;
+        }
+    }
     
     npts=5;
     nugget=1.0e-4;
@@ -715,7 +736,7 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
     
     kd_tree copy_kd(copy_data,k_min,k_max);
     
-    gp_cost_function cost(&copy_kd, &copy_ff);
+    gp_cost_function cost(&copy_kd, &copy_ff, range_min, range_max);
     
     simplex_minimizer ffmin;
     array_1d<double> min,max;
