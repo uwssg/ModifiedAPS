@@ -18,6 +18,8 @@ public:
     void set_dice(Ran*);
     void set_minmax(array_1d<double>&, array_1d<double>&);
     void use_gradient();
+    void freeze_temp();
+    void unfreeze_temp();
     
     /*
     the array_2d will be the input array of points;
