@@ -755,6 +755,7 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
     if(nodes.get_dim()>0){
         ffmin.set_cost(&cost);
     }
+    ffmin.freeze_temp();
     ffmin.find_minimum(simplex_seeds,found_minimum);
     
     array_1d<int> mindex;
