@@ -758,7 +758,7 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
     if(nodes.get_dim()>0){
         ffmin.set_cost(&cost);
     }
-    ffmin.freeze_temp();
+    //ffmin.freeze_temp();
     ffmin.find_minimum(simplex_seeds,found_minimum);
     
     array_1d<int> mindex;
@@ -1233,7 +1233,7 @@ int aps::simplex_search(){
         printf("\n\nThat's odd... chosenBox %d\n",chosenBox);
     }
     
-    if(n_simplex>1)exit(1);
+    //if(n_simplex>1)exit(1);
     
 }
 

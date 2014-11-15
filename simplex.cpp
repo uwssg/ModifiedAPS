@@ -147,8 +147,8 @@ double simplex_minimizer::evaluate(array_1d<double> &pt){
         _last_found=_called_evaluate;
         _min_ff=fval;
         
-        printf("min %e true %e cost %e raw %e\n",
-        _min_ff,_true_min_ff,cval,raw);
+        //printf("min %e true %e cost %e raw %e\n",
+        //_min_ff,_true_min_ff,cval,raw);
 
         if(_ff.get_dim()==pt.get_dim()+1){
             for(i=0;i<_pts.get_rows();i++){
@@ -164,13 +164,15 @@ double simplex_minimizer::evaluate(array_1d<double> &pt){
 }
 
 void simplex_minimizer::cool_off(){
-    if(_freeze_temp==1) return;
+    if(_freeze_temp==1 || _temp<_min_temp) return;
+    
+    printf("    cooling down\n");
+    
     _temp-=1.0;
     
     double mu;
     int i;
 
-        
     _freeze_called=1;
     _freeze_temp=1;
     if(_pstar.get_dim()>0){
@@ -188,9 +190,11 @@ void simplex_minimizer::cool_off(){
         
     find_il();
     _min_ff=_ff.get_data(_il);
-        
+    
+    printf("    _min %e\n",_min_ff);
     _freeze_temp=0;
     _freeze_called=0;
+    _last_found=_called_evaluate;
    
 }
 
@@ -212,9 +216,9 @@ double simplex_minimizer::evaluate_cost(array_1d<double> &vv){
 
     if(_freeze_temp==0)_called_cost++;
 
-    if(_called_cost%(10*vv.get_dim())==0){
+   /* if(_called_cost%(10*vv.get_dim())==0){
         cool_off();
-    }
+    }*/
         
     return exp(_temp)*cval;
 }
@@ -368,6 +372,7 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
        if(spread<0.1*_min_ff && _use_gradient==1 && _called_evaluate>abort_max/2+_last_called_gradient){
            //printf("implementing gradient %e\n",_temp);
            
+
            if(_freeze_temp==0)need_to_thaw=1;
            else need_to_thaw=0;
            
@@ -376,6 +381,8 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
            gradient_minimizer();
            
            if(need_to_thaw==1)_freeze_temp=0;
+           cool_off();
+           
        }
        
        if(_called_evaluate-_last_found>=abort_max && _temp>_min_temp){
@@ -397,8 +404,8 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
            
            if(need_to_thaw==1){
                _freeze_temp=0;
-               _last_found=_called_evaluate;
            }
+           cool_off();
            find_il();
        }
        //printf("spread %e %e %e\n\n",spread,_temp,_min_ff);
