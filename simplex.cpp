@@ -147,6 +147,9 @@ double simplex_minimizer::evaluate(array_1d<double> &pt){
     if(fval<_min_ff){
         _last_found=_called_evaluate;
         _min_ff=fval;
+        
+        printf("min %e true %e cost %e raw %e\n",
+        _min_ff,_true_min_ff,cval,raw);
 
         if(_ff.get_dim()==pt.get_dim()+1){
             for(i=0;i<_pts.get_rows();i++){
@@ -285,6 +288,7 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
     pbar.set_name("simplex_pbar");
     
     while(_called_evaluate-_last_found<abort_max){
+       
        for(i=0;i<dim;i++){
            pbar.set(i,0.0);
            for(j=0;j<dim+1;j++){
@@ -394,8 +398,8 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
            
            if(need_to_thaw==1){
                _freeze_temp=0;
+               _last_found=_called_evaluate;
            }
-           _last_found=_called_evaluate;
            find_il();
        }
        //printf("spread %e %e %e\n\n",spread,_temp,_min_ff);

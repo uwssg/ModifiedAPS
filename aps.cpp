@@ -83,6 +83,7 @@ void gp_cost_function::evaluate(array_1d<double> &pt, double *out){
             }
         }
     
+        /*
         invert_lapack(covar,covarin,0);
         
         for(i=0;i<npts;i++){
@@ -92,7 +93,19 @@ void gp_cost_function::evaluate(array_1d<double> &pt, double *out){
             }
         }
         _ell=ell;
+        */
     }
+    
+    for(i=0;i<npts;i++){
+        if(i==0 || fn->get_data(_neigh.get_data(i))<out[0]){
+            out[0]=fn->get_data(_neigh.get_data(i));
+        }
+    }
+    
+    out[0]=-1.0*out[0];
+    
+    return;
+    
     
     array_1d<double> covar_q;
     covar_q.set_name("gp_cost_covar_q");
@@ -1229,6 +1242,8 @@ int aps::simplex_search(){
     else{
         printf("\n\nThat's odd... chosenBox %d\n",chosenBox);
     }
+    
+    if(n_simplex>1)exit(1);
     
 }
 
