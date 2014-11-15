@@ -83,30 +83,20 @@ void gp_cost_function::evaluate(array_1d<double> &pt, double *out){
             }
         }
     
-        /*
+        
         invert_lapack(covar,covarin,0);
         
         for(i=0;i<npts;i++){
             _neigh.set(i,neigh.get_data(i));
+            
             for(j=0;j<npts;j++){
                 _covarin.set(i,j,covarin.get_data(i,j));
             }
         }
         _ell=ell;
-        */
+        
     }
-    
-    for(i=0;i<npts;i++){
-        if(i==0 || fn->get_data(_neigh.get_data(i))<out[0]){
-            out[0]=fn->get_data(_neigh.get_data(i));
-        }
-    }
-    
-    out[0]=-1.0*out[0];
-    
-    return;
-    
-    
+        
     array_1d<double> covar_q;
     covar_q.set_name("gp_cost_covar_q");
     for(i=0;i<npts;i++){

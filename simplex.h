@@ -31,6 +31,7 @@ private:
     
     double evaluate(array_1d<double>&);
     double evaluate_cost(array_1d<double>&);
+    void cool_off();
     
     void gradient_minimizer();
     

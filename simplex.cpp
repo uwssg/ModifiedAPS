@@ -114,7 +114,6 @@ double simplex_minimizer::evaluate(array_1d<double> &pt){
     
     if(_freeze_called==0)_called_evaluate++;
     
-    double start_temp=_temp;
     int i,j;
     array_1d<double> vv;
     vv.set_name("simplex_minimizer_vv");
@@ -161,38 +160,38 @@ double simplex_minimizer::evaluate(array_1d<double> &pt){
         }
     }
     
-    int need_to_thaw=0;
-    double mu;
-    if(start_temp-_temp>-0.1*start_temp){
-       
-        if(_freeze_temp==0)need_to_thaw=1;
-        else need_to_thaw=0;
-        
-        _freeze_called=1;
-        _freeze_temp=1;
-        if(_pstar.get_dim()>0){
-            _fstar=evaluate(_pstar);
-        }
-        
-        if(_pstarstar.get_dim()>0){
-            _fstarstar=evaluate(_pstarstar);
-        }
-        
-        for(i=0;i<_pts.get_rows();i++){
-            mu=evaluate(_pts(i)[0]);
-            _ff.set(i,mu);
-        }
-        
-        find_il();
-        _min_ff=_ff.get_data(_il);
-        
-        if(need_to_thaw==1){
-            _freeze_temp=0;
-        }
-        _freeze_called=0;
-    }
-    
     return fval;
+}
+
+void simplex_minimizer::cool_off(){
+    if(_freeze_temp==1) return;
+    _temp-=1.0;
+    
+    double mu;
+    int i;
+
+        
+    _freeze_called=1;
+    _freeze_temp=1;
+    if(_pstar.get_dim()>0){
+        _fstar=evaluate(_pstar);
+    }
+        
+    if(_pstarstar.get_dim()>0){
+        _fstarstar=evaluate(_pstarstar);
+    }
+        
+    for(i=0;i<_pts.get_rows();i++){
+        mu=evaluate(_pts(i)[0]);
+        _ff.set(i,mu);
+    }
+        
+    find_il();
+    _min_ff=_ff.get_data(_il);
+        
+    _freeze_temp=0;
+    _freeze_called=0;
+   
 }
 
 double simplex_minimizer::evaluate_cost(array_1d<double> &vv){
@@ -213,8 +212,8 @@ double simplex_minimizer::evaluate_cost(array_1d<double> &vv){
 
     if(_freeze_temp==0)_called_cost++;
 
-    if(_called_cost%(10*vv.get_dim())==0 && _freeze_temp==0){
-        _temp-=1.0;
+    if(_called_cost%(10*vv.get_dim())==0){
+        cool_off();
     }
         
     return exp(_temp)*cval;
