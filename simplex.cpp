@@ -216,9 +216,9 @@ double simplex_minimizer::evaluate_cost(array_1d<double> &vv){
 
     if(_freeze_temp==0)_called_cost++;
 
-   /* if(_called_cost%(10*vv.get_dim())==0){
+    if(_called_cost%1000==0){
         cool_off();
-    }*/
+    }
         
     return exp(_temp)*cval;
 }
@@ -381,7 +381,7 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
            gradient_minimizer();
            
            if(need_to_thaw==1)_freeze_temp=0;
-           cool_off();
+           //cool_off();
            
        }
        
@@ -404,8 +404,9 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
            
            if(need_to_thaw==1){
                _freeze_temp=0;
+               _last_found=_called_evaluate;
            }
-           cool_off();
+           //cool_off();
            find_il();
        }
        //printf("spread %e %e %e\n\n",spread,_temp,_min_ff);
