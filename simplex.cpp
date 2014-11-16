@@ -166,28 +166,28 @@ double simplex_minimizer::evaluate(array_1d<double> &pt){
 void simplex_minimizer::cool_off(){
     if(_freeze_temp==1 || _temp<_min_temp) return;
     
-    printf("    cooling down\n");
+    printf("    cooling down %e\n",_temp);
     
     _temp-=1.0;
     
     double mu;
-    int i;
+    int i,j;
 
     _freeze_called=1;
     _freeze_temp=1;
-    if(_pstar.get_dim()>0){
-        _fstar=evaluate(_pstar);
-    }
-        
-    if(_pstarstar.get_dim()>0){
-        _fstarstar=evaluate(_pstarstar);
-    }
-        
+    find_il();
+    
     for(i=0;i<_pts.get_rows();i++){
+       if(i!=_il){
+           for(j=0;j<_pts.get_cols();j++){
+               _pts.set(i,j,dice->doub());
+           }
+       }
+    
         mu=evaluate(_pts(i)[0]);
         _ff.set(i,mu);
     }
-        
+    
     find_il();
     _min_ff=_ff.get_data(_il);
     
@@ -215,11 +215,7 @@ double simplex_minimizer::evaluate_cost(array_1d<double> &vv){
     cost->evaluate(vv,&cval);
 
     if(_freeze_temp==0)_called_cost++;
-
-    if(_called_cost%1000==0){
-        cool_off();
-    }
-        
+ 
     return exp(_temp)*cval;
 }
 
@@ -381,33 +377,11 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
            gradient_minimizer();
            
            if(need_to_thaw==1)_freeze_temp=0;
-           //cool_off();
            
        }
        
        if(_called_evaluate-_last_found>=abort_max && _temp>_min_temp){
-           if(_freeze_temp==0)need_to_thaw=1;
-           else need_to_thaw=0;
-           
-           _freeze_called=1;
-           _freeze_temp=1;
-           for(i=0;i<dim+1;i++){
-               if(i!=_il){
-                   for(j=0;j<dim;j++){
-                       _pts.set(i,j,_pts.get_data(_il,j)+dice->doub()*0.5);
-                   }
-                   mu=evaluate(_pts(i)[0]);
-                   _ff.set(i,mu);
-               }
-           }
-           _freeze_called=0;
-           
-           if(need_to_thaw==1){
-               _freeze_temp=0;
-               _last_found=_called_evaluate;
-           }
-           //cool_off();
-           find_il();
+           cool_off();
        }
        //printf("spread %e %e %e\n\n",spread,_temp,_min_ff);
     }
@@ -519,12 +493,11 @@ void simplex_minimizer::gradient_minimizer(){
                     deviation.set(j,normal_deviate(dice,0.0,1.0));
                     theta+=deviation.get_data(j)*step.get_data(j);
                 }
-                
-                if(!(_temp>_min_temp)){
-                    for(j=0;j<dim;j++){
-                        deviation.subtract_val(j,theta*step.get_data(j));
-                    }
+  
+                for(j=0;j<dim;j++){
+                    deviation.subtract_val(j,theta*step.get_data(j));
                 }
+                
                 mu1=deviation.normalize();
             }
             
