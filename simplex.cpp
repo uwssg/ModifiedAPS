@@ -180,7 +180,7 @@ void simplex_minimizer::cool_off(){
     for(i=0;i<_pts.get_rows();i++){
        if(i!=_il){
            for(j=0;j<_pts.get_cols();j++){
-               _pts.set(i,j,dice->doub());
+               _pts.set(i,j,_pts.get_data(_il,j)+0.1*(dice->doub()-0.5));
            }
        }
     
@@ -365,7 +365,10 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
        
        find_il();
        spread=_ff.get_data(_ih)-_ff.get_data(_il);
-       if(spread<0.1*_min_ff && _use_gradient==1 && _called_evaluate>abort_max/2+_last_called_gradient){
+       if(spread<0.1*_min_ff && 
+           _use_gradient==1 && 
+           _called_evaluate>abort_max/2+_last_called_gradient &&
+           _temp<_min_temp+0.1){
            //printf("implementing gradient %e\n",_temp);
            
 
