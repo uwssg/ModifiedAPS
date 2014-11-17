@@ -23,7 +23,7 @@ void simplex_minimizer::initialize(){
     chisquared=NULL;
     dice=NULL;
     
-    _min_temp=-0.5;
+    _min_temp=-8.0;
     
     _use_gradient=0;
     
@@ -158,6 +158,10 @@ double simplex_minimizer::evaluate(array_1d<double> &pt){
                 }    
             }
         }
+    }
+    
+    if(called_evaluate%200==0){
+        cool_off();
     }
     
     return fval;
