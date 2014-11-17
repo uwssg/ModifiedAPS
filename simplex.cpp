@@ -168,8 +168,6 @@ void simplex_minimizer::cool_off(){
     
     printf("    cooling down %e %d\n",_temp,_called_evaluate);
     
-    _temp-=1.0;
-    
     int i,j;
     
     array_1d<double> c1,c2,c3;
@@ -277,6 +275,7 @@ void simplex_minimizer::cool_off(){
     cc=evaluate_cost(c3);
     printf("center3 %e %e %e\n",mu,cc,mu+cc);
     
+    _temp-=1.0;
     _freeze_called=1;
     _freeze_temp=1;
     find_il();
