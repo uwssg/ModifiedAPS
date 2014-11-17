@@ -474,8 +474,7 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
        spread=_ff.get_data(_ih)-_ff.get_data(_il);
        if(spread<0.1*_min_ff && 
            _use_gradient==1 && 
-           _called_evaluate>abort_max/2+_last_called_gradient &&
-           _temp<_min_temp+0.1){
+           _called_evaluate>abort_max/2+_last_called_gradient){
            //printf("implementing gradient %e\n",_temp);
            
 
