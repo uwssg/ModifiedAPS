@@ -298,7 +298,7 @@ void simplex_minimizer::cool_off(){
     _freeze_temp=0;
     _freeze_called=0;
     _last_found=_called_evaluate;
-   
+    
 }
 
 double simplex_minimizer::evaluate_cost(array_1d<double> &vv){

@@ -1586,6 +1586,12 @@ template <typename T>
 void merge_sort(array_1d<T> &in, array_1d<int> &dexes,
                 int start, int end){
     
+    if(end>=dexes.get_dim()){
+        printf("WARNING in merge_sort end is %d but dexes has %d\n",
+        end,dexes.get_dim());
+        
+        exit(1);
+    }
     
     if(in.get_dim()==0) return;
     
@@ -1595,6 +1601,7 @@ void merge_sort(array_1d<T> &in, array_1d<int> &dexes,
     int i1,i2,el;
     
     el=end-start+1;
+    
     
     if(el<2){
         return;
@@ -1698,7 +1705,7 @@ double sort_and_check(const array_1d<T> &in, array_1d<T> &sorted, array_1d<int> 
         dex_buffer.set(i,dexes.get_data(i));
 	sorted.set(i,in.get_data(i));
     }
-    
+
     merge_sort(sorted,dexes,0,in.get_dim()-1);
     
     double err,maxerr,aa,bb;
@@ -1720,6 +1727,12 @@ double sort_and_check(const array_1d<T> &in, array_1d<T> &sorted, array_1d<int> 
     
         for(j=0;j<in.get_dim() && dexes.get_data(i)!=dex_buffer.get_data(j);j++);
 	
+        if(j==in.get_dim()){
+            printf("WARNING could not find dex %d\n",dexes.get_data(i));
+            ifailure=-1;
+            throw ifailure;
+        }
+        
         if(dexes.get_data(i)!=dex_buffer.get_data(j)){
 	    printf("WARNING dexes did not line up %d %d\n",
 	    dexes.get_data(i),dex_buffer.get_data(j));

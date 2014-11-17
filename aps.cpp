@@ -61,12 +61,16 @@ void gp_cost_function::evaluate(array_1d<double> &pt, double *out){
     covar.set_name("gp_cost_covar");
     covarin.set_name("gp_cost_covar");
     
-    int calculate=0;
+    int calculate=0,found_it=0;
     if(_neigh.get_dim()!=npts)calculate=1;
     else{
         for(i=0;i<npts && calculate==0;i++){
-            for(j=0;j<npts && calculate==0;j++){
-                if(_neigh.get_data(j)==neigh.get_data(i))calculate=1;
+            found_it=0;
+            for(j=0;j<npts && found_it==0;j++){
+                if(_neigh.get_data(j)==neigh.get_data(i))found_it=1;
+            }
+            if(found_it==0){
+                calculate=1;
             }
         }
     }
@@ -96,6 +100,29 @@ void gp_cost_function::evaluate(array_1d<double> &pt, double *out){
         _ell=ell;
         
     }
+    
+    /*array_1d<double> provisional_dd,sorted;
+    for(i=0;i<npts;i++){
+        provisional_dd.set(i,kptr->distance(pt,_neigh.get_data(i)));
+    }
+
+    sort_and_check(provisional_dd,sorted,_neigh);
+    
+    double ddmin=kptr->distance(pt,_neigh.get_data(0));
+    double ddtest;
+    for(i=0;i<kptr->get_pts();i++){
+        if(i!=_neigh.get_data(0)){
+            ddtest=kptr->distance(pt,i);
+            if(ddtest<ddmin && ddtest>1.0e-8){
+                printf("WARNING ddmin %e ddtest %e\n",ddmin,ddtest);
+                exit(1);
+            }
+        }
+    }
+    
+    printf("dd %e\n",ddmin);
+    out[0]=-1.0*fn->get_data(_neigh.get_data(0));
+    return;*/
         
     array_1d<double> covar_q;
     covar_q.set_name("gp_cost_covar_q");
