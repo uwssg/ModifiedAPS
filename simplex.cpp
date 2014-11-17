@@ -170,9 +170,113 @@ void simplex_minimizer::cool_off(){
     
     _temp-=1.0;
     
-    double mu;
     int i,j;
+    
+    array_1d<double> c1,c2,c3;
+    c1.set_name("cool_c1");
+    c2.set_name("cool_c2");
+    c3.set_name("cool_c3");
+    
+    c1.set(0,2.285163e+01); 
+    c2.set(0,-1.632044e+01); 
+    c3.set(0,-1.861988e+01);
+    
+    c1.set(1,3.462226e+01); 
+    c2.set(1,2.691803e+01); 
+    c3.set(1,1.037993e+00);
+     
+    c1.set(2,-3.625707e+01); 
+    c2.set(2,-1.685513e+01); 
+    c3.set(2,-9.991241e+00);
+     
+    c1.set(3,8.500413e+00); 
+    c2.set(3,-4.778381e+01); 
+    c3.set(3,-1.350521e+01); 
 
+    c1.set(4,-3.138125e+01); 
+    c2.set(4,-9.038218e+00);
+    c3.set(4,6.063379e+01);
+     
+    c1.set(5,-3.130931e+01); 
+    c2.set(5,3.759435e+01); 
+    c3.set(5,3.376382e+01);
+     
+    c1.set(6,3.432636e+01); 
+    c2.set(6,3.212938e+01); 
+    c3.set(6,4.539500e+00);
+     
+    c1.set(7,-4.524877e+01); 
+    c2.set(7,-3.628435e+01); 
+    c3.set(7,-4.472737e+01);
+     
+    c1.set(8,3.981330e+01); 
+    c2.set(8,4.912830e+01); 
+    c3.set(8,-7.177262e-01);
+     
+    c1.set(9,-6.699109e+01); 
+    c2.set(9,5.341358e+01); 
+    c3.set(9,1.686652e+01);
+    
+    c1.set(10,1.347403e+01);
+    c2.set(10,8.155126e+01); 
+    c3.set(10,2.636171e+01);
+     
+    c1.set(11,-2.478997e+01); 
+    c2.set(11,-6.108335e+01); 
+    c3.set(11,8.529037e+01);
+     
+    c1.set(12,-3.231902e+01); 
+    c2.set(12,4.512894e+01); 
+    c3.set(12,-4.837654e+01);
+     
+    c1.set(13,5.542603e+01); 
+    c2.set(13,-2.802150e+01); 
+    c3.set(13,-3.051316e+01);
+     
+    c1.set(14,-4.655141e+00); 
+    c2.set(14,-5.902795e+01); 
+    c3.set(14,-2.767630e+01);
+     
+    c1.set(15,3.234203e+01); 
+    c2.set(15,-1.848324e+01); 
+    c3.set(15,-2.524299e+01);
+     
+    c1.set(16,-1.972182e+01); 
+    c2.set(16,-1.533085e+00); 
+    c3.set(16,7.412506e+00);
+     
+    c1.set(17,4.334954e+01); 
+    c2.set(17,2.066321e+01); 
+    c3.set(17,1.624681e+01);
+     
+    c1.set(18,-5.553152e+00); 
+    c2.set(18,-2.860642e+01); 
+    c3.set(18,-4.015259e+01);
+     
+    c1.set(19,1.760229e+01); 
+    c2.set(19,1.023786e+02); 
+    c3.set(19,-2.127212e+01);
+     
+    c1.set(20,1.286918e+01); 
+    c2.set(20,-2.216222e+01); 
+    c3.set(20,2.363586e+01);
+     
+    c1.set(21,-1.308687e+01); 
+    c2.set(21,-4.143387e+01); 
+    c3.set(21,3.643419e+00); 
+
+    printf("min %e true %e\n",_min_ff,_true_min_ff);
+    double mu,cc;
+    mu=chisquared->diagnostic_evaluate(c1);
+    cc=evaluate_cost(c1);
+    printf("center1 %e %e %e\n",mu,cc,mu+cc);
+    mu=chisquared->diagnostic_evaluate(c2);
+    cc=evaluate_cost(c2);
+    printf("center2 %e %e %e\n",mu,cc,mu+cc);
+    mu=chisquared->diagnostic_evaluate(c3);
+    cc=evaluate_cost(c3);
+    printf("center3 %e %e %e\n",mu,cc,mu+cc);
+    
     _freeze_called=1;
     _freeze_temp=1;
     find_il();
