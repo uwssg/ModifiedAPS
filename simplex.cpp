@@ -23,7 +23,7 @@ void simplex_minimizer::initialize(){
     chisquared=NULL;
     dice=NULL;
     
-    _min_temp=-8.0;
+    _min_temp=-0.5;
     
     _use_gradient=0;
     
@@ -166,7 +166,7 @@ double simplex_minimizer::evaluate(array_1d<double> &pt){
 void simplex_minimizer::cool_off(){
     if(_freeze_temp==1 || _temp<_min_temp) return;
     
-    printf("    cooling down %e\n",_temp);
+    printf("    cooling down %e %d\n",_temp,_called_evaluate);
     
     _temp-=1.0;
     
@@ -178,11 +178,11 @@ void simplex_minimizer::cool_off(){
     find_il();
     
     for(i=0;i<_pts.get_rows();i++){
-       if(i!=_il){
+       /*if(i!=_il){
            for(j=0;j<_pts.get_cols();j++){
                _pts.set(i,j,_pts.get_data(_il,j)+0.1*(dice->doub()-0.5));
            }
-       }
+       }*/
     
         mu=evaluate(_pts(i)[0]);
         _ff.set(i,mu);

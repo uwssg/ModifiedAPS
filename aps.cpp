@@ -802,6 +802,10 @@ int aps::get_n_simplex(){
     return n_simplex;
 }
 
+int aps::get_n_simplex_found(){
+    return n_simplex_found;
+}
+
 int aps::get_n_active_nodes(){
     int i,ans=0;
     for(i=0;i<nodes.get_dim();i++){
