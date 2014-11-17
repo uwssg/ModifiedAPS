@@ -23,6 +23,7 @@ public:
     function_wrapper();
     ~function_wrapper();
     virtual void evaluate(array_1d<double>&, double*);
+    virtual double diagnostic_evaluate(array_1d<double>&);
     virtual int get_called();
     
 };
@@ -110,7 +111,7 @@ class gpWrapper : public function_wrapper{
         void evaluate(array_1d<double>&,double*,int*);
         virtual void evaluate(array_1d<double>&,double*);
         
-        double diagnostic_evaluate(array_1d<double>&);
+        virtual double diagnostic_evaluate(array_1d<double>&);
         
         void set_gp(gp*);
         void set_chisq(chisquared*);

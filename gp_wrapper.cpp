@@ -13,6 +13,11 @@ void function_wrapper::evaluate(array_1d<double> &pp, double *cc){
     exit(1);
 }
 
+double function_wrapper::diagnostic_evaluate(array_1d<double> &pp){
+    printf("WARNING default diagnostic_evaluate not implemented\n");
+    exit(1);
+}
+
 straddle_parameter::straddle_parameter(){
     target=-1.0;
 }
