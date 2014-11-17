@@ -110,6 +110,8 @@ class gpWrapper : public function_wrapper{
         void evaluate(array_1d<double>&,double*,int*);
         virtual void evaluate(array_1d<double>&,double*);
         
+        double diagnostic_evaluate(array_1d<double>&);
+        
         void set_gp(gp*);
         void set_chisq(chisquared*);
         void set_strad(straddle_parameter*);

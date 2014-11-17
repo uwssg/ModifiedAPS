@@ -354,6 +354,12 @@ void gpWrapper::evaluate(array_1d<double> &pt, double *chiout, int *dex, int val
     }
 }
 
+double gpWrapper::diagnostic_evaluate(array_1d<double> &pt){
+    double ans=(*chisq)(pt);
+    chisq->decrement_called();
+    return ans;
+}
+
 void gpWrapper::freeze_boxes(){
     if(gg==NULL){
         printf("WARNING cannot freeze boxes; gg is null\n");
