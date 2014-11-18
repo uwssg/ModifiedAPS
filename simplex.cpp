@@ -160,7 +160,7 @@ double simplex_minimizer::evaluate(array_1d<double> &pt){
         }
     }
     
-    if(_called_evaluate%200==0){
+    if(_called_evaluate%1000==0){
         cool_off();
     }
     

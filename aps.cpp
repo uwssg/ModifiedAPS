@@ -75,6 +75,7 @@ void gp_cost_function::evaluate(array_1d<double> &pt, double *out){
         }
     }
     
+    calculate=1;
     if(calculate==1){
         covar.set_cols(npts);
         _covarin.set_cols(npts);
