@@ -40,6 +40,7 @@ void simplex_minimizer::initialize(){
     _pts.set_name("simplex_pts");
     _last_improved_ff.set_name("simplex_last_improved_ff");
     _last_improved_pts.set_name("simplex_last_improved_pts");
+    _initial_span.set_name("simplex_initial_span");
 }
 
 void simplex_minimizer::set_chisquared(function_wrapper *ff){
@@ -285,11 +286,11 @@ void simplex_minimizer::cool_off(){
     find_il();
     
     for(i=0;i<_pts.get_rows();i++){
-       /*if(i!=_il){
+       if(i!=_il){
            for(j=0;j<_pts.get_cols();j++){
-               _pts.set(i,j,_pts.get_data(_il,j)+0.1*(dice->doub()-0.5));
+               _pts.set(i,j,_pts.get_data(_il,j)+(dice->doub()-0.5)*_initial_span.get_data(j));
            }
-       }*/
+       }
     
         mu=evaluate(_pts(i)[0]);
         _ff.set(i,mu);
@@ -376,6 +377,25 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
         for(j=0;j<seed.get_cols();j++){
             _pts.set(i,j,(seed.get_data(i,j)-_origin.get_data(j))/_transform.get_data(j));
         }
+    }
+    
+    array_1d<double> initial_min,initial_max;
+    initial_min.set_name("simplex_initial_min");
+    initial_max.set_name("simplex_initial_max");
+    for(i=0;i<_pts.get_rows();i++){
+        for(j=0;j<_pts.get_cols();j++){
+            if(i==0 || _pts.get_data(i,j)<initial_min.get_data(j)){
+                initial_min.set(j,_pts.get_data(i,j));
+            }
+            if(i==0 || _pts.get_data(i,j)>initial_max.get_data(j)){
+                initial_max.set(j,_pts.get_data(i,j));
+            }
+        }
+    }
+    
+    _initial_span.reset();
+    for(i=0;i<_pts.get_cols();i++){
+        _initial_span.set(i,initial_max.get_data(i)-initial_min.get_data(i));
     }
     
     double mu;

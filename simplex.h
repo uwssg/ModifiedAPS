@@ -46,7 +46,7 @@ private:
     int _last_found,_called_evaluate,_abort_max_factor;
     array_1d<double> _transform, _origin,_ff,_pstar,_pstarstar,_min_pt;
     array_1d<double> _last_improved_ff;
-    array_1d<double> _min,_max;
+    array_1d<double> _min,_max,_initial_span;
     array_2d<double> _pts,_last_improved_pts;
     
     Ran *dice;
