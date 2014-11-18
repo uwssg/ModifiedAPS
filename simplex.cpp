@@ -510,7 +510,19 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
        }
        
        if(_called_evaluate-_last_found>=abort_max && _temp>_min_temp){
-           cool_off();
+           find_il();
+           _freeze_called=1;
+           for(i=0;i<_pts.get_rows();i++){
+               if(i!=_il){
+                   for(j=0;j<_pts.get_cols();j++){
+                       _pts.set(i,j,_pts.get_data(_il,j)+(dice->doub()-0.5)*_initial_span.get_data(j));
+                   }
+                   mu=evaluate(_pts(i)[0]);
+                   _ff.set(i,mu);
+               }
+           }
+           find_il();
+           _freeze_called=0;
        }
        //printf("spread %e %e %e\n\n",spread,_temp,_min_ff);
     }
