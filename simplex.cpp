@@ -100,6 +100,8 @@ void simplex_minimizer::find_il(){
        if(i==0 || _ff.get_data(i)<_ff.get_data(_il))_il=i;
        if(i==0 || _ff.get_data(i)>_ff.get_data(_ih))_ih=i;
    }
+   
+   _min_ff=_ff.get_data(_il);
 }
 
 double simplex_minimizer::evaluate(array_1d<double> &pt){
@@ -317,7 +319,6 @@ void simplex_minimizer::cool_off(){
     }
     
     find_il();
-    _min_ff=_ff.get_data(_il);
     
     printf("    _min %e\n",_min_ff);
     _freeze_temp=0;
