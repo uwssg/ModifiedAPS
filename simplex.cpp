@@ -285,10 +285,30 @@ void simplex_minimizer::cool_off(){
     _freeze_temp=1;
     find_il();
     
+    array_1d<double> span_max,span_min,span;
+    span_max.set_name("cool_off_span_max");
+    span_min.set_name("cool_off_span_min");
+    span.set_name("cool_off_span");
+    
+    for(i=0;i<_pts.get_rows();i++){
+        for(j=0;j<_pts.get_cols();j++){
+            if(i==0 || _pts.get_data(i,j)<span_min.get_data(j)){
+                span_min.set(j,_pts.get_data(i,j));
+            }
+            if(i==0 || _pts.get_data(i,j)>span_max.get_data(j)){
+                span_max.set(j,_pts.get_data(i,j));
+            }
+        }
+    }
+    
+    for(i=0;i<_pts.get_cols();i++){
+        span.set(i,span_max.get_data(i)-span_min.get_data(i));
+    }
+    
     for(i=0;i<_pts.get_rows();i++){
        if(i!=_il){
            for(j=0;j<_pts.get_cols();j++){
-               _pts.set(i,j,_pts.get_data(_il,j)+(dice->doub()-0.5)*_initial_span.get_data(j));
+               _pts.set(i,j,_pts.get_data(_il,j)+2.0*(dice->doub()-0.5)*span.get_data(j));
            }
        }
     
