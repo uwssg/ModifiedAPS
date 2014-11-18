@@ -114,9 +114,7 @@ double simplex_minimizer::evaluate(array_1d<double> &pt){
         printf("chisquared is NULL\n");
         exit(1);
     }
-    
-    if(_freeze_called==0)_called_evaluate++;
-    
+        
     int i,j;
     array_1d<double> vv;
     vv.set_name("simplex_minimizer_vv");
@@ -163,9 +161,12 @@ double simplex_minimizer::evaluate(array_1d<double> &pt){
         }
     }
     
-    if(_called_evaluate%1000==0){
+    if(_called_evaluate%1000==0 && _called_evaluate>0){
         cool_off();
+        _called_evaluate++;
     }
+    
+    if(_freeze_called==0)_called_evaluate++;
     
     return fval;
 }
