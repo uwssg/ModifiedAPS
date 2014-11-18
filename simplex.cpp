@@ -523,6 +523,7 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
            }
            find_il();
            _freeze_called=0;
+           _last_found=_called_evaluate;
        }
        //printf("spread %e %e %e\n\n",spread,_temp,_min_ff);
     }
