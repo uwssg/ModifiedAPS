@@ -410,8 +410,11 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
     int need_to_thaw,dim=seed.get_cols();
     double spread;
     
-    array_1d<double> pbar;
+    array_1d<double> pbar,span,span_min,span_max;
     pbar.set_name("simplex_pbar");
+    span.set_name("simplex_span");
+    span_min.set_name("simplex_span_min");
+    span_max.set_name("simplex_span_max");
     
     while(_called_evaluate-_last_found<abort_max){
        
@@ -512,10 +515,26 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
        if(_called_evaluate-_last_found>=abort_max && _temp>_min_temp){
            find_il();
            _freeze_called=1;
+           
+           for(i=0;i<_pts.get_rows();i++){
+               for(j=0;j<_pts.get_cols();j++){
+                   if(i==0 || _pts.get_data(i,j)<span_min.get_data(j)){
+                       span_min.set(j,_pts.get_data(i,j));
+                   }
+                   if(i==0 || _pts.get_data(i,j)>span_max.get_data(j)){
+                       span_max.set(j,_pts.get_data(i,j));
+                   }
+               }
+           }
+           
+           for(i=0;i<_pts.get_cols();i++){
+               span.set(i,span_max.get_data(i)-span_min.get_data(i));
+           }
+           
            for(i=0;i<_pts.get_rows();i++){
                if(i!=_il){
                    for(j=0;j<_pts.get_cols();j++){
-                       _pts.set(i,j,_pts.get_data(_il,j)+(dice->doub()-0.5)*_initial_span.get_data(j));
+                       _pts.set(i,j,_pts.get_data(_il,j)+(dice->doub()-0.5)*2.0*span.get_data(j));
                    }
                    mu=evaluate(_pts(i)[0]);
                    _ff.set(i,mu);

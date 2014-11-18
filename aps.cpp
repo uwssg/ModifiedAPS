@@ -1065,6 +1065,7 @@ int aps::simplex_search(){
     n_simplex++;
     int dex,iSmallestSeed;
     double smallestSeed,chitrial;
+    smallestSeed=2.0*chisq_exception;
     while(seed.get_dim()<ggWrap.get_dim()+1){
         for(i=0;i<ggWrap.get_dim();i++){
             trial.set(i,range_min.get_data(i)
