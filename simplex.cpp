@@ -662,7 +662,7 @@ void simplex_minimizer::expand(){
     for(i=0;i<_pts.get_rows();i++){
         if(i!=_il){
             for(j=0;j<_pts.get_cols();j++){
-                _pts.set(i,j,span_min.get_data(j)+2.0*(dice->doub()-0.5)*(span_max.get_data(j)-span_min.get_data(j)));
+                _pts.set(i,j,_pts.get_data(_il,j)+2.0*(dice->doub()-0.5)*(span_max.get_data(j)-span_min.get_data(j)));
             }
             
             mu=evaluate(_pts(i)[0]);
