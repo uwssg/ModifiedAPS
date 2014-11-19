@@ -45,6 +45,7 @@ private:
     int _il,_ih,_called_cost,_freeze_temp,_use_gradient;
     int _freeze_called,_last_called_gradient;
     int _last_found,_called_evaluate,_abort_max_factor;
+    int _last_cooled_off;
     array_1d<double> _transform, _origin,_ff,_pstar,_pstarstar,_min_pt;
     array_1d<double> _last_improved_ff;
     array_1d<double> _min,_max;

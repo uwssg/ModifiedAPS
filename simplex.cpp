@@ -160,9 +160,9 @@ double simplex_minimizer::evaluate(array_1d<double> &pt){
         }
     }
     
-    if(_called_evaluate%1000==0 && _called_evaluate>0){
+    if(_called_evaluate>_last_cooled_off+1000 && _called_evaluate>0){
         cool_off();
-        _called_evaluate++;
+        _last_cooled_off=_called_evaluate;
     }
     
     if(_freeze_called==0)_called_evaluate++;
@@ -334,6 +334,7 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
     _last_found=0;
     _called_evaluate=0;
     _last_called_gradient=0;
+    _last_cooled_off=0;
     
     
     _min_ff=2.0*chisq_exception;
@@ -385,7 +386,7 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
     find_il();
     
     int abort_max=_abort_max_factor*seed.get_cols();
-    int need_to_thaw,dim=seed.get_cols();
+    int dim=seed.get_cols();
     double spread;
     
     array_1d<double> pbar;
@@ -473,17 +474,7 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
        if(spread<0.1*_min_ff && 
            _use_gradient==1 && 
            _called_evaluate>abort_max/2+_last_called_gradient){
-           //printf("implementing gradient %e\n",_temp);
-           
-
-           if(_freeze_temp==0)need_to_thaw=1;
-           else need_to_thaw=0;
-           
-           _freeze_temp=1;
-           
            gradient_minimizer();
-           
-           if(need_to_thaw==1)_freeze_temp=0;
            
        }
        
@@ -509,7 +500,18 @@ void simplex_minimizer::gradient_minimizer(){
         exit(1);
     }
     find_il();
-
+    
+    int need_thaw_temp,need_thaw_called;
+    
+    if(_freeze_temp==0)need_thaw_temp=1;
+    else need_thaw_temp=0;
+    
+    if(_freeze_called==0)need_thaw_called=1;
+    else need_thaw_called=0;
+    
+    _freeze_temp=1;
+    _freeze_called=1;
+    
     array_1d<double> gradient,trial;
     gradient.set_name("simplex_gradient");
     trial.set_name("simplex_gradient_trial");
@@ -620,6 +622,8 @@ void simplex_minimizer::gradient_minimizer(){
         _ff.set(i,mu);
     }
     find_il();
+    if(need_thaw_temp==1)_freeze_temp=0;
+    if(need_thaw_called==1)_freeze_called=0;
     _last_called_gradient=_called_evaluate;
     
 }
@@ -665,12 +669,11 @@ void simplex_minimizer::expand(){
                 _pts.set(i,j,_pts.get_data(_il,j)+2.0*(dice->doub()-0.5)*(span_max.get_data(j)-span_min.get_data(j)));
             }
             
-            mu=evaluate(_pts(i)[0]);
-            _ff.set(i,mu);
         }
+        mu=evaluate(_pts(i)[0]);
+        _ff.set(i,mu);
     }
     find_il();
-    _min_ff=_ff.get_data(_il);
     if(need_thaw_temp==1)_freeze_temp=0;
     if(need_thaw_called==1)_freeze_called=0;
 }
