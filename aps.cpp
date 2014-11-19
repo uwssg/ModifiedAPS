@@ -2668,7 +2668,7 @@ void aps::write_pts(){
     quartiles.get_data(0),quartiles.get_data(1),quartiles.get_data(2));
     printf("\ntotal time %e\n",time_now-start_time);
     printf("pts %d\n",ggWrap.get_pts());
-    printf("n wide %d n box wide %d\n",n_wide,n_simplex);
+    printf("n wide %d n box wide %d  found %d\n",n_wide,n_simplex,n_simplex_found);
     printf("\n");
     
     output=fopen("node_dump.sav","w");
