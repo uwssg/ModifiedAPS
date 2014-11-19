@@ -173,11 +173,11 @@ double simplex_minimizer::evaluate(array_1d<double> &pt){
 void simplex_minimizer::cool_off(){
     if(_freeze_temp==1 || _temp<_min_temp) return;
     
-    printf("    cooling down %e %d\n",_temp,_called_evaluate);
+    //printf("    cooling down %e %d\n",_temp,_called_evaluate);
     
     int i,j;
     
-    array_1d<double> c1,c2,c3;
+    /*array_1d<double> c1,c2,c3;
     c1.set_name("cool_c1");
     c2.set_name("cool_c2");
     c3.set_name("cool_c3");
@@ -280,11 +280,13 @@ void simplex_minimizer::cool_off(){
     printf("center2 %e %e %e\n",mu,cc,mu+cc);
     mu=chisquared->diagnostic_evaluate(c3);
     cc=evaluate_cost(c3);
-    printf("center3 %e %e %e\n",mu,cc,mu+cc);
+    printf("center3 %e %e %e\n",mu,cc,mu+cc);*/
     
     _temp-=1.0;
     expand();
-    printf("    _min %e\n",_min_ff);
+   
+    //printf("    _min %e\n",_min_ff);
+   
     _last_found=_called_evaluate;
     
 }
