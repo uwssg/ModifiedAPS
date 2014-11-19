@@ -40,7 +40,6 @@ void simplex_minimizer::initialize(){
     _pts.set_name("simplex_pts");
     _last_improved_ff.set_name("simplex_last_improved_ff");
     _last_improved_pts.set_name("simplex_last_improved_pts");
-    _initial_span.set_name("simplex_initial_span");
 }
 
 void simplex_minimizer::set_chisquared(function_wrapper *ff){
@@ -284,46 +283,8 @@ void simplex_minimizer::cool_off(){
     printf("center3 %e %e %e\n",mu,cc,mu+cc);
     
     _temp-=1.0;
-    _freeze_called=1;
-    _freeze_temp=1;
-    find_il();
-    
-    array_1d<double> span_max,span_min,span;
-    span_max.set_name("cool_off_span_max");
-    span_min.set_name("cool_off_span_min");
-    span.set_name("cool_off_span");
-    
-    for(i=0;i<_pts.get_rows();i++){
-        for(j=0;j<_pts.get_cols();j++){
-            if(i==0 || _pts.get_data(i,j)<span_min.get_data(j)){
-                span_min.set(j,_pts.get_data(i,j));
-            }
-            if(i==0 || _pts.get_data(i,j)>span_max.get_data(j)){
-                span_max.set(j,_pts.get_data(i,j));
-            }
-        }
-    }
-    
-    for(i=0;i<_pts.get_cols();i++){
-        span.set(i,span_max.get_data(i)-span_min.get_data(i));
-    }
-    
-    for(i=0;i<_pts.get_rows();i++){
-       if(i!=_il){
-           for(j=0;j<_pts.get_cols();j++){
-               _pts.set(i,j,_pts.get_data(_il,j)+2.0*(dice->doub()-0.5)*span.get_data(j));
-           }
-       }
-    
-        mu=evaluate(_pts(i)[0]);
-        _ff.set(i,mu);
-    }
-    
-    find_il();
-    
+    expand();
     printf("    _min %e\n",_min_ff);
-    _freeze_temp=0;
-    _freeze_called=0;
     _last_found=_called_evaluate;
     
 }
@@ -415,11 +376,6 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
         }
     }
     
-    _initial_span.reset();
-    for(i=0;i<_pts.get_cols();i++){
-        _initial_span.set(i,initial_max.get_data(i)-initial_min.get_data(i));
-    }
-    
     double mu;
     for(i=0;i<seed.get_rows();i++){
         mu=evaluate(_pts(i)[0]);
@@ -432,11 +388,8 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
     int need_to_thaw,dim=seed.get_cols();
     double spread;
     
-    array_1d<double> pbar,span,span_min,span_max;
+    array_1d<double> pbar;
     pbar.set_name("simplex_pbar");
-    span.set_name("simplex_span");
-    span_min.set_name("simplex_span_min");
-    span_max.set_name("simplex_span_max");
     
     while(_called_evaluate-_last_found<abort_max){
        
@@ -535,35 +488,7 @@ void simplex_minimizer::find_minimum(array_2d<double> &seed, array_1d<double> &m
        }
        
        if(_called_evaluate-_last_found>=abort_max && _temp>_min_temp){
-           find_il();
-           _freeze_called=1;
-           
-           for(i=0;i<_pts.get_rows();i++){
-               for(j=0;j<_pts.get_cols();j++){
-                   if(i==0 || _pts.get_data(i,j)<span_min.get_data(j)){
-                       span_min.set(j,_pts.get_data(i,j));
-                   }
-                   if(i==0 || _pts.get_data(i,j)>span_max.get_data(j)){
-                       span_max.set(j,_pts.get_data(i,j));
-                   }
-               }
-           }
-           
-           for(i=0;i<_pts.get_cols();i++){
-               span.set(i,span_max.get_data(i)-span_min.get_data(i));
-           }
-           
-           for(i=0;i<_pts.get_rows();i++){
-               if(i!=_il){
-                   for(j=0;j<_pts.get_cols();j++){
-                       _pts.set(i,j,_pts.get_data(_il,j)+(dice->doub()-0.5)*2.0*span.get_data(j));
-                   }
-                   mu=evaluate(_pts(i)[0]);
-                   _ff.set(i,mu);
-               }
-           }
-           find_il();
-           _freeze_called=0;
+           expand();
            _last_found=_called_evaluate;
        }
        //printf("spread %e %e %e\n\n",spread,_temp,_min_ff);
@@ -697,4 +622,55 @@ void simplex_minimizer::gradient_minimizer(){
     find_il();
     _last_called_gradient=_called_evaluate;
     
+}
+
+void simplex_minimizer::expand(){
+    if(dice==NULL){
+        printf("WARNING simplex cannot expand; it does not have a dice value\n");
+        exit(1);
+    }
+    if(_pts.get_rows()==0) return;
+    
+    int need_thaw_temp,need_thaw_called;
+    
+    if(_freeze_temp==0)need_thaw_temp=1;
+    else need_thaw_temp=0;
+    
+    if(_freeze_called==0)need_thaw_called=1;
+    else need_thaw_called=0;
+    
+    _freeze_temp=1;
+    _freeze_called=1;
+    
+    int i,j;
+    array_1d<double> span_min,span_max;
+    span_min.set_name("simplex_expand_span_min");
+    span_max.set_name("simplex_expand_span_max");
+    for(i=0;i<_pts.get_rows();i++){
+        for(j=0;j<_pts.get_cols();j++){
+            if(i==0 || _pts.get_data(i,j)<span_min.get_data(j)){
+                span_min.set(j,_pts.get_data(i,j));
+            }
+            if(i==0 || _pts.get_data(i,j)>span_max.get_data(j)){
+                span_max.set(j,_pts.get_data(i,j));
+            }
+        }
+    }
+    
+    double mu;
+    find_il();
+    for(i=0;i<_pts.get_rows();i++){
+        if(i!=_il){
+            for(j=0;j<_pts.get_cols();j++){
+                _pts.set(i,j,span_min.get_data(j)+2.0*(dice->doub()-0.5)*(span_max.get_data(j)-span_min.get_data(j)));
+            }
+            
+            mu=evaluate(_pts(i)[0]);
+            _ff.set(i,mu);
+        }
+    }
+    find_il();
+    _min_ff=_ff.get_data(_il);
+    if(need_thaw_temp==1)_freeze_temp=0;
+    if(need_thaw_called==1)_freeze_called=0;
 }
