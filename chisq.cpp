@@ -711,18 +711,29 @@ void s_curve::get_border_points(array_2d<double> &outpoints){
     if(widths.get_data(0,0)<widths.get_data(0,1))ds=0.1*widths.get_data(0,0);
     else ds=0.1*widths.get_data(0,1);
     
-    for(theta=-1.0*pi;theta<=1.0*pi;theta+=0.4*pi){
+    for(theta=-1.0*pi;theta<=1.01*pi;theta+=0.5*pi){
         if(theta<0.0)dfabsdth=-1.0;
         else dfabsdth=1.0;
     
         x0=centers.get_data(0,0)+trig_factor*sin(theta);
-        y0=centers.get_data(0,1)+trig_factor*theta*(cos(theta)-1.0)/fabs(theta);
-    
+        if(theta!=0.0){
+            y0=centers.get_data(0,1)+trig_factor*theta*(cos(theta)-1.0)/fabs(theta);
+        }
+        else{
+            y0=centers.get_data(0,1);
+        }
+        
         for(ir=0;ir<2;ir++){
 
             dxdth=trig_factor*cos(theta);
-	    dydth=trig_factor*((cos(theta)-1.0)/fabs(theta)-sin(theta)*theta/fabs(theta)
-	               -(cos(theta)-1.0)*dfabsdth/theta);
+            
+            if(theta!=0.0){
+	        dydth=trig_factor*((cos(theta)-1.0)/fabs(theta)-sin(theta)*theta/fabs(theta)
+	                   -(cos(theta)-1.0)*dfabsdth/theta);
+            }
+            else{
+                dydth=0.0;
+            }
 	
             if(ir==0){
 	        grad[0]=dydth;

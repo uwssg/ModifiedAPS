@@ -49,7 +49,9 @@ s_curve chisq(dim,ncenters);
 
 array_2d<double> troughPoints,borderPoints;
 chisq.get_trough_points(troughPoints);
+printf("got trough points\n");
 chisq.get_border_points(borderPoints);
+printf("got border points\n");
 
 double chi,chimax;
 for(i=0;i<troughPoints.get_rows();i++){
@@ -84,6 +86,15 @@ output=fopen("borderPoints.sav","w");
 for(i=0;i<borderPoints.get_rows();i++){
     for(j=0;j<borderPoints.get_cols();j++){
         fprintf(output,"%e ",chisq.project_to_basis(j,borderPoints(i)[0]));
+    }
+    fprintf(output,"\n");
+}
+fclose(output);
+
+output=fopen("borderPointsUnprojected.sav","w");
+for(i=0;i<borderPoints.get_cols();i++){
+    for(j=0;j<borderPoints.get_cols();j++){
+        fprintf(output,"%e ",borderPoints.get_data(i,j));
     }
     fprintf(output,"\n");
 }
