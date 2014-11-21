@@ -374,18 +374,18 @@ class gp{
         
         /*returns sigma in the double*; the int is for verbosity (1 prints some status
         reports as the prediction is made; 0 prints nothing)*/
-        double user_predict(array_1d<double>&,double*,int) const;
+        double user_predict(array_1d<double>&,double*,int,int*) const;
         
         /*does not calculate sigma (which can be verytime consuming). The int is verbosity*/
-        double user_predict(array_1d<double>&,int) const;
+        double user_predict(array_1d<double>&,int,int*) const;
         
         /*does not calculate sigma, but stores the values of the function used for
         interpolation in the final array_1d<double>; the int is for verbosity*/
-        double user_predict(array_1d<double>&,int,array_1d<double>&) const;
+        double user_predict(array_1d<double>&,int,array_1d<double>&,int*) const;
         
         /*returns sigma in the double* and the values of the function used for
         interpolation in the final array_1d<double>; the int is for verbosity*/
-        double user_predict(array_1d<double>&,double*,int,array_1d<double>&) const;
+        double user_predict(array_1d<double>&,double*,int,array_1d<double>&,int*) const;
     
         /*
         The self_predict routines below take a point already stored in kd_tree
@@ -626,7 +626,7 @@ class gp{
         mutable double time_search,time_predict;
         
         /*this provides the backend for calculation in the user_predict routines*/
-        double predict(array_1d<double>&,double*,int,int,array_1d<double>&) const;
+        double predict(array_1d<double>&,double*,int,int,array_1d<double>&, int*) const;
         
         /*global variables used by the optimize() routines*/
         array_1d<double> hhbest;

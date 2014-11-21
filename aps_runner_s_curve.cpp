@@ -10,7 +10,7 @@ int main(int iargc, char *argv[]){
 
 int seed=99;
 int dim,ncenters;
-int nsamples=10000;
+int nsamples=10000,n_found=3;
 
 dim=22;
 ncenters=3;
@@ -22,6 +22,8 @@ if(iargc>3)dim=atoi(argv[3]);
 if(iargc>4){
     nsamples=atoi(argv[4]);
 }
+
+if(iargc>5)n_found=atoi(argv[5]);
 
 if(seed<0){
     seed=int(time(NULL));
@@ -97,7 +99,10 @@ i=-1;
 //chisquared function has been called
 //10000 times
 //while(aps_test.get_called()<nsamples || aps_test.get_n_active_nodes()>0){
-while(aps_test.get_called()<nsamples){
+while(aps_test.get_called()<nsamples && 
+      aps_test.get_n_simplex_found()<n_found){
+      
+      
     aps_test.search();    
 }
 aps_test.write_pts();

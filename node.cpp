@@ -4,6 +4,7 @@ void node::set_names(){
     associates.set_name("node_associates");
     boundaryPoints.set_name("node_boundaryPoints");
     basisVectors.set_name("node_basisVectors");
+    basisModel.set_name("node_basisModel");
     range_max.set_name("node_range_max");
     range_min.set_name("node_range_min");
     candidates.set_name("node_candidates");
@@ -50,6 +51,7 @@ void node::copy(const node &in){
     associates.reset();
     boundaryPoints.reset();
     basisVectors.reset();
+    basisModel.reset();
     range_min.reset();
     range_max.reset();
     candidates.reset();
@@ -111,6 +113,11 @@ void node::copy(const node &in){
         candidates.add(in.candidates.get_data(i));
     }
     
+    
+    for(i=0;i<in.basisModel.get_dim();i++){
+        basisModel.set(i,in.basisModel.get_data(i));
+    }
+    
     if(gg!=NULL){
         if(gg->is_gp_null()==0){
             
@@ -160,6 +167,7 @@ void node::set_gpWrapper(gpWrapper *ggin){
     basisVectors.set_dim(gg->get_dim(),gg->get_dim());
     
     for(i=0;i<gg->get_dim();i++){
+        basisModel.set(i,1.0);
         for(j=0;j<gg->get_dim();j++){
             if(i==j)basisVectors.set(i,j,1.0);
             else basisVectors.set(i,j,0.0);
@@ -1096,8 +1104,119 @@ int node::perturb_bases(array_2d<double> &bases_in, int ix, array_1d<double> &dx
     return 1;
 }
 
+void node::project_distance(array_1d<double> &p1, int ip, array_2d<double> &bb, array_1d<double> &dd){
+    project_distance(ip,p1,bb,dd);
+}
 
-double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_associates){    
+void node::project_distance(int ip, array_1d<double> &p2, array_2d<double> &bb, array_1d<double> &dd){
+    if(ip<0 || ip>=gg->get_pts()){
+        printf("WARNING want to project distance to %d but %d\n",
+        ip,gg->get_pts());
+        
+        exit(1);
+    }
+
+    array_1d<double> p1;
+    p1.set_name("node_projection_int_p1");
+    int i;
+    for(i=0;i<gg->get_dim();i++){
+        p1.set(i,gg->get_pt(ip,i));
+    }
+    project_distance(p1,p2,bb,dd);
+}
+
+void node::project_distance(int i1, int i2, array_2d<double> &bb, array_1d<double> &dd){
+    if(i1<0 || i2<0 || i1>=gg->get_pts() || i2>=gg->get_pts()){
+        printf("WARNING want to project distance between %d and %d but %d\n",
+        i1,i2,gg->get_pts());
+        
+        exit(1);
+    }
+
+    array_1d<double> p1,p2;
+    p1.set_name("node_projection_p1");
+    p2.set_name("node_projection_p2");
+    int i;
+    for(i=0;i<gg->get_dim();i++){
+        p1.set(i,gg->get_pt(i1,i));
+        p2.set(i,gg->get_pt(i2,i));
+    }
+    project_distance(p1,p2,bb,dd);
+}
+
+void node::project_distance(array_1d<double> &p1, array_1d<double> &p2, array_2d<double> &_bases,
+array_1d<double> &dd){
+    
+    if(_bases.get_rows()!=gg->get_dim() || _bases.get_cols()!=gg->get_dim()){
+        printf("WARNING in project_distance bases is %d by %d but dim %d\n",
+        _bases.get_rows(),_bases.get_cols(),gg->get_dim());
+        
+        exit(1);
+    }
+    
+    dd.reset();
+    int i,ix;
+    for(ix=0;ix<_bases.get_rows();ix++){
+        dd.set(ix,0.0);
+        for(i=0;i<gg->get_dim();i++){
+            dd.add_val(ix,(p1.get_data(i)-p2.get_data(i))*_bases.get_data(ix,i));
+        }
+    }
+}
+
+double node::apply_model(array_1d<double> &pt){
+    return apply_model(pt,basisVectors,basisModel);
+}
+
+double node::apply_model(array_1d<double> &pt, array_2d<double> &_bases, array_1d<double> &_model){
+    double ans=gg->get_fn(min_dex);
+    array_1d<double> dd;
+    dd.set_name("node_apply_model_dd");
+    project_distance(pt,min_dex,_bases,dd);
+    int i;
+    for(i=0;i<gg->get_dim();i++){
+        ans+=_model.get_data(i)*power(dd.get_data(i),2);
+    }
+    return ans;
+}
+
+double node::basis_error_fn(array_2d<double> &trial_ddsq, array_1d<int> &basis_associates,
+array_1d<double> &trial_model){
+    /*
+    This is the function that basis_error is trying to minimize (with the constraint that all
+    of the model coefficients are positive) using a simplex
+    */
+    
+    int i;
+    for(i=0;i<trial_model.get_dim();i++){
+        if(trial_model.get_data(i)<0.0)return 2.0*chisq_exception;
+    }
+    
+    double ans=0.0,chisqModel,ratio,chi0;
+    chi0=gg->get_fn(min_dex);
+    int ix;
+    for(ix=0;ix<basis_associates.get_dim();ix++){
+        chisqModel=chi0;
+        for(i=0;i<gg->get_dim();i++){
+            chisqModel+=trial_ddsq.get_data(ix,i)*trial_model.get_data(i);
+        }
+        ans+=fabs(1.0-(chisqModel-chi0)/(gg->get_fn(basis_associates.get_data(ix))-chi0));
+    }
+    
+    if(isnan(ans)){
+        printf("WARNING in basis_error_fn ans is nan\n");
+        for(ix=0;ix<basis_associates.get_dim();ix++){
+            printf("%e\n",gg->get_fn(basis_associates.get_data(ix)));
+        }
+        exit(1);
+    }
+    
+    return ans/double(basis_associates.get_dim());
+
+}
+
+double node::basis_error(array_2d<double> &trial_bases, 
+array_1d<int> &basis_associates, array_1d<double> &trial_model){    
     /*
     trial_bases is now made up of a bunch of orthonormal vectors which resulted from
     the small perturbation of the original best_bases.  Now we will see how well a
@@ -1108,94 +1227,167 @@ double node::basis_error(array_2d<double> &trial_bases, array_1d<int> &basis_ass
         return 2.0*chisq_exception;
     }
     
-    int i,j,k,jx;
-    double nn;
+    /*this will have to do a simplex to find the best model that is positive definite*/
     
-    array_1d<double> matrix,bb;
-    matrix.set_name("node_basis_error_matrix");
-    bb.set_name("node_basis_error_bb");
+    double ans;
+    double alpha=1.0,beta=0.5,gamma=2.1;
+    double fstar,fstarstar,nn;
+    int ih,il,i,j,k;
+    array_2d<double> pts;
+    array_1d<double> pbar,ff,pstar,pstarstar;
     
-    array_2d<double> dd;
-    dd.set_name("node_basis_error_dd");
-    
-    matrix.set_dim(gg->get_dim()*gg->get_dim());
-    bb.set_dim(gg->get_dim());
-    dd.set_dim(basis_associates.get_dim(),gg->get_dim());
-    
+    array_1d<double> vv;
+    array_2d<double> ddsq;
+    vv.set_name("node_basis_error_vv");
+    ddsq.set_name("node_basis_error_ddsq");
+    ddsq.set_cols(gg->get_dim());
     for(i=0;i<basis_associates.get_dim();i++){
-        k=basis_associates.get_data(i);
+        project_distance(basis_associates.get_data(i),min_dex,trial_bases,vv);
         for(j=0;j<gg->get_dim();j++){
-            nn=0.0;
-            for(jx=0;jx<gg->get_dim();jx++){
-                nn+=(gg->get_pt(k,jx)-gg->get_pt(min_dex,jx))*trial_bases.get_data(j,jx);
-            }
-            dd.set(i,j,nn*nn);
-            
-            if(isnan(dd.get_data(i,j))){
-                printf("WARNING in basis_error dd is nan\n");
-                exit(1);
-            }
+            ddsq.set(i,j,vv.get_data(j)*vv.get_data(j));
         }
     }
     
-    for(i=0;i<gg->get_dim();i++){
+    pts.set_name("node_basis_error_pts");
+    pbar.set_name("node_basis_error_pbar");
+    ff.set_name("node_basis_error_ff");
+    pstar.set_name("node_basis_error_pstar");
+    pstarstar.set_name("node_basis_error_pstarstar");
+    
+    pts.set_cols(gg->get_dim());
+    
+    for(i=0;i<gg->get_dim()+1;i++){
         for(j=0;j<gg->get_dim();j++){
-            matrix.set(i*gg->get_dim()+j,0.0);
-            for(jx=0;jx<basis_associates.get_dim();jx++){
-                k=basis_associates.get_data(jx);
-                if(gg->get_fn(k)>gg->get_fn(min_dex)){
-                    matrix.add_val(i*gg->get_dim()+j,
-                    dd.get_data(jx,i)*dd.get_data(jx,j)/power(gg->get_fn(k)-gg->get_fn(min_dex),2));
+            pts.set(i,j,(0.5+dice->doub())*basisModel.get_data(j));
+        }
+        
+        nn=basis_error_fn(ddsq,basis_associates,pts(i)[0]);
+        ff.set(i,nn);
+        if(i==0 || nn<ff.get_data(il)){
+            il=i;
+        }
+        
+        if(i==0 || nn>ff.get_data(ih)){
+            ih=i;
+        }
+    }
+    
+    
+    int maxAbort,iterations,last_found;
+    double oldmin;
+    
+    iterations=0;
+    last_found=0;
+    maxAbort=10*gg->get_dim();
+    if(maxAbort<200)maxAbort=200;
+    
+    int dim=gg->get_dim();
+    //printf("starting %e\n",ff.get_data(il));
+    while(iterations-last_found<maxAbort){
+        iterations++;
+        oldmin=ff.get_data(il);
+        
+        for(i=0;i<dim;i++){
+            pbar.set(i,0.0);
+            for(j=0;j<dim+1;j++){
+                if(j!=ih){
+                    pbar.add_val(i,pts.get_data(j,i));
+                }
+            }
+            pbar.divide_val(i,double(dim));
+        }
+        
+        for(i=0;i<dim;i++){
+            pstar.set(i,(1.0+alpha)*pbar.get_data(i)-alpha*pts.get_data(ih,i));
+        }
+        
+        fstar=basis_error_fn(ddsq,basis_associates,pstar);
+        
+        if(fstar<ff.get_data(ih) && fstar>ff.get_data(il)){
+            ff.set(ih,fstar);
+            for(i=0;i<dim;i++){
+                pts.set(ih,i,pstar.get_data(i));
+            }
+        }
+        else if(fstar<ff.get_data(il)){
+            for(i=0;i<dim;i++){
+                pstarstar.set(i,gamma*pstar.get_data(i)+(1.0-gamma)*pbar.get_data(i));
+            }
+            fstarstar=basis_error_fn(ddsq,basis_associates,pstarstar);
+            
+            if(fstarstar<ff.get_data(il)){
+                for(i=0;i<dim;i++)pts.set(ih,i,pstarstar.get_data(i));
+                ff.set(ih,fstarstar);
+            }
+            else{
+                for(i=0;i<dim;i++)pts.set(ih,i,pstar.get_data(i));
+                ff.set(ih,fstar);
+            }
+        }
+        
+        for(i=0;i<dim+1;i++){
+            if(i==0 || ff.get_data(i)<ff.get_data(il))il=i;
+            if(i==0 || ff.get_data(i)>ff.get_data(ih))ih=i;
+        }
+        
+        j=1;
+        for(i=0;i<dim+1;i++){
+            if(fstar<ff.get_data(i) && i!=ih){
+                j=0;
+            }
+        }
+        
+        if(j==1){
+            for(i=0;i<dim;i++){
+                pstarstar.set(i,beta*pts.get_data(ih,i)+(1.0-beta)*pbar.get_data(i));
+            }
+            fstarstar=basis_error_fn(ddsq,basis_associates,pstarstar);
+            
+            if(fstarstar<ff.get_data(ih)){
+                for(i=0;i<dim;i++)pts.set(ih,i,pstarstar.get_data(i));
+                ff.set(ih,fstarstar);
+            }
+            else{
+                for(i=0;i<dim+1;i++){
+                    if(i==0 || ff.get_data(i)<ff.get_data(il)){
+                        il=i;
+                    }
+                }
+                for(i=0;i<dim+1;i++){
+                    if(i!=il){
+                        for(j=0;j<dim;j++){
+                            nn=0.5*(pts.get_data(i,j)+pts.get_data(il,j));
+                            pts.set(i,j,nn);
+                        }
+                        nn=basis_error_fn(ddsq,basis_associates,pts(i)[0]);
+                        ff.set(i,nn);
+                    }
                 }
             }
         }
-    }
-    
-    for(i=0;i<gg->get_dim();i++){
-        bb.set(i,0.0);
-        for(jx=0;jx<basis_associates.get_dim();jx++){
-            k=basis_associates.get_data(jx);
-            if(gg->get_fn(k)>gg->get_fn(min_dex)){
-                bb.add_val(i,dd.get_data(jx,i)/(gg->get_fn(k)-gg->get_fn(min_dex)));
+        
+        for(i=0;i<dim+1;i++){
+            if(i==0 || ff.get_data(i)<ff.get_data(il)){
+                il=i;
+            }
+            if(i==0 || ff.get_data(i)>ff.get_data(ih)){
+                ih=i;
             }
         }
-    }
-    
-    array_1d<double> trial_model;
-    trial_model.set_name("node_basis_error_trial_model");
-    
-    try{
-        naive_gaussian_solver(matrix,bb,trial_model,gg->get_dim());
-    }
-    catch(int iex){
-    }
-    
-    double ans=0.0;
-    for(jx=0;jx<basis_associates.get_dim();jx++){
-        k=basis_associates.get_data(jx);
-        nn=gg->get_fn(k)-gg->get_fn(min_dex);
-        for(i=0;i<gg->get_dim();i++){
-            nn-=trial_model.get_data(i)*dd.get_data(jx,i);
+        //if(iterations%200==0)printf("    %e \n",ff.get_data(il));
+        if(ff.get_data(il)<oldmin){
+            last_found=iterations;
         }
-        nn=nn/(gg->get_fn(k)-gg->get_fn(min_dex));
-        ans+=nn*nn;
     }
     
-    if(isnan(ans)){
-        printf("WARNING in basis_error ans is nan\n");
-        for(jx=0;jx<basis_associates.get_dim();jx++){
-	    k=basis_associates.get_data(jx);
-	    nn=gg->get_fn(k)-gg->get_fn(min_dex);
-	    if(isnan(nn) || nn<1.0e-10){
-	        printf("ggfn %e chisq %e %e\n",gg->get_fn(k),gg->get_fn(min_dex),nn);
-	    }
-	}
-     
-        return 2.0*chisq_exception;
+    //printf("    iterations %d -- %e\n",iterations,ff.get_data(il));
     
+    for(i=0;i<dim;i++){
+        trial_model.set(i,pts.get_data(il,i));
+       // printf("        %e\n",pts.get_data(il,i));
     }
     
-    return ans/double(basis_associates.get_dim());
+    return ff.get_data(il);
 }
 
 void node::find_bases(){
@@ -1260,9 +1452,13 @@ void node::find_bases(){
         }
     }
     
-    Ebest0=basis_error(bases_best,basis_associates);
+    Ebest0=basis_error(bases_best,basis_associates,basisModel);
     Ebest=Ebest0;
     lastEbest=Ebest0;
+    
+    array_1d<double> trial_model,best_model;
+    trial_model.set_name("find_bases_trial_model");
+    best_model.set_name("find_bases_best_model");
     
     int ix,changed_bases=0,aborted=0,max_abort=10*gg->get_dim(),total_aborted=0,total_ct=0;
     double stdevlim=1.0e-5/sqrt(double(gg->get_dim()));
@@ -1285,12 +1481,21 @@ void node::find_bases(){
         total_ct++;
         
         perturb_bases(bases_best,ix,dx,bases_trial);
-        Etrial=basis_error(bases_trial,basis_associates);
+        Etrial=basis_error(bases_trial,basis_associates,trial_model);
         
         if(Etrial<Ebest){
-            aborted=0;
+            //printf("    improved %e < %e -- %d\n",Etrial,Ebest,aborted);
+            if(Ebest-Etrial>1.0e-5*Etrial){
+                aborted=0;
+            }
+            else{
+                aborted++;
+                total_aborted++;
+            }
             changed_bases=1;
             for(i=0;i<gg->get_dim();i++){
+                best_model.set(i,trial_model.get_data(i));
+                basisModel.set(i,trial_model.get_data(i));
                 for(j=0;j<gg->get_dim();j++){
                     bases_best.set(i,j,bases_trial.get_data(i,j));
                 }
@@ -1322,15 +1527,33 @@ void node::find_bases(){
     printf("done finding bases %d %d \n",aborted,total_ct);
     printf("criteria %e <> %e // %e <> %e\n",stdev,stdevlim,Ebest,0.01*Ebest0);
     printf("changed bases %d time %e\n",changed_bases,double(time(NULL))-before);
-    printf("\n");
+    printf("Ebest %e\n",Ebest);
     
     if(changed_bases==1){
         for(i=0;i<gg->get_dim();i++){
+            basisModel.set(i,best_model.get_data(i));
             for(j=0;j<gg->get_dim();j++){
                 basisVectors.set(i,j,bases_best.get_data(i,j));
             }
         }
         
+    }
+    
+    array_1d<double> vv;
+    array_2d<double> ddsq;
+    ddsq.set_cols(gg->get_dim());
+    for(i=0;i<basis_associates.get_dim();i++){
+        project_distance(min_dex,basis_associates.get_data(i),basisVectors,vv);
+        for(j=0;j<gg->get_dim();j++){
+            ddsq.set(i,j,vv.get_data(j)*vv.get_data(j));
+        }
+    }
+    
+    printf("basis error %e\n",
+    basis_error_fn(ddsq,basis_associates,basisModel));
+    printf("\n");
+    
+    if(changed_bases==1){
         compass_search(min_dex);
     }
     
@@ -1436,7 +1659,18 @@ int node::search(){
     
     iBisection=bisectionAssociate(iLow,iHigh);
     
-    if((associates.get_dim()>last_nAssociates+10 || last_nAssociates==0) && associates.get_dim()>20){
+    double effective_time_search,effective_time_bases,effective_time_ricochet;
+    double effective_time_coulomb;
+    
+    effective_time_search=time_search+ct_search*time_penalty;
+    effective_time_bases=time_bases+time_penalty*ct_bases;
+    effective_time_ricochet=time_ricochet+time_penalty*ct_ricochet;
+    effective_time_coulomb=effective_time_search-effective_time_ricochet-effective_time_bases;
+    
+    if(effective_time_bases<0.33*effective_time_search && 
+       effective_time_coulomb>0.33*effective_time_search &&
+      (associates.get_dim()>last_nAssociates+20 || last_nAssociates==0) && 
+      associates.get_dim()>20){
         try{
             triedBasesOrRicochet=1;
             find_bases();
@@ -1450,7 +1684,9 @@ int node::search(){
     */
     int iStart;
     double nn;
-    if(time_ricochet+ct_ricochet*time_penalty<0.5*(time_search+ct_search*time_penalty) && associates.get_dim()>100){
+    if(effective_time_ricochet<0.33*effective_time_search &&
+       effective_time_coulomb>0.33*effective_time_search && 
+       associates.get_dim()>100){
         triedBasesOrRicochet=1;
         if(iBisection<0 || fabs(gg->get_fn(iCoulomb)-gg->get_target())<fabs(gg->get_fn(iBisection)-gg->get_target())){
             iStart=iCoulomb;
@@ -1610,6 +1846,24 @@ int node::get_ct_coulomb(){
 
 int node::get_ct_bases(){
     return ct_bases;
+}
+
+double node::get_basis_model(int ix){
+    if(basisModel.get_dim()!=gg->get_dim()){
+        printf("WARNING basis model has %d but dim %d\n",
+        basisModel.get_dim(),gg->get_dim());
+        
+        exit(1);
+    }
+    
+    if(ix<0 || ix>=basisModel.get_dim()){
+        printf("WARNING asked for basis model %d but %d\n",
+        ix,basisModel.get_dim());
+        
+        exit(1);
+    }
+    
+    return basisModel.get_data(ix);
 }
 
 double node::get_basis(int ix, int iy){

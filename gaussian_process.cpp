@@ -561,30 +561,32 @@ void gp::get_pt(int dex, array_1d<double> &output){
     kptr->get_pt(dex,output);
 }
 
-double gp::user_predict(array_1d<double> &pt, double *sigout, int verbose) const{
+double gp::user_predict(array_1d<double> &pt, double *sigout,
+int verbose, int *flag) const{
     array_1d<double> ff;
-    return predict(pt,sigout,verbose,1,ff);
+    return predict(pt,sigout,verbose,1,ff,flag);
 }
 
-double gp::user_predict(array_1d<double> &pt, int verbose) const{
+double gp::user_predict(array_1d<double> &pt, int verbose, int *flag) const{
     double nn;
     array_1d<double> ff;
-    return predict(pt,&nn,verbose,0,ff);
+    return predict(pt,&nn,verbose,0,ff,flag);
 }
 
-double gp::user_predict(array_1d<double> &pt, int verbose, array_1d<double> &ffout) const{
+double gp::user_predict(array_1d<double> &pt, int verbose,
+array_1d<double> &ffout, int *flag) const{
 
     double nn;
-    return predict(pt,&nn,verbose,0,ffout);
+    return predict(pt,&nn,verbose,0,ffout,flag);
 }
 
 double gp::user_predict(array_1d<double> &pt, double *sig, 
-int verbose, array_1d<double> &ffout) const{
-    return predict(pt,sig,verbose,1,ffout);
+int verbose, array_1d<double> &ffout, int *flag) const{
+    return predict(pt,sig,verbose,1,ffout,flag);
 }
 
 double gp::predict(array_1d<double> &pt,double *sigout,int verbose, int get_sig,
-    array_1d<double> &ffout)
+    array_1d<double> &ffout, int *flag)
 const{
     /*
     This is the function that does the calculation for all variations of user_predict()
@@ -605,7 +607,8 @@ const{
     This function returns the interpolated value of the function
     
     */
-
+    
+    flag[0]=0;
   
     pt.set_where("gp_user_predict");
   
@@ -818,14 +821,15 @@ const{
                    }
                }
                
-               if(betterFit>=0){    
-                   printf("WARNING box search failure -- did search: %d\n",dosrch);
+               if(betterFit>=0){
+                   flag[0]=-1;    
+                   /*printf("WARNING box search failure -- did search: %d\n",dosrch);
                    for(jbf=0;jbf<kptr->get_dim();jbf++){
                        printf("%e -- %e %e -- %e %e\n",
                        pt.get_data(jbf),
                        bptr->get_box_min(cached_ibox,jbf),bptr->get_box_max(cached_ibox,jbf),
                        bptr->get_box_min(betterFit,jbf),bptr->get_box_max(betterFit,jbf));
-                   }
+                   }*/
                    
                    //not going to exit
                    //I think this behavior is not dangerous

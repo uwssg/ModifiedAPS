@@ -1,5 +1,219 @@
 #include "aps.h"
 
+gp_cost_function::gp_cost_function(){
+    printf("WARNING default constructor not implemented for gp_cost_function\n");
+    exit(1);
+}
+
+gp_cost_function::gp_cost_function(kd_tree *g, array_1d<double> *ff,
+array_1d<double> &min, array_1d<double> &max){
+    kptr=g;
+    fn=ff;
+    
+    _covarin.set_name("gp_cost_cached_covarin");
+    _neigh.set_name("gp_cost_cached_neigh");
+    _min.set_name("gp_cost_min");
+    _max.set_name("gp_cost_max");
+    
+    int i;
+    for(i=0;i<min.get_dim();i++){
+        _min.set(i,min.get_data(i));
+        _max.set(i,max.get_data(i));
+    }
+}
+
+gp_cost_function::~gp_cost_function(){}
+
+void gp_cost_function::evaluate(array_1d<double> &pt, double *out){
+    array_1d<double> dd;
+    array_1d<int> neigh;
+    double ell,nugget;
+    int i,j,npts;
+    
+    for(i=0;i<pt.get_dim();i++){
+        if(pt.get_data(i)>_max.get_data(i)){
+            out[0]=0.0;
+            return;
+        }
+        
+        if(pt.get_data(i)<_min.get_data(i)){
+            out[0]=0.0;
+            return;
+        }
+    }
+    
+    npts=5;
+    nugget=1.0e-4;
+    
+    dd.set_name("gp_cost_function_dd");
+    neigh.set_name("gp_cost_function_neigh");
+    
+    kptr->nn_srch(pt,npts+1,neigh,dd);
+    if(dd.get_data(0)<1.0e-8){
+        dd.remove(0);
+        neigh.remove(0);
+    }
+    
+    
+    ell=dd.get_data(2);
+   
+    array_2d<double> covar,covarin;
+    covar.set_name("gp_cost_covar");
+    covarin.set_name("gp_cost_covar");
+    
+    int calculate=0,found_it=0;
+    if(_neigh.get_dim()!=npts)calculate=1;
+    else{
+        for(i=0;i<npts && calculate==0;i++){
+            found_it=0;
+            for(j=0;j<npts && found_it==0;j++){
+                if(_neigh.get_data(j)==neigh.get_data(i))found_it=1;
+            }
+            if(found_it==0){
+                calculate=1;
+            }
+        }
+    }
+    
+    calculate=1;
+    if(calculate==1){
+        covar.set_cols(npts);
+        _covarin.set_cols(npts);
+        for(i=0;i<npts;i++){
+            for(j=i;j<npts;j++){
+                covar.set(i,j,exp(-0.5*power(kptr->distance(neigh.get_data(i),neigh.get_data(j))/ell,2)));
+                if(i==j){
+                    covar.add_val(i,j,nugget);
+                }
+            }
+        }
+    
+        
+        invert_lapack(covar,covarin,0);
+        
+        for(i=0;i<npts;i++){
+            _neigh.set(i,neigh.get_data(i));
+            
+            for(j=0;j<npts;j++){
+                _covarin.set(i,j,covarin.get_data(i,j));
+            }
+        }
+        _ell=ell;
+        
+    }
+    
+    /*array_1d<double> provisional_dd,sorted;
+    for(i=0;i<npts;i++){
+        provisional_dd.set(i,kptr->distance(pt,_neigh.get_data(i)));
+    }
+
+    sort_and_check(provisional_dd,sorted,_neigh);
+    
+    double ddmin=kptr->distance(pt,_neigh.get_data(0));
+    double ddtest;
+    for(i=0;i<kptr->get_pts();i++){
+        if(i!=_neigh.get_data(0)){
+            ddtest=kptr->distance(pt,i);
+            if(ddtest<ddmin && ddtest>1.0e-8){
+                printf("WARNING ddmin %e ddtest %e\n",ddmin,ddtest);
+                exit(1);
+            }
+        }
+    }
+    
+    printf("dd %e\n",ddmin);
+    out[0]=-1.0*fn->get_data(_neigh.get_data(0));
+    return;*/
+        
+    array_1d<double> covar_q;
+    covar_q.set_name("gp_cost_covar_q");
+    for(i=0;i<npts;i++){
+        covar_q.set(i,exp(-0.5*power(kptr->distance(_neigh.get_data(i),pt)/_ell,2)));
+    }
+    
+    double fbar=0.0;
+    for(i=0;i<npts;i++){
+        fbar+=fn->get_data(_neigh.get_data(i));
+    }
+    fbar=fbar/double(npts);
+    
+    out[0]=-1.0*fbar;
+    for(i=0;i<npts;i++){
+        for(j=0;j<npts;j++){
+            out[0]-=covar_q.get_data(i)*_covarin.get_data(i,j)*(fn->get_data(_neigh.get_data(j))-fbar);
+        }
+    }
+    
+}
+
+node_cost_function::~node_cost_function(){
+    if(nodes!=NULL)delete [] nodes;
+
+}
+
+node_cost_function::node_cost_function(){
+    printf("WARNING default constructor not implemented for node_cost_function\n");
+    exit(1);
+}
+
+node_cost_function::node_cost_function(arrayOfNodes &nn,
+array_1d<double> &min, array_1d<double> &max){
+    _n_nodes=nn.get_dim();
+    int i;
+    
+    _min.set_name("node_cost_function_min");
+    _max.set_name("node_cost_function_max");
+    
+    for(i=0;i<min.get_dim();i++){
+        _min.set(i,min.get_data(i));
+        _max.set(i,max.get_data(i));
+    }
+    
+    if(_n_nodes>0){
+    
+        nodes = new node*[_n_nodes];
+    
+        for(i=0;i<_n_nodes;i++){
+            nodes[i]=nn(i);
+        }
+    }
+    else{
+        nodes=NULL;
+    }
+}
+
+void node_cost_function::evaluate(array_1d<double> &pt, double *out){
+    
+    if(_n_nodes==0){
+        out[0]=0.0;
+        return;
+    }
+    
+    double cost,costMin;
+    int i;
+    
+    for(i=0;i<pt.get_dim();i++){
+        if(pt.get_data(i)<_min.get_data(i)){
+            out[0]=0.0;
+            return;
+        }
+        
+        if(pt.get_data(i)>_max.get_data(i)){
+            out[0]=0.0;
+            return;
+        }
+    }
+    
+    for(i=0;i<_n_nodes;i++){
+        cost=nodes[i]->apply_model(pt);
+        if(i==0 || cost<costMin){
+            costMin=cost;
+        }
+    }
+    
+    out[0]=-1.0*costMin;
+}
+
 aps::aps(){
     printf("you called the APS constructor without paramters\n");
     printf("do not do that\n");
@@ -45,9 +259,6 @@ aps::aps(int dim_in, int kk, double dd, int seed){
     _aps_wide_contents_buffer.set_name("_aps_wide_contents_buffer");
     _aps_wide_ss_buffer.set_name("_aps_wide_ss_buffer");
     
-    _last_ff.set_name("find_global_min_last_ff");
-    _last_simplex.set_name("find_global_min_last_simplex");
-    
     write_every=1000;
     n_printed=0;
     do_bisection=1;
@@ -59,7 +270,8 @@ aps::aps(int dim_in, int kk, double dd, int seed){
     time_penalty=0.5;
     
     n_wide=0;
-    n_box_wide=0;
+    n_simplex=0;
+    n_simplex_found=0;
         
     last_optimized=0;
     time_optimizing=0.0;
@@ -476,56 +688,6 @@ int aps::is_it_a_candidate(int dex){
     else return 0;
 }
 
-
-double aps::simplex_evaluate(array_1d<double> &pt, int *actually_added){
-    array_2d<double> pp;
-    array_1d<double> ff;
-    
-    return simplex_evaluate(pt,actually_added,pp,ff,0);
-}
-
-double aps::simplex_evaluate(array_1d<double> &pt, int *actually_added,
-    array_2d<double> &pp, array_1d<double> &ff){
-
-
-    return simplex_evaluate(pt,actually_added,pp,ff,1);
-    
-}
-
-double aps::simplex_evaluate(array_1d<double> &pt, int *actually_added, 
-     array_2d<double> &pp, array_1d<double> &ff, int do_log){
-          
-    double mu;
-    int i,j;
-    
-    /*increment the number of calls made by the current simplex search to chisquared*/
-    _min_ct++;
-    
-    /*actually call chisquared*/
-    ggWrap.evaluate(pt,&mu,actually_added);
-    
-    /*if _simplex_min is improved upon...*/
-    if(mu<_simplex_min){
-       if(do_log==1){
-           if(_last_simplex.get_rows()==0 || mu<_last_min-0.1){
-              for(i=0;i<gg.get_dim()+1;i++){
-                  _last_simplex.set_row(i,*pp(i));
-                  _last_ff.set(i,ff.get_data(i));
-              }    
-              _last_min=mu;
-           }
-       }
-        _simplex_min=mu;
-        _last_found=_min_ct;
-        if(actually_added[0]>=0){
-            _mindex=actually_added[0];
-        }
-    }
-    
-    
-    return mu;
-}
-
 int aps::find_global_minimum(array_1d<int> &neigh){
     return find_global_minimum(neigh,-1);
 }
@@ -557,464 +719,94 @@ int aps::find_global_minimum(array_1d<int> &neigh, int limit){
         exit(1);
     }
     
-    int i_before=ggWrap.get_called();
-
-    array_1d<double> vv;
-    array_1d<int> simplex_candidates;
-    
-    vv.set_name("find_global_min_vv");
-    
-    array_2d<double> pts;
-    array_1d<double> pbar,ff,pstar,pstarstar;
-    array_1d<double> min,max,true_var,length;
-    
-    vv.set_name("find_global_min_vv");
-    pts.set_name("find_global_min_pts");
-    pbar.set_name("find_global_min_pbar");
-    ff.set_name("find_global_min_ff");
-    pstar.set_name("find_global_min_pstar");
-    pstarstar.set_name("find_global_min_pstarstar");
-    min.set_name("find_global_min_min");
-    max.set_name("find_global_min_max");
-    true_var.set_name("find_global_min_true_var");
-    length.set_name("find_global_min_length");
-    
-    double fstar,fstarstar,dx;
-    int ih,il,i,j,k,actually_added;
-    double alpha=1.0,beta=0.5,gamma=2.1;
-    
-    /*
-    In order to ensure that the simplex search is not unduly influenced
-    by the different allowed ranges of different parameters, we are going
-    to normalize the coordinates of the points searched by the simplex by
-    the class member variables range_max.get_data(i)-range_min.get_data(i)
-    
-    Unfortunately, this means that, before calculating chisquared at a new
-    point, we need to undo this normalization, since evaluate() expects
-    the actual values of the parameters in its arguments.
-    
-    This is what the array true_var is for: a buffer to store the
-    actual values of parameters when we pass them to evaluate.
-    */
-    
-    
-    true_var.set_dim(dim);
-    max.set_dim(dim);
-    min.set_dim(dim);
-  
-    pstar.set_dim(dim);
-    pstarstar.set_dim(dim);
-    pts.set_dim(dim+1,dim);
-    pbar.set_dim(dim);
-    ff.set_dim(dim+1);
-    
-    
-    for(i=0;i<dim;i++){
-        max.set(i,range_max.get_data(i));
-        min.set(i,range_min.get_data(i));
-        
-        length.set(i,0.1*(gg.get_max(i)-gg.get_min(i)));
-    }
-    
-    /*
-    Here is where we actually renormalize the seed points
-    and build the initial simplex
-    */
-    double nn;
-    for(i=0;i<dim+1;i++){
-        for(j=0;j<dim;j++)vv.set(j,gg.get_pt(neigh.get_data(i),j));
-        for(j=0;j<dim;j++){
-            nn=(vv.get_data(j)-min.get_data(j))/length.get_data(j);
-            pts.set(i,j,nn);
-        }
-        ff.set(i,gg.get_fn(neigh.get_data(i)));
-        if(i==0 || ff.get_data(i)<ff.get_data(il))il=i;
-        if(i==0 || ff.get_data(i)>ff.get_data(ih))ih=i;
-    }
-    
-    double mu=0.1,spread=1.0;
-    
-    /*
-    _simplex_min will store the local minimum of chisquared
-    as discovered by this simplex
-    
-    _mindex is the index of the point associated with that value
-    
-    they will not necessarily correspond to an actual local minimum
-    of chisquared (e.g. they will not if the simplex is converging
-    to a false minimum)
-    */
-    _simplex_min=ff.get_data(il);
-    _mindex=neigh.get_data(il);
-    
-    double time_last_found=double(time(NULL));
-    
-    array_1d<double> p_min,p_max,step,deviation;
-    array_1d<int> ix_candidates;
-    
-    p_min.set_name("find_global_min_p_min");
-    p_max.set_name("find_global_min_p_max");
-    step.set_name("find_global_min_step");
-    deviation.set_name("find_global_min_deviation");
-    ix_candidates.set_name("find_global_min_ix_candidates");
-    
-    int ix;
-    double theta;
-    
-    array_1d<double> trial,gradient;
-    double mu1,mu2,x1,x2,mean_value;
-    
-    trial.set_name("find_global_min_trial");
-    gradient.set_name("find_global_min_gradient");
-    
-    int delta_max=0;
-    
-    /*
-    Here we reset the class member variables that will store
-    the configuration of the simplex at the last time _simplex_min
-    was improved upon.  These variables will be used if it appears
-    that the simplex is about to converge to a local minimum.
-    At this point, the code will use a modified gradient descent
-    method to make sure that the simplex is not simply getting trapped in
-    a narrow valley that it cannot navigate.
-    */
-    _min_ct=0;
-    _last_found=0;
-    _last_min=2.0*chisq_exception;
-    _last_simplex.reset();
-    _last_ff.reset();
-    
+    array_1d<double> found_minimum;
+    array_2d<double> simplex_seeds;
+    found_minimum.set_name("aps_found_minimum");
+    simplex_seeds.set_name("aps_simplex_seeds");
+    int i,j;
     
     int ibefore=ggWrap.get_called();
+    double start_min;
     
-    /*
-    The while loop below is where we actually implement the simplex algorithm
-    as described by Nelder and Mead in The Computer Journal, volume 7, pg 308 (1965)
+    simplex_seeds.set_cols(ggWrap.get_dim());
     
-    _min_ct is the number of calls made to chisquared by this simplex search. 
-     _last_found is the number of calls that this simplex search had
-    made to chisquared at the last time _simplex_min was improved upon.  If 200 calls
-    are made to chisquared without improving _simplex_min, then the simplex search
-    will end.
-    */
-    while(_min_ct-_last_found<200 && (limit<0 || ggWrap.get_called()-ibefore<limit)){
-        simplex_ct++;
-        
-        for(i=0;i<dim;i++){
-            pbar.set(i,0.0);
-            for(j=0;j<dim+1;j++){
-                if(j!=ih){
-                    pbar.add_val(i,pts.get_data(j,i));
-                }
-            }
-            pbar.divide_val(i,double(dim));
-        }
-        
-        for(i=0;i<dim;i++){
-            pstar.set(i,(1.0+alpha)*pbar.get_data(i)-alpha*pts.get_data(ih,i));
-            true_var.set(i,min.get_data(i)+pstar.get_data(i)*length.get_data(i));
-        }
-        
-        
-        /*
-        Whenever we evaluate chisquared in this algorithm, we call simplex_evaluate.
-        
-        This is a wrapper for the class method evaluate().  It has the additional 
-        functionality of, if _simplex_min is improved upon, storing the current 
-        configuration of pts and ff.  These will be used by the modified gradient
-        descent method which is implemented whenever the simplex appears to be
-        trapped in a vally of chisquared.
-        
-        simplex_evaluate will also keep track of how many calls this simplex search
-        makes to chisquared as well as how many calls have been made since _simplex_min
-        was last impoved upon (_min_ct and _last_found).  If 200 calls
-        to chisquared are made without improving upon _simplex_min, the simplex
-        search will end.
-        */
-        fstar=simplex_evaluate(true_var,&actually_added,pts,ff);
-     
-        if(fstar<ff.get_data(ih) && fstar>ff.get_data(il)){
-            ff.set(ih,fstar);
-            for(i=0;i<dim;i++){
-                pts.set(ih,i,pstar.get_data(i));
-            }
-        }
-        else if(fstar<ff.get_data(il)){
-            for(i=0;i<dim;i++){
-                pstarstar.set(i,gamma*pstar.get_data(i)+(1.0-gamma)*pbar.get_data(i));
-                true_var.set(i,min.get_data(i)+pstarstar.get_data(i)*length.get_data(i));
-            }
-            
-            fstarstar=simplex_evaluate(true_var,&actually_added,pts,ff);
-            
-            if(fstarstar<ff.get_data(il)){
-                for(i=0;i<dim;i++)pts.set(ih,i,pstarstar.get_data(i));
-                ff.set(ih,fstarstar);
-            }
-            else{
-                for(i=0;i<dim;i++)pts.set(ih,i,pstar.get_data(i));
-                ff.set(ih,fstar);
-            }
-            
-        }
-        
-        for(i=0;i<dim+1;i++){
-            if(i==0 || ff.get_data(i)<ff.get_data(il))il=i;
-            if(i==0 || ff.get_data(i)>ff.get_data(ih))ih=i;
-        }
-        
-        j=1;
-        for(i=0;i<dim+1;i++){
-            if(fstar<ff.get_data(i) && i!=ih){
-                j=0;
-            }
-        }
-        
-        if(j==1){
-            for(i=0;i<dim;i++){
-                pstarstar.set(i,beta*pts.get_data(ih,i)+(1.0-beta)*pbar.get_data(i));
-                true_var.set(i,min.get_data(i)+pstarstar.get_data(i)*length.get_data(i));
-            }
-            
-            fstarstar=simplex_evaluate(true_var,&actually_added,pts,ff);
-            
-            if(fstarstar<ff.get_data(ih)){
-                for(i=0;i<dim;i++)pts.set(ih,i,pstarstar.get_data(i));
-                ff.set(ih,fstarstar);
-            }
-            else{
-                for(i=0;i<dim+1;i++){
-                    if(i==0 || ff.get_data(i)<ff.get_data(il)){
-                        il=i;
-                    }
-                }
-                for(i=0;i<dim+1;i++){
-                    if(i!=il){
-                        for(j=0;j<dim;j++){
-                            mu=0.5*(pts.get_data(i,j)+pts.get_data(il,j));
-                            pts.set(i,j,mu);
-                            true_var.set(j,min.get_data(j)+pts.get_data(i,j)*length.get_data(j));
-                        }
-                        
-                        mu=simplex_evaluate(true_var,&actually_added,pts,ff);
-                        ff.set(i,mu);
-                        
-                    }
-                }
-            }
-        }
-        
-        for(i=0;i<dim+1;i++){
-            if(i==0 || ff.get_data(i)<ff.get_data(il)){
-                il=i;
-            }
-            if(i==0 || ff.get_data(i)>ff.get_data(ih)){
-                ih=i;
-            }
-        }
-        
-        if(_min_ct-_last_found>delta_max)delta_max=_min_ct-_last_found;
-        
-        /*
-        what is the difference between the current maximum and minimum
-        chisquared values in the simplex
-        */
-        spread=ff.get_data(ih)-ff.get_data(il);
-        
-        mean_value=0.0;
-        for(i=0;i<dim+1;i++){
-            mean_value+=ff.get_data(i);
-        }
-        mean_value=mean_value/double(dim);
-        
-        //used to be 0.1
-        if(spread<1.0){
-            /*
-            If it appears that the simplex is converging into a valley in chisquared, 
-            try a modified gradient descent from the current minimum point of the simplex, 
-            just to make sure that the search has not settled into a very narrow valley from 
-            which the simplex cannot escape.
-            
-            First: numerically approximate the gradient in chisquared about the point
-            pts(il) (the current minimum of the simplex)
-            */
-            gradient.reset();
-            for(ix=0;ix<dim;ix++){
-                for(i=0;i<dim;i++)trial.set(i,pts.get_data(il,i));
-                x1=trial.get_data(ix)-0.1;
-                x2=trial.get_data(ix)+0.1;
-                
-                dx=0.1;
-                k=0;
-                mu1=2.0*chisq_exception;
-                while(!(mu1<chisq_exception) && k<5){
-                    k++;
-                    trial.set(ix,x1);
-                    for(i=0;i<dim;i++){
-                        true_var.set(i,trial.get_data(i)*length.get_data(i)+min.get_data(i));
-                    }
-                    mu1=simplex_evaluate(true_var,&actually_added);
-                    
-                    if(!(mu1<chisq_exception)){
-                        dx*=0.5;
-                        x1=pts.get_data(il,ix)-dx;
-                    }
-                }
-                
-                k=0;
-                mu2=2.0*chisq_exception;
-                dx=0.1;
-                while(!(mu2<chisq_exception) && k<5){
-                    k++;
-                    trial.set(ix,x2);
-                    for(i=0;i<dim;i++){
-                        true_var.set(i,trial.get_data(i)*length.get_data(i)+min.get_data(i));
-                    }
-                    mu2=simplex_evaluate(true_var,&actually_added);
-                    if(!(mu2<chisq_exception)){
-                        dx*=0.5;
-                        x2=pts.get_data(il,ix)+dx;
-                    }
-                }
-                gradient.set(ix,(mu1-mu2)/(x1-x2));
-                
-            }
-            
-            mu2=gradient.normalize();
-            
-            if(_last_ff.get_dim()>0){
-                /*
-                Find the vector between the current simplex minimum point and the point that
-                was the minimum of the simplex the last time that _simplex_min was improved.
-            
-                This vector will be stored in the array_1d<double> step
-                */
-                for(i=0;i<dim+1;i++){
-                    if(i==0 || _last_ff.get_data(i)<_last_ff.get_data(j))j=i;
-                }
-            
-                for(i=0;i<dim;i++){
-                    step.set(i,pts.get_data(il,i)-_last_simplex.get_data(j,i));
-                }
-            
-                mu=step.normalize();
-              
-                /*
-                Take the algebraic mean of gradient and step.
-            
-                Store this in step
-                */
-                if(!(isnan(mu2))){
-                    for(i=0;i<dim;i++){
-                        mu1=0.5*(step.get_data(i)-gradient.get_data(i));
-                        step.set(i,mu1);
-                    }
-                }
-                else{
-                    printf("    WARNING gradient had nan norm\n");
-                }
-                //printf("    gradient norm %e\n",mu2);
-            }//if _last_ff.get_dim()>0
-            else{
-                for(i=0;i<dim;i++)step.set(i,gradient.get_data(i));
-            }
-            
-            step.normalize();
-            
-            /*
-            Take each point in the simplex and move it slightly along the 
-            direction currently stored in step.  The hope is that this will
-            move _simplex_min towards a lower value of chisquared.
-            
-            For points that are not currently the minimum of the simplex, we will
-            add a small deviation in a random direction perpendicular to step
-            so that the simplex will be re-randomized and have a decent change of
-            converging to a better minimum.
-            */
-            for(i=0;i<dim+1;i++){
-                for(j=0;j<dim;j++){
-                    pts.add_val(i,j,mu*step.get_data(j));
-                }
-                
-                if(i!=il){
-                    theta=0.0;
-                    mu1=-1.0;
-                    while(mu1<0.0 || isnan(mu1)){
-                        for(j=0;j<dim;j++){
-                            deviation.set(j,normal_deviate(dice,0.0,1.0));
-                            theta+=deviation.get_data(j)*step.get_data(j);
-                        }
-                        for(j=0;j<dim;j++){
-                            deviation.subtract_val(j,theta*step.get_data(j));
-                        }
-                        mu1=deviation.normalize();
-                    }
-                    
-                    for(j=0;j<dim;j++){
-                        pts.add_val(i,j,0.1*deviation.get_data(j));
-                    }
-                    
-                }
-                
-            }
-            
-            for(i=0;i<dim+1;i++){
-                for(j=0;j<dim;j++){
-                    true_var.set(j,pts.get_data(i,j)*length.get_data(j)+min.get_data(j));
-                }
-                mu=simplex_evaluate(true_var,&actually_added);
-                ff.set(i,mu);
-                if(i==0 || ff.get_data(i)<ff.get_data(il))il=i;
-                if(i==0 || ff.get_data(i)>ff.get_data(ih))ih=i;
-            }
-            
-            
-        }
-        
-    }
-    
-    /*
-    The end point of this simplex search will be added to the list of known local_minima
-    which cannot be used as the seed to a simplex search again.
-    */
-    known_minima.add(_mindex);
-    j=nodes.get_dim();
-    
-    int ic,acutally_added,use_it,inode;
-    array_1d<double> midpt;
-    double chimid;
-    
-    midpt.set_name("find_global_min_midpt");
-    
-    /*
-    Now we must assess whether the point to which this simplex search converged is an
-    actual center to an independent, un-discovered region of low chisquared
-    */
-    use_it=1;
-    if(gg.get_fn(_mindex)>strad.get_target())use_it=0;
-    
-    for(ic=0;ic<nodes.get_dim() && use_it==1;ic++){
-        inode=nodes(ic)->get_center();
-        for(i=0;i<gg.get_dim();i++){
-            midpt.set(i,0.5*(gg.get_pt(inode,i)+gg.get_pt(_mindex,i)));
-        }
-        
-        ggWrap.evaluate(midpt,&chimid,&actually_added);
-        
-        if(chimid<strad.get_target()){
-            use_it=0;
-            if(gg.get_fn(_mindex)<gg.get_fn(inode)){
-                nodes(ic)->set_center_dex(_mindex);
-            }
-            
+    for(i=0;i<ggWrap.get_dim()+1;i++){
+        if(i==0 || ggWrap.get_fn(neigh.get_data(i))<start_min){
+            start_min=ggWrap.get_fn(neigh.get_data(i));
         }
     }
     
-    set_where("nowhere");
+    for(i=0;i<ggWrap.get_dim()+1;i++){
+        for(j=0;j<ggWrap.get_dim();j++){
+            simplex_seeds.set(i,j,ggWrap.get_pt(neigh.get_data(i),j));
+        }
+    }
     
-    assess_node(_mindex);
+    //node_cost_function cost(nodes,range_min,range_max);
     
-    return _mindex;
+    array_2d<double> copy_data;
+    array_1d<double> copy_ff,k_min,k_max;
+    
+    copy_data.set_name("aps_copy_data");
+    copy_ff.set_name("aps_copy_ff");
+    k_min.set_name("aps_k_min");
+    k_max.set_name("aps_k_max");
+    
+    for(i=0;i<ggWrap.get_dim();i++){
+        k_min.set(i,0.0);
+        k_max.set(i,characteristic_length.get_data(i));
+    }
+    
+    copy_data.set_cols(ggWrap.get_dim());
+    for(i=0;i<ggWrap.get_pts();i++){
+        copy_ff.set(i,ggWrap.get_fn(i));
+        for(j=0;j<ggWrap.get_dim();j++){
+            copy_data.set(i,j,ggWrap.get_pt(i,j));
+        }
+    }
+    
+    kd_tree copy_kd(copy_data,k_min,k_max);
+    
+    gp_cost_function cost(&copy_kd, &copy_ff, range_min, range_max);
+    
+    simplex_minimizer ffmin;
+    array_1d<double> min,max;
+    min.set_name("find_global_minimum_min");
+    max.set_name("find_global_maximum_max");
+    
+    for(i=0;i<ggWrap.get_dim();i++){
+        max.set(i,range_min.get_data(i)+0.1*(range_max.get_data(i)-range_min.get_data(i)));
+        min.set(i,range_min.get_data(i));
+    }
+    
+    ffmin.set_minmax(min,max);
+    ffmin.set_chisquared(&ggWrap);
+    ffmin.set_dice(dice);
+    ffmin.use_gradient();
+    if(nodes.get_dim()>0){
+        ffmin.set_cost(&cost);
+    }
+    //ffmin.freeze_temp();
+    ffmin.find_minimum(simplex_seeds,found_minimum);
+    
+    array_1d<int> mindex;
+    array_1d<double> dd;
+    ggWrap.nn_srch(found_minimum,1,mindex,dd);
+    if(dd.get_data(0)>1.0e-10){
+        printf("WARNING after simplex search dd %e\n",dd.get_data(0));
+    }
+    
+
+    
+    printf("    simplex found %e from %e\n",
+    ggWrap.get_fn(mindex.get_data(0)),start_min);
+    printf("    in %d\n",ggWrap.get_called()-ibefore);
+    
+    //if(nodes.get_dim()>0)exit(1);
+    
+    assess_node(mindex.get_data(0));
+    
+    return mindex.get_data(0);
 }
 
 
@@ -1032,6 +824,14 @@ int aps::get_called(){
 
 int aps::get_n_pts(){
     return gg.get_pts();
+}
+
+int aps::get_n_simplex(){
+    return n_simplex;
+}
+
+int aps::get_n_simplex_found(){
+    return n_simplex_found;
 }
 
 int aps::get_n_active_nodes(){
@@ -1112,7 +912,7 @@ void aps::search(){
     int i_simplex;
     if(simplex_score<aps_score){
         i=ggWrap.get_called();
-        aps_box_wide();
+        simplex_search();
         ct_simplex+=ggWrap.get_called()-i;
         time_simplex+=double(time(NULL))-before;
     }
@@ -1129,7 +929,7 @@ void aps::search(){
 void aps::get_interesting_boxes(array_1d<int> &acceptableBoxes){
 
     array_1d<double> trial;
-    trial.set_name("aps_box_wide_trial");
+    trial.set_name("get_interesting_boxes_trial");
     int ic;
     
     double span,allowedDistance,dd;
@@ -1212,7 +1012,7 @@ double aps::calculate_dchi(int ibox){
     return dchibest;
 }
 
-int aps::aps_box_wide(){
+int aps::simplex_search(){
     /*
     Select the boxes with no good points in them which are sufficiently
     far from their nearest nodes.
@@ -1228,8 +1028,9 @@ int aps::aps_box_wide(){
     ggWrap.set_iWhere(iSimplex);
     
     int i,j,iout;
-    array_1d<int> acceptableBoxes;
+    array_1d<int> acceptableBoxes,seed;
     acceptableBoxes.set_name("aps_simplex_acceptableBoxes");
+    seed.set_name("aps_simplex_seed");
     
     get_interesting_boxes(acceptableBoxes);
     if(acceptableBoxes.get_dim()==0){
@@ -1252,7 +1053,7 @@ int aps::aps_box_wide(){
     }
     
     array_1d<double> trial;
-    trial.set_name("aps_box_wide_trial");
+    trial.set_name("simplex_search_trial");
     
     if(acceptableBoxes.get_dim()==0){
         printf("\n\nI'm sorry; there were no acceptable boxes\n\n");
@@ -1261,207 +1062,43 @@ int aps::aps_box_wide(){
         return iout;
     }
     
-    n_box_wide++;
-    
-    double volumeBiggest;
-    int iByVolume;
-    double pterm,pbest,ptotal,lpterm,volume;
-    int dex,chosenBox,ii,norm_is_set;
-    array_1d<int> seed;
-    double chitrial,mu,sig,norm,x1,x2,y1,y2,stopping_point,dx;
-    
-    array_1d<double> boxProbabilities;
-    array_1d<int> boxDexes;
-    
-    boxProbabilities.set_name("aps_box_search_boxProbabilities");
-    boxDexes.set_name("aps_box_searc_boxDexes");
-    
-    seed.set_name("aps_box_search_seed");
-    
-    chosenBox=-1;
-    
-    if(acceptableBoxes.get_dim()==1){
-        chosenBox=acceptableBoxes.get_data(0);
-   
-    }//if there was only one box containing no good points
-    else{
-        pbest=2.0*chisq_exception;
-        
-        /*we will try to find the box with the smallest probability of 
-        not having a good point inside of it*/
-        
-        for(ii=0;ii<acceptableBoxes.get_dim();ii++){
-            ibox=acceptableBoxes.get_data(ii);
+    n_simplex++;
+    int dex,iSmallestSeed;
+    double smallestSeed,chitrial;
+    smallestSeed=2.0*chisq_exception;
+    while(seed.get_dim()<ggWrap.get_dim()+1){
+        for(i=0;i<ggWrap.get_dim();i++){
+            trial.set(i,range_min.get_data(i)
+                +dice->doub()*(range_max.get_data(i)-range_min.get_data(i)));
+        }
             
-            //printf("    ibox %d\n",ibox);
+        ggWrap.evaluate(trial,&chitrial,&dex);
             
-            ggWrap.reset_cache();
-            ptotal=0.0;
-            for(i=0;i<1000;i++){
-                
-                for(j=0;j<ggWrap.get_dim();j++){
-                    trial.set(j,ggWrap.get_box_min(ibox,j)+
-                        dice->doub()*(ggWrap.get_box_max(ibox,j)-ggWrap.get_box_min(ibox,j)));
-                }
-                
-                for(j=0;j<ggWrap.get_dim();j++){
-                    if(trial.get_data(j)<ggWrap.get_box_min(ibox,j) || 
-                    trial.get_data(j)>ggWrap.get_box_max(ibox,j)){
-                        
-                        printf("WARNING in aps trial %e not between %e %e\n",
-                        trial.get_data(j),
-                        ggWrap.get_box_min(ibox,j),
-                        ggWrap.get_box_max(ibox,j));
-                        
-                        exit(1);
-                        
-                    }
-                }
-                
-                mu=ggWrap.user_predict(trial,&sig);
-                
-                if(sig<=0.0){
-                    printf("WARNING in box_wide sig %e\n",sig);
-                    exit(1);
-                }
-                
-                norm_is_set=0;
-                if(mu>=3.0*sig){
-                    norm=sqrt(2.0*pi)*sig;
-                    stopping_point=ggWrap.get_target();
-                    norm_is_set=1;
-                }
-                else{
-                    norm=0.0;
-                    if(ggWrap.get_target()<mu+3.0*sig)stopping_point=mu+3.0*sig;
-                    else stopping_point=ggWrap.get_target();
-                    norm_is_set=0;
-                }
-                
-                dx=0.001*stopping_point;
-                pterm=0.0;
-                x1=0.0;
-                y1=exp(-0.5*power((x1-mu)/sig,2));
-                for(x2=dx;x2<stopping_point;x2+=dx){
-                    y2=exp(-0.5*power((x2-mu)/sig,2));
-                    
-                    if(x1<ggWrap.get_target()){
-                        pterm+=0.5*(y2+y1)*(x2-x1);
-                    }
-                    
-                    if(norm_is_set==0){
-                        norm+=0.5*(y2+y1)*(x2-x1);
-                    }
-                    
-                    x1=x2;
-                    y1=y2;
-                    
-                }
-                
-                pterm=pterm/norm;
-                if(pterm>=1.0){
-                    lpterm=-12.0;
-                }
-                else{
-                    lpterm=log(1.0-pterm);
-                }
-                /*lpterm is now the log of the probability that this point
-                is not a good point*/
-                
-                ptotal+=lpterm;  
-            }//loop over 1000 trial points in the box
-            
-            ptotal=ptotal/double(i+1);
-            
-            /*
-            ptotal is now the average log of the probability that a given
-            point in the box is not good
-            */
-                       
-            volume=1.0;
-            for(i=0;i<ggWrap.get_dim();i++){
-                volume*=ggWrap.get_box_max(ibox,i)-ggWrap.get_box_min(ibox,i);
+        if(dex>=0){
+            if(chitrial<smallestSeed){
+                smallestSeed=chitrial;
+                iSmallestSeed=dex;
             }
-            
-            /*multiply by the volume of the box and you get the probability that
-            there are no good points in the box*/
-            
-            ptotal*=volume;
-            if(ii==0 || ptotal<pbest){
-                pbest=ptotal;
-                chosenBox=ibox;
-            }
-            
-            if(ii==0 || volume>volumeBiggest){
-                volumeBiggest=volume;
-                iByVolume=ibox;
-            }
-            
-            boxProbabilities.add(ptotal);
-            boxDexes.add(ibox);
-            
-           
-        }//loop over the boxes
+            seed.add(dex);
+        }
+    } 
     
+    j=nodes.get_dim();
+    i=find_global_minimum(seed);
+    if(nodes.get_dim()>j){
+        n_simplex_found++;
     }
-    printf("\nchosen %d by volume %d\n",chosenBox,iByVolume);
-    
-    array_1d<double> sortedProbabilities;
-    sortedProbabilities.set_name("aps_box_search_sortedProbabilities");
-    
-    double dc,dcMax;
-
-    if(nodes.get_dim()>0 && acceptableBoxes.get_dim()>1){
-        sort_and_check(boxProbabilities,sortedProbabilities,boxDexes);
-        for(ii=0;ii<sortedProbabilities.get_dim()/4;ii++){
-            ibox=boxDexes.get_data(ii);
-            dc=calculate_dchi(ibox);
-            if(ii==0 || dc>dcMax){
-                dcMax=dc;
-                chosenBox=ibox;
-            }
-        }
-        printf("chosen by lpold %d\n\n",chosenBox);
-    }
-    
-    
-    int iSmallestSeed;
-    double smallestSeed=2.0*chisq_exception;
-    if(chosenBox>=0){
-        while(seed.get_dim()<ggWrap.get_dim()+1){
-            
-            for(i=0;i<ggWrap.get_dim();i++){
-               
-                trial.set(i,ggWrap.get_box_min(chosenBox,i)
-                    +dice->doub()*(ggWrap.get_box_max(chosenBox,i)-ggWrap.get_box_min(chosenBox,i)));
-            }
-            
-            ggWrap.evaluate(trial,&chitrial,&dex);
-            
-            if(dex>=0){
-                if(chitrial<smallestSeed){
-                    smallestSeed=chitrial;
-                    iSmallestSeed=dex;
-                }
-                seed.add(dex);
-            }
-        } 
-    
-        i=find_global_minimum(seed);
-        simplex_start_pts.add(iSmallestSeed);
+    simplex_start_pts.add(iSmallestSeed);
         
-        if(i>=0){
-            printf("    box found %e from %e\n",ggWrap.get_fn(i),smallestSeed);
-        }
-        else{
-            printf("    box found junk\n");
-        }
+    if(i>=0){
+        printf("    box found %e from %e\n",ggWrap.get_fn(i),smallestSeed);
     }
     else{
-        printf("\n\nThat's odd... chosenBox %d\n",chosenBox);
+        printf("    box found junk\n");
     }
     
-
+    //if(n_simplex>1)exit(1);
+    
 }
 
 int aps::aps_wide(){
@@ -1702,7 +1339,7 @@ double aps::simplex_metric(array_1d<double> &pt, array_1d<double> &min_bound, ar
     
    
     double mu,sig,stradval;
-    mu=gg.user_predict(pt,&sig,0);
+    mu=ggWrap.user_predict(pt,&sig);
     
     stradval=strad(mu,sig);
     
@@ -2087,7 +1724,7 @@ void aps::corner_focus(int ic){
                         stradval=-2.0*chisq_exception;
                     }
                     else{
-                        mu=gg.user_predict(trial,&sig,0);
+                        mu=ggWrap.user_predict(trial,&sig);
                         stradval=strad(mu,sig);
                     }
                 
@@ -2498,163 +2135,6 @@ double aps::distance(int i1, int i2, array_1d<double> &range){
     }
     
     return sqrt(dd);
-}
-
-int aps::simplex_search(){
-    
-    ggWrap.set_iWhere(iSimplex);
-    
-    //printf("\ngradient searching\n");
-    set_where("simplex_search");
-  
-    double before=double(time(NULL));
-    int ibefore=ggWrap.get_called();
-    
-    int ix,i,j,imin,iout=-1;
-    
-    array_1d<int> candidates;
-    array_1d<double> local_max,local_min,local_range;
-
-    for(i=0;i<wide_pts.get_dim();i++){
-        if(ct_simplex<10 || is_it_a_candidate(wide_pts.get_data(i))>0){
-            candidates.add(wide_pts.get_data(i));
-        }
-    }
-    
-    //printf("    candidates %d\n",candidates.get_dim());
-    if(candidates.get_dim()<gg.get_dim()+1){
-        
-        if(candidates.get_dim()==0){
-            refine_center();
-        }
-        else{
-            simplex_too_few_candidates(candidates);
-        }
-        
-    
-        ct_simplex+=ggWrap.get_called()-ibefore;
-        time_simplex+=double(time(NULL))-before;
-        return -1;
-    }
-    
-    
-    for(i=0;i<candidates.get_dim();i++){
-        ix=candidates.get_data(i);
-        for(j=0;j<dim;j++){
-            if(i==0 || gg.get_pt(ix,j)<local_min.get_data(j)){
-                local_min.set(j,gg.get_pt(ix,j));
-            }
-            
-            if(i==0 || gg.get_pt(ix,j)>local_max.get_data(j)){
-                local_max.set(j,gg.get_pt(ix,j));
-            }
-        }
-    }
-    
-    for(i=0;i<dim;i++){
-        local_range.set(i,local_max.get_data(i)-local_min.get_data(i));
-    }
-    
-    array_1d<double> vv;
-    vv.set_name("simplex_search_vv");
-   
-    
-    int o_mindex=ggWrap.get_global_mindex();
-
-    array_1d<int> seed;
-    double nn,nnmin,nnchosen;
-        
-    int ii;
-    
-    array_1d<double> delta,mu,sig,delta_out;
-    double ss,delta_max;
-    int ichosen;
-    
-    for(i=0;i<candidates.get_dim();i++){
-       mu.set(i,gg.self_predict(candidates.get_data(i),&ss));
-       sig.set(i,ss);
-       delta.set(i,(mu.get_data(i)-gg.get_fn(candidates.get_data(i)))/sig.get_data(i));
-
-    }
-    
-    for(ii=0;ii<dim+1;ii++){
-        if(forbidden_candidates.get_dim()==0 && known_minima.get_dim()==0 && seed.get_dim()==0){
-            for(i=0;i<candidates.get_dim();i++){     
-                if(i==0 || delta.get_data(i)>delta_max){
-                    delta_max=delta.get_data(i);
-                    ichosen=i;
-                }
-            }
-        }
-        else{
-        
-            for(i=0;i<candidates.get_dim();i++){
-                nnmin=chisq_exception;
-                for(j=0;j<known_minima.get_dim();j++){
-                    nn=distance(candidates.get_data(i),known_minima.get_data(j),local_range);
-                    if(nn<nnmin)nnmin=nn;
-                }
-            
-                for(j=0;j<forbidden_candidates.get_dim();j++){
-                    nn=distance(candidates.get_data(i),forbidden_candidates.get_data(j),local_range);
-                    if(nn<nnmin)nnmin=nn;
-                } 
-                
-                for(j=0;j<seed.get_dim();j++){
-                    nn=distance(candidates.get_data(i),seed.get_data(j),local_range);
-                    if(nn<nnmin)nnmin=nn;
-                }
-                
-                ss=delta.get_data(i)+nn;
-                if(i==0 || ss>delta_max){
-                    ichosen=i;
-                    delta_max=ss;
-                }
-            }
-    
-        }
-        
-        seed.set(ii,candidates.get_data(ichosen));
-        delta_out.set(ii,delta.get_data(ichosen));
-        candidates.remove(ichosen);
-        delta.remove(ichosen);
-        
-    }//loop over ii
-
-
-    if(mindex_is_candidate==1 && ggWrap.get_global_mindex()>=0){
-        /*
-        Replace the seed point with the highest chisquared value
-        with the index of the current chisquared minimum.
-        
-        This will only happen the first time find_global_minimum() 
-        is run
-        */
-        for(i=0;i<dim+1;i++){
-            if(i==0 || gg.get_fn(seed.get_data(i))>nn){
-                nn=gg.get_fn(seed.get_data(i));
-                ix=i;
-            }
-        }
-        
-        seed.set(ix,ggWrap.get_global_mindex());
-    }
-    
-    if(ix<0){
-        printf("WARNING could not find proper candidate to remove\n");
-        exit(1);
-    }
-
-    iout=find_global_minimum(seed);
-    
-    mindex_is_candidate=0;
-    
-    ct_simplex+=ggWrap.get_called()-ibefore;
-    time_simplex+=double(time(NULL))-before;
-    
-    set_where("nowhere");
-    return iout;
-    //printf("done gradient searching\n");
 }
 
 void aps::simplex_too_few_candidates(array_1d<int> &candidates){
@@ -3136,6 +2616,7 @@ void aps::write_pts(){
     if(ggWrap.is_unitSpheres_null()==0){
         fprintf(output,"unitSpheres engaged %d ",ggWrap.get_unitSpheres_pts());
     }
+    fprintf(output,"-- %d %d",n_simplex,n_simplex_found);
     fprintf(output,"\n");
     
     fclose(output);
@@ -3187,7 +2668,7 @@ void aps::write_pts(){
     quartiles.get_data(0),quartiles.get_data(1),quartiles.get_data(2));
     printf("\ntotal time %e\n",time_now-start_time);
     printf("pts %d\n",ggWrap.get_pts());
-    printf("n wide %d n box wide %d\n",n_wide,n_box_wide);
+    printf("n wide %d n box wide %d  found %d\n",n_wide,n_simplex,n_simplex_found);
     printf("\n");
     
     output=fopen("node_dump.sav","w");

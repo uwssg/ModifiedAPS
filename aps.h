@@ -14,8 +14,45 @@
 #include "gaussian_process.h"
 #include "chisq.h"
 #include "gp_wrapper.h"
+#include "simplex.h"
 #include "node.h"
 
+class gp_cost_function : public function_wrapper{
+
+public:
+    gp_cost_function();
+    gp_cost_function(kd_tree*, array_1d<double>*, array_1d<double>&, array_1d<double>&);
+    ~gp_cost_function();
+    virtual void evaluate(array_1d<double>&, double*);
+
+private:
+    kd_tree *kptr;
+    array_1d<double> *fn;
+    
+    double _ell;
+    array_2d<double> _covarin;
+    array_1d<double> _min,_max;
+    array_1d<int> _neigh;
+
+};
+
+class node_cost_function : public function_wrapper{
+
+public:
+    
+    node_cost_function();
+    node_cost_function(arrayOfNodes&,array_1d<double>&,array_1d<double>&);
+    ~node_cost_function();
+    
+    virtual void evaluate(array_1d<double>&, double*);
+    
+private:
+
+    node **nodes;
+    int _n_nodes;
+    array_1d<double> _min,_max;
+
+};
 
 class aps{
 
@@ -99,6 +136,9 @@ public:
     
     int get_n_active_nodes();
     
+    int get_n_simplex();
+    int get_n_simplex_found();
+    
     /*return the number of low-chisquared centers discovered*/
     int get_n_centers();
     
@@ -130,11 +170,6 @@ public:
     functions below
     */
     void aps_search();
-    
-    /*
-    Perform the simplex search
-    */
-    int simplex_search();
     
     /*
     Sample chisquared at the point specified by the array_1d
@@ -243,7 +278,7 @@ private:
     int aps_wide();
     void aps_wide_post_process(int,double,double);
     void get_interesting_boxes(array_1d<int>&);
-    int aps_box_wide();
+    int simplex_search();
     double calculate_dchi(int);
     
     /*
@@ -291,32 +326,7 @@ private:
     */
     int find_global_minimum(array_1d<int>&);
     int find_global_minimum(array_1d<int>&,int);
-    
-    /*
-    These are wrappers of the function evaluate() specifically designed
-    for calls by the simplex search.
-    
-    In the simplest form, simplex_evaluate(array_1d<double>&, int*) will evaluate
-    chisquared at the point stored in the array_1d<double>.  It will return the value
-    of chisquared.  The int* will store the index of the newly sampled point.
-    
-    If the more complex version is called, the user should pass the current simplex of
-    points in the array_2d<double> and the current array of chisquared values (used by the
-    simplex) in the second array_1d<double>&.  In that case, if a new local chisquared minimum
-    is found, then the current simplex of points will be stored in the class member variable
-    _last_simplex and the current array of chisquared values will be stored in the class
-    member variable _last_ff.  These will be used in the event that the simplex search
-    starts to converge to a local minimum, in which case find_global_minimum uses a modified
-    gradient descent search to make sure that the simplex is not converging towards a false minimum.
-    
-    The user should examine the function find_global_minimum to see how this works
-    */
-    double simplex_evaluate(array_1d<double>&,int*);
-    double simplex_evaluate(array_1d<double>&,int*,
-              array_2d<double>&,array_1d<double>&);
-    
-    double simplex_evaluate(array_1d<double>&,int*,
-        array_2d<double>&,array_1d<double>&,int);   
+     
     
     /*
     If simplex_search() does not find any valid candidates to seed a new simplex search,
@@ -496,18 +506,6 @@ private:
     /*the object that stores the target value of chisquared and calculates the S statistic*/
     straddle_parameter strad;
 
-       
-    /*
-    These variables are used by find_global_minimum() to keep track
-    of the convergence of the simplex search.
-    
-    The user should see the source code for find_global_minimum in aps.cpp
-    for a detailed explanation of how they are used.
-    */
-    int _min_ct,_last_found,_mindex;
-    double _simplex_min,_last_min;
-    array_2d<double> _last_simplex;
-    array_1d<double> _last_ff;
     
     /*
     These are the variables which store the projection of boundary points onto unit spheres
@@ -528,7 +526,7 @@ private:
     void assess_node(int);
     double ddNodeRatio;
     
-    int n_wide,n_box_wide;
+    int n_wide,n_simplex,n_simplex_found;
     
     array_1d<int> simplex_start_pts;
     

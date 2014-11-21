@@ -1,5 +1,23 @@
 #include "aps.h"
 
+function_wrapper::function_wrapper(){}
+
+function_wrapper::~function_wrapper(){}
+
+int function_wrapper::get_called(){
+    return -1;
+}
+
+void function_wrapper::evaluate(array_1d<double> &pp, double *cc){
+    printf("WARNING calling default function_wrapper::evaluate; should not do that\n");
+    exit(1);
+}
+
+double function_wrapper::diagnostic_evaluate(array_1d<double> &pp){
+    printf("WARNING default diagnostic_evaluate not implemented\n");
+    exit(1);
+}
+
 straddle_parameter::straddle_parameter(){
     target=-1.0;
 }
@@ -341,6 +359,12 @@ void gpWrapper::evaluate(array_1d<double> &pt, double *chiout, int *dex, int val
     }
 }
 
+double gpWrapper::diagnostic_evaluate(array_1d<double> &pt){
+    double ans=(*chisq)(pt);
+    chisq->decrement_called();
+    return ans;
+}
+
 void gpWrapper::freeze_boxes(){
     if(gg==NULL){
         printf("WARNING cannot freeze boxes; gg is null\n");
@@ -605,11 +629,23 @@ void gpWrapper::reset_cache(){
 }
 
 double gpWrapper::user_predict(array_1d<double> &x, double *s) const{
-    return gg->user_predict(x,s,0);
+    int flag;
+    double mu;
+    mu=gg->user_predict(x,s,0,&flag);
+    if(flag==-1){
+        printf("Box failure %d\n",iWhere);
+    }
+    return mu;
 }
 
 double gpWrapper::user_predict(array_1d<double> &x) const{
-    return gg->user_predict(x,0);
+    int flag;
+    double mu;
+    mu=gg->user_predict(x,0,&flag);
+    if(flag==-1){
+        printf("Box failure %d\n",iWhere);
+    }
+    return mu;
 }
 
 void gpWrapper::actual_gradient(array_1d<double> &x, array_1d<double> &y){
