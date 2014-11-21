@@ -3,6 +3,21 @@
 #include <time.h>
 #include "aps.h"
 
+double naiveDistance(array_1d<double> &p1, array_1d<double> &p2){
+    if(p1.get_dim()!=p2.get_dim()){
+        printf("in naive distance\n");
+        printf("WARNING p1 d %d p2 d %d\n",p1.get_dim(),p2.get_dim());
+        exit(1);
+    }
+    
+    int i;
+    double ans=0.0;
+    for(i=0;i<p1.get_dim();i++){
+        ans+=power(p1.get_data(i)-p2.get_data(i),2);
+    }
+    return sqrt(ans);
+}
+
 int main(int iargc, char *argv[]){
 
 //d=8 -> delta_chisq=15.5
@@ -48,6 +63,10 @@ matern_covariance cv;
 s_curve chisq(dim,ncenters);
 
 array_2d<double> troughPoints,borderPoints;
+troughPoints.set_name("troughPoints");
+borderPoints.set_name("borderPoints");
+
+
 chisq.get_trough_points(troughPoints);
 printf("got trough points\n");
 chisq.get_border_points(borderPoints);
@@ -70,6 +89,7 @@ printf("after borderPoints dchimax %e\n",chimax);
 printf("trough %d\n",troughPoints.get_rows());
 printf("border %d\n",borderPoints.get_rows());
 
+/*
 FILE *output;
 output=fopen("troughPoints.sav","w");
 for(i=0;i<troughPoints.get_rows();i++){
@@ -101,6 +121,8 @@ for(i=0;i<borderPoints.get_cols();i++){
 fclose(output);
 
 exit(1);
+*/
+
 
 //declare APS
 //the '20' below is the number of nearest neighbors to use when seeding the
@@ -166,4 +188,57 @@ printf("ct_aps %d ct_simplex %d total %d\n",
 aps_test.get_ct_aps(),aps_test.get_ct_simplex(),
 aps_test.get_called());
 
+array_2d<double> goodPoints;
+goodPoints.set_name("global_goodPoints");
+aps_test.get_good_points(goodPoints);
+
+printf("got goodPoints %d\n",goodPoints.get_rows());
+
+array_1d<int> troughFound,borderFound;
+troughFound.set_name("global_troughFound");
+borderFound.set_name("global_borderFound");
+
+for(i=0;i<troughPoints.get_rows();i++){
+    troughFound.set(i,0);
+}
+for(i=0;i<borderPoints.get_rows();i++){
+    borderFound.set(i,0);
+}
+
+int iborder,itrough;
+double dd,ddmin;
+for(i=0;i<goodPoints.get_rows();i++){
+    for(j=0;j<troughPoints.get_rows();j++){
+        dd=naiveDistance(goodPoints(i)[0],troughPoints(j)[0]);
+        if(j==0 || dd<ddmin){
+            itrough=j;
+            ddmin=dd;
+        }
+    }
+    troughFound.set(itrough,1);
+    
+    for(j=0;j<borderPoints.get_rows();j++){
+        dd=naiveDistance(goodPoints(i)[0],borderPoints(j)[0]);
+        if(j==0 || dd<ddmin){
+            iborder=j;
+            ddmin=dd;
+        }
+    }
+    borderFound.set(iborder,1);
+}
+
+iborder=0;
+for(i=0;i<borderFound.get_dim();i++){
+    if(borderFound.get_data(i)==0)iborder++;
+}
+
+itrough=0;
+for(i=0;i<troughFound.get_dim();i++){
+    if(troughFound.get_data(i)==0)itrough++;
+}
+
+printf("border did not find %d of %d\n",
+iborder,borderPoints.get_rows());
+printf("trough did not find %d of %d\n",
+itrough,troughPoints.get_rows());
 }
