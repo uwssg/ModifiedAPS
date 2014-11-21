@@ -29,7 +29,7 @@ chifn.build_boundary(33.9);//for 22dof
 for(i=0;i<dim;i++){
     for(j=i+1;j<dim;j++){
 
-        sprintf(outname,"controlFiles/sNarrow_d%d_c%d_%d_%d.sav",dim,ncenters,i,j);
+        sprintf(outname,"controlFiles/sNarrowTest_d%d_c%d_%d_%d.sav",dim,ncenters,i,j);
         output=fopen(outname,"w");
         for(k=0;k<chifn.get_n_boundary(i,j);k++){
             fprintf(output,"%e %e %e\n",
