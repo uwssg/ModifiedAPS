@@ -67,6 +67,28 @@ printf("after borderPoints dchimax %e\n",chimax);
 
 printf("trough %d\n",troughPoints.get_rows());
 printf("border %d\n",borderPoints.get_rows());
+
+FILE *output;
+output=fopen("troughPoints.sav","w");
+for(i=0;i<troughPoints.get_rows();i++){
+  for(j=0;j<troughPoints.get_cols();j++){
+      fprintf(output,"%e ",chisq.project_to_basis(j,troughPoints(i)[0]));
+  }
+  fprintf(output,"\n");
+}
+fclose(output);
+
+printf("printed trough points\n");
+
+output=fopen("borderPoints.sav","w");
+for(i=0;i<borderPoints.get_rows();i++){
+    for(j=0;j<borderPoints.get_cols();j++){
+        fprintf(output,"%e ",chisq.project_to_basis(j,borderPoints(i)[0]));
+    }
+    fprintf(output,"\n");
+}
+fclose(output);
+
 exit(1);
 
 //declare APS
