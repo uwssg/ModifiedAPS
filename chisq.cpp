@@ -1056,7 +1056,12 @@ double s_curve::operator()(array_1d<double> &in_pt) const{
     dthmin=-1.0;
     for(theta=-1.0*pi;theta<=1.0*pi;theta+=0.01){
         xth=trig_factor*sin(theta)+centers.get_data(0,0);
-	yth=trig_factor*theta*(cos(theta)-1.0)/fabs(theta)+centers.get_data(0,1);
+        if(theta!=0.0){
+	    yth=trig_factor*theta*(cos(theta)-1.0)/fabs(theta)+centers.get_data(0,1);
+        }
+        else{
+            yth=centers.get_data(0,1);
+        }
 	dth=power((xth-pt.get_data(0))/widths.get_data(0,0),2)+power((yth-pt.get_data(1))/widths.get_data(0,1),2);
 	
 	if(dthmin<0.0 || dth<dthmin)dthmin=dth;
