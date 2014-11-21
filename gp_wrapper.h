@@ -211,6 +211,7 @@ class gpWrapper : public function_wrapper{
         double get_fn(int);
         double get_min(int);
         double get_max(int);
+        double get_length(int);
         
         double distance(int,int);
         double distance(array_1d<double>&,array_1d<double>&);

@@ -534,6 +534,7 @@ class gp{
         */
         double get_max(int)const;
         double get_min(int)const;
+        double get_length(int)const;
         
         /*
         These functions wrap the nn_srch functions in kd_tree

@@ -246,6 +246,10 @@ double gpWrapper::get_max(int dex){
     return gg->get_max(dex);
 }
 
+double gpWrapper::get_length(int dex){
+    return gg->get_length(dex);
+}
+
 double gpWrapper::distance(int i, int j){
     if(i<0 || j<0 || i>=gg->get_pts() || j>=gg->get_pts()){
         printf("    iWhere %d\n",iWhere);

@@ -679,7 +679,11 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     trial.set_name("node_ricochet_trial");
     
     int i,j,k;
-    double nn;
+    double nn,y1,y2,x1,x2;
+    
+    array_1d<double> g_trial;
+    double dx;
+    g_trial.set_name("ricochet_driver_g_trial");
     
     //seed some points around istart so that the gradient is accurate
     for(i=0;i<gg->get_dim();i++){
@@ -696,8 +700,31 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
         gg->actual_gradient(istart,gradient);
     }
     catch(int iex){
-        printf("    ricochet gradient calculation failed\n");
-        return -1;
+        
+        for(i=0;i<gg->get_dim();i++){
+            g_trial.set(i,gg->get_pt(istart,i));
+        }
+        for(i=0;i<gg->get_dim();i++){
+            dx=1.0e-5*gg->get_length(i);
+            g_trial.add_val(i,dx);
+            x1=g_trial.get_data(i);
+            evaluateNoAssociate(g_trial,&y1,&j);
+            
+            g_trial.subtract_val(i,2.0*dx);
+            x2=g_trial.get_data(i);
+            evaluateNoAssociate(g_trial,&y2,&j);
+            
+            g_trial.set(i,gg->get_pt(istart,i));
+            
+            gradient.set(i,(y2-y1)/(x2-x1));
+        
+        }
+        
+        dx=gradient.get_square_norm();
+        if(dx<1.0e-10 || isnan(dx)){
+            printf("had to abort ricochet; gradient is no good\n");
+            return -1;
+        }
     }
     
     double dnorm=sqrt(vstart.get_square_norm());

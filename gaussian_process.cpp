@@ -290,6 +290,18 @@ double gp::distance(int d1, int d2){
     return kptr->distance(d1,d2);
 }
 
+double gp::get_length(int dex)const{
+    if(kptr==NULL) return 0.0;
+    if(dex<0 || dex>=dim){
+        printf("WARNING asking gp for length %d but dim %d\n",
+        dex,dim);
+        
+        exit(1);
+    }
+    
+    return kptr->get_max(dex)-kptr->get_min(dex);
+}
+
 double gp::distance(int dex, array_1d<double> &p){
     
     if(dex>=pts || dex<0){
