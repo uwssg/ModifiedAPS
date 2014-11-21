@@ -885,6 +885,20 @@ double aps::get_pt(int dex, array_1d<double> &output){
 }
 
 
+void aps::get_good_points(array_2d<double> &outpoints){
+    outpoints.reset();
+    outpoints.set_cols(ggWrap.get_dim());
+    int i,j,dex;
+    for(i=0;i<ggWrap.get_pts();i++){
+        if(ggWrap.get_fn(i)<=ggWrap.get_target()){
+            dex=outpoints.get_rows();
+            for(j=0;j<ggWrap.get_dim();j++){
+                outpoints.set(dex,j,ggWrap.get_pt(i,j));
+            }
+        }
+    }
+}
+
 void aps::guess(array_1d<double> &pt){
 
     double chitrue;

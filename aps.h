@@ -155,6 +155,8 @@ public:
     */
     double get_pt(int,array_1d<double>&);
     
+    void get_good_points(array_2d<double>&);
+    
     /*
     Draw a sample from parameter space.  This function will determine how to sample this
     point based on statistics that the APS object has stored.
