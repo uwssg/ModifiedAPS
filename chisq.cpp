@@ -634,7 +634,12 @@ void s_curve::get_trough_points(array_2d<double> &outpoints){
     
     for(theta=-1.0*pi;theta<=1.0*pi+0.001;theta+=0.4*pi){
         xth=trig_factor*sin(theta)+centers.get_data(0,0);
-	yth=trig_factor*theta*(cos(theta)-1.0)/fabs(theta)+centers.get_data(0,1);
+        if(theta!=0.0){
+	    yth=trig_factor*theta*(cos(theta)-1.0)/fabs(theta)+centers.get_data(0,1);
+        }
+        else{
+            yth=centers.get_data(0,1);
+        }
 	a0.set(0,xth);
         a0.set(1,yth);
         
@@ -841,8 +846,13 @@ void s_curve::get_border_points(array_2d<double> &outpoints){
         for(i=0;i<dim;i++)alpha.set(i,centers.get_data(0,i));
     
         x0=centers.get_data(0,0)+trig_factor*sin(theta);
-        y0=centers.get_data(0,1)+trig_factor*theta*(cos(theta)-1.0)/fabs(theta);
-    
+        if(theta!=0.0){
+            y0=centers.get_data(0,1)+trig_factor*theta*(cos(theta)-1.0)/fabs(theta);
+        }
+        else{
+            y0=centers.get_data(0,1);
+        }
+        
         s2x=widths.get_data(0,0)*widths.get_data(0,0);
         s2y=widths.get_data(0,1)*widths.get_data(0,1);
         
@@ -893,12 +903,18 @@ void s_curve::get_border_points(array_2d<double> &outpoints){
 
     for(iy=2;iy<dim;iy++){for(ir=0;ir<2;ir++){
         for(i=0;i<dim;i++)alpha.set(i,centers.get_data(0,i));
-        for(theta=-1.0*pi;theta<=1.0*pi;theta+=0.4*pi){
+        for(theta=-1.0*pi;theta<=1.0*pi;theta+=0.5*pi){
            alpha.set(0,centers.get_data(0,0)+trig_factor*sin(theta));
-           alpha.set(1,centers.get_data(0,1)
+           
+           if(theta!=0.0){
+               alpha.set(1,centers.get_data(0,1)
                    +trig_factor*theta*(cos(theta)-1.0)/fabs(theta));
        
-       
+           }
+           else{
+               alpha.set(1,centers.get_data(0,1));
+           }
+           
            if(ir==0)alpha.set(iy,centers.get_data(0,iy)+sqrt(br)*widths.get_data(0,iy));
            else alpha.set(iy,centers.get_data(0,iy)-sqrt(br)*widths.get_data(0,iy));
        
@@ -942,11 +958,21 @@ void s_curve::get_border_points(array_2d<double> &outpoints){
 	     
 	         if(ix==0){
 	             xth=centers.get_data(0,0)+trig_factor*sin(theta);
-	             alpha.set(1,centers.get_data(0,1)
-		        +trig_factor*theta*(cos(theta)-1.0)/fabs(theta));
+                     if(theta!=0.0){
+	                 alpha.set(1,centers.get_data(0,1)
+		            +trig_factor*theta*(cos(theta)-1.0)/fabs(theta));
+                     }
+                     else{
+                         alpha.set(1,centers.get_data(0,1));
+                     }
 	         }
 	         else{
-	             xth=centers.get_data(0,1)+trig_factor*theta*(cos(theta)-1.0)/fabs(theta);
+                     if(theta!=0.0){
+	                 xth=centers.get_data(0,1)+trig_factor*theta*(cos(theta)-1.0)/fabs(theta);
+                     }
+                     else{
+                         xth=centers.get_data(0,1);
+                     }
 	             alpha.set(0,centers.get_data(0,0)+trig_factor*sin(theta));
 	         }
 	     
@@ -961,7 +987,12 @@ void s_curve::get_border_points(array_2d<double> &outpoints){
 	         
                      if(ix==0){
                          newtheta=find_theta_from_x(alpha.get_data(ix));
-                         alpha.set(1,centers.get_data(0,1)+trig_factor*newtheta*(cos(newtheta)-1.0)/fabs(newtheta));
+                         if(newtheta!=0.0){
+                             alpha.set(1,centers.get_data(0,1)+trig_factor*newtheta*(cos(newtheta)-1.0)/fabs(newtheta));
+                         }
+                         else{
+                             alpha.set(1,centers.get_data(0,1));
+                         }
                      }
                      else{
                          newtheta=find_theta_from_y(alpha.get_data(ix));
@@ -1142,7 +1173,12 @@ double s_curve::distance_to_center(int ic, array_1d<double> &in_pt) {
         dthmin=-1.0;
         for(theta=-1.0*pi;theta<=1.0*pi;theta+=0.01){
             xth=trig_factor*sin(theta)+centers.get_data(0,0);
-	    yth=trig_factor*theta*(cos(theta)-1.0)/fabs(theta)+centers.get_data(0,1);
+            if(theta!=0.0){
+	        yth=trig_factor*theta*(cos(theta)-1.0)/fabs(theta)+centers.get_data(0,1);
+            }
+            else{
+                yth=centers.get_data(0,1);
+            }
 	    dth=power((xth-pt.get_data(0))/widths.get_data(0,0),2)+power((yth-pt.get_data(1))/widths.get_data(0,1),2);
 	
 	    if(dthmin<0.0 || dth<dthmin)dthmin=dth;
@@ -1236,13 +1272,23 @@ void s_curve::build_boundary(double br){
         else dfabsdth=1.0;
     
         x0=centers.get_data(0,0)+trig_factor*sin(theta);
-        y0=centers.get_data(0,1)+trig_factor*theta*(cos(theta)-1.0)/fabs(theta);
+        if(theta!=0.0){
+            y0=centers.get_data(0,1)+trig_factor*theta*(cos(theta)-1.0)/fabs(theta);
+        }
+        else{
+            y0=centers.get_data(0,1);
+        }
     
         for(ir=0;ir<2;ir++){
 
             dxdth=trig_factor*cos(theta);
-	    dydth=trig_factor*((cos(theta)-1.0)/fabs(theta)-sin(theta)*theta/fabs(theta)
+            if(theta!=0.0){
+	        dydth=trig_factor*((cos(theta)-1.0)/fabs(theta)-sin(theta)*theta/fabs(theta)
 	               -(cos(theta)-1.0)*dfabsdth/theta);
+            }
+            else{
+                dydth=0.0;
+            }
 	
             if(ir==0){
 	        grad[0]=dydth;
@@ -1347,8 +1393,13 @@ void s_curve::build_boundary(double br){
         for(i=0;i<dim;i++)alpha.set(i,centers.get_data(0,i));
     
         x0=centers.get_data(0,0)+trig_factor*sin(theta);
-        y0=centers.get_data(0,1)+trig_factor*theta*(cos(theta)-1.0)/fabs(theta);
-    
+        if(theta!=0.0){
+            y0=centers.get_data(0,1)+trig_factor*theta*(cos(theta)-1.0)/fabs(theta);
+        }
+        else{
+            y0=centers.get_data(0,1);
+        }
+        
         s2x=widths.get_data(0,0)*widths.get_data(0,0);
         s2y=widths.get_data(0,1)*widths.get_data(0,1);
         
@@ -1408,9 +1459,13 @@ void s_curve::build_boundary(double br){
         for(i=0;i<dim;i++)alpha.set(i,centers.get_data(0,i));
         for(theta=-1.0*pi;theta<=1.0*pi;theta+=0.01){
            alpha.set(0,centers.get_data(0,0)+trig_factor*sin(theta));
-           alpha.set(1,centers.get_data(0,1)
+           if(theta!=0.0){
+               alpha.set(1,centers.get_data(0,1)
                    +trig_factor*theta*(cos(theta)-1.0)/fabs(theta));
-       
+           }
+           else{
+               alpha.set(1,centers.get_data(0,1));
+           }
        
            if(ir==0)alpha.set(iy,centers.get_data(0,iy)+sqrt(br)*widths.get_data(0,iy));
            else alpha.set(iy,centers.get_data(0,iy)-sqrt(br)*widths.get_data(0,iy));
@@ -1456,11 +1511,22 @@ void s_curve::build_boundary(double br){
 	     
 	         if(ix==0){
 	             xth=centers.get_data(0,0)+trig_factor*sin(theta);
-	             alpha.set(1,centers.get_data(0,1)
-		        +trig_factor*theta*(cos(theta)-1.0)/fabs(theta));
+                     if(theta!=0.0){
+	                 alpha.set(1,centers.get_data(0,1)
+		            +trig_factor*theta*(cos(theta)-1.0)/fabs(theta));
+                     }
+                     else{
+                         alpha.set(1,centers.get_data(0,1));
+                     }
 	         }
 	         else{
-	             xth=centers.get_data(0,1)+trig_factor*theta*(cos(theta)-1.0)/fabs(theta);
+                     if(theta!=0.0){
+	                 xth=centers.get_data(0,1)+trig_factor*theta*(cos(theta)-1.0)/fabs(theta);
+                     }
+                     else{
+                         xth=centers.get_data(0,1);
+                     }
+                     
 	             alpha.set(0,centers.get_data(0,0)+trig_factor*sin(theta));
 	         }
 	     
@@ -1475,7 +1541,12 @@ void s_curve::build_boundary(double br){
 	             
                      if(ix==0){
                          newtheta=find_theta_from_x(alpha.get_data(ix));
-                         alpha.set(1,centers.get_data(0,1)+trig_factor*newtheta*(cos(newtheta)-1.0)/fabs(newtheta));
+                         if(newtheta!=0.0){
+                             alpha.set(1,centers.get_data(0,1)+trig_factor*newtheta*(cos(newtheta)-1.0)/fabs(newtheta));
+                         }
+                         else{
+                             alpha.set(1,centers.get_data(0,1));
+                         }
                      }
                      else{
                          newtheta=find_theta_from_y(alpha.get_data(ix));
