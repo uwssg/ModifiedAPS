@@ -11,6 +11,7 @@ void node::set_names(){
     geographicCenter.set_name("node_geographicCenter");
     centerCandidates.set_name("node_centerCandidates");
     oldCenters.set_name("node_oldCenters");
+    compass_centers.set_name("node_compass_centers");
 }
 
 node::node(){
@@ -87,6 +88,11 @@ void node::copy(const node &in){
     oldCenters.reset();
     for(i=0;i<in.oldCenters.get_dim();i++){
         oldCenters.set(i,in.oldCenters.get_data(i));
+    }
+    
+    compass_centers.reset();
+    for(i=0;i<in.compass_centers.get_dim();i++){
+        compass_centers.set(i,compass_centers.get_data(i));
     }
     
     for(i=0;i<in.geographicCenter.get_dim();i++){
@@ -1028,6 +1034,21 @@ void node::compass_search(int istart){
             
         }//loop over sign (direction along basisVector)
     }//loop over dimension (which basisVector we are bisecting along)
+    
+    int use_it;
+    if(istart!=min_dex){
+        use_it=1;
+        for(i=0;i<compass_centers.get_dim() && use_it==1;i++){
+            if(compass_centers.get_data(i)==istart){
+                use_it=0;
+            }
+        }
+        
+        if(use_it==1){
+            compass_centers.add(istart);
+        }
+    }
+    
 }
 
 //double node::basis_error(int ix, array_1d<double> &dx, array_1d<int> &basis_associates){
@@ -1582,6 +1603,9 @@ void node::find_bases(){
     
     if(changed_bases==1){
         compass_search(min_dex);
+        for(i=0;i<compass_centers.get_dim();i++){
+            compass_search(compass_centers.get_data(i));
+        }
     }
     
     time_bases+=double(time(NULL))-before;

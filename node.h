@@ -78,6 +78,7 @@ class node{
         array_1d<double> range_max,range_min,geographicCenter;
         
         array_1d<int> candidates,centerCandidates,oldCenters;
+        array_1d<int> compass_centers;
         
         int ct_search,ct_coulomb,ct_bases,ct_ricochet;
         int calls_to_bases;
