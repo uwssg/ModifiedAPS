@@ -700,6 +700,13 @@ const{
         for(i=0;i<pt.get_dim() && dosrch==0;i++){
             if(pt.get_data(i)<cached_boxmin.get_data(i))dosrch=1;
             if(pt.get_data(i)>cached_boxmax.get_data(i))dosrch=1;
+            
+            if(dosrch==1){
+                printf("doing search because (%d):\n",cached_ibox);
+                printf("%d %e is not between %e %e\n",
+                i,pt.get_data(i),cached_boxmin.get_data(i),cached_boxmax.get_data(i));
+            }
+            
         }
     }
     
