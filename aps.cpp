@@ -1388,6 +1388,8 @@ double aps::simplex_strad(array_1d<double> &min_bound, array_1d<double> &max_bou
    int i,j;
    double nn;
    
+   int searches_before=ggWrap.get_ct_search();
+   
    if(min_bound.get_dim()!=gg.get_dim() || max_bound.get_dim()!=gg.get_dim()){
        printf("WARNING in simplex_strad gg.get_dim() %d min %d max %d\n",
        gg.get_dim(),min_bound.get_dim(),max_bound.get_dim());
@@ -1560,6 +1562,7 @@ double aps::simplex_strad(array_1d<double> &min_bound, array_1d<double> &max_bou
        sig=sqrt(sig);
    }
    
+   printf("\nJUST DID APS WIDE WITH %d SEARCHES\n\n",ggWrap.get_ct_search()-searches_before);
    return sig;
 }
 
