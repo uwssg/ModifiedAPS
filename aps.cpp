@@ -2738,9 +2738,9 @@ void aps::assess_node(int dex){
     
     array_1d<double> midpt;
     midpt.set_name("aps_assess_node_midpt");
-    double ftrial,dd,ddmin;
+    double ftrial,dd,ddmin,wgt;
     int j,itrial,inode,iclosest=-1;
-    int iGhost;
+    int iGhost,use_ghost;
     
     use_it=1;
     for(i=0;i<nodes.get_dim() && (use_it==1 || used_because_distance==1);i++){
@@ -2765,25 +2765,34 @@ void aps::assess_node(int dex){
             }
         }
         
-        for(j=0;j<gg.get_dim();j++){
-            midpt.set(j,0.5*(gg.get_pt(inode,j)+gg.get_pt(dex,j)));
-        }
+        use_it=0;
+        for(wgt=0.25;wgt<0.8 && use_it==0;wgt+=0.25){
         
-        ggWrap.evaluate(midpt,&ftrial);
+            for(j=0;j<gg.get_dim();j++){
+                midpt.set(j,wgt*gg.get_pt(inode,j)+(1.0-wgt)*gg.get_pt(dex,j));
+            }
         
-        if(ftrial<strad.get_target()){
-            use_it=0;
+            ggWrap.evaluate(midpt,&ftrial);
+        
+            if(ftrial>strad.get_target()){
+                use_it=1;
+            }
         }
         
         //make the same test on old centers of nodes
         for(iGhost=0;iGhost<nodes(i)->get_n_oldCenters();iGhost++){
-            for(j=0;j<gg.get_dim();j++){
-                midpt.set(j,0.5*(gg.get_pt(nodes(i)->get_oldCenter(iGhost),j)+gg.get_pt(dex,j)));
+            use_ghost=0;
+            for(wgt=0.25;wgt<0.8 && use_ghost==0;wgt+=0.25){
+            
+                for(j=0;j<gg.get_dim();j++){
+                    midpt.set(j,wgt*gg.get_pt(nodes(i)->get_oldCenter(iGhost),j)+(1.0-wgt)*gg.get_pt(dex,j));
+                }
+                ggWrap.evaluate(midpt,&ftrial);
+                if(ftrial>strad.get_target()){
+                    use_ghost=1;
+                }
             }
-            ggWrap.evaluate(midpt,&ftrial);
-            if(ftrial<strad.get_target()){
-                use_it=0;
-            }
+            if(use_ghost==0)use_it=0;
         }
     }
     
