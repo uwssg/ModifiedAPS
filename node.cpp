@@ -92,7 +92,7 @@ void node::copy(const node &in){
     
     compass_centers.reset();
     for(i=0;i<in.compass_centers.get_dim();i++){
-        compass_centers.set(i,compass_centers.get_data(i));
+        compass_centers.set(i,in.compass_centers.get_data(i));
     }
     
     for(i=0;i<in.geographicCenter.get_dim();i++){
