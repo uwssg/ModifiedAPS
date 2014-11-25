@@ -653,6 +653,7 @@ class gp{
         mutable array_2d<double> cached_ggin;
         mutable array_1d<int> cached_neigh;
         mutable array_1d<double> cached_pmin,cached_pmax;
+        mutable array_1d<double> cached_boxmin, cached_boxmax;
         mutable int cached_ibox,cached_kk;
     
 };

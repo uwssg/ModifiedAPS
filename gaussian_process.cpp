@@ -32,6 +32,8 @@ gp::gp(){
   cached_pmin.set_name("gp_cached_pmin");
   cached_pmax.set_name("gp_cached_pmax");
   cached_neigh.set_name("gp_cached_neigh");
+  cached_boxmin.set_name("gp_cached_boxmin");
+  cached_boxmax.set_name("gp_cached_boxmax");
   cached_ibox=-1;
   
 }
@@ -683,7 +685,7 @@ const{
     First we must determine whether we need to do a new nearest neighbor search,
     or whether the results from the last nearest neighbor search will suffice
     */
-    int dosrch=0,ibox;
+    int dosrch=0;
     array_1d<int> tree_stats;
     tree_stats.set_name("gp_predict_tree_stats");
     
@@ -695,19 +697,9 @@ const{
         dosrch=1;
     }
     else{
-        ibox=bptr->find_box(pt);
-        
-        if(ibox!=cached_ibox){
-           // printf("searching because ibox %d cached %d\n",
-           // ibox,cached_ibox);
-            
-            dosrch=1;
-        }
-        
-        if(bptr->get_contents(ibox)!=cached_kk){
-            //printf("searching because contents %d cached %d\n",
-            //bptr->get_contents(ibox),cached_kk);
-            dosrch=1;
+        for(i=0;i<pt.get_dim() && dosrch==0;i++){
+            if(pt.get_data(i)<cached_boxmin.get_data(i))dosrch=1;
+            if(pt.get_data(i)>cached_boxmax.get_data(i))dosrch=1;
         }
     }
     
@@ -728,6 +720,10 @@ const{
         
         cached_ibox=tree_stats.get_data(0);
         cached_kk=bptr->get_contents(cached_ibox);
+        for(i=0;i<pt.get_dim();i++){
+            cached_boxmin.set(i,bptr->get_box_min(cached_ibox,i));
+            cached_boxmax.set(i,bptr->get_box_max(cached_ibox,i));
+        }
 
         
         
@@ -1826,6 +1822,8 @@ void gp::reset_cache() const{
       cached_neigh.reset();
       cached_pmin.reset();
       cached_pmax.reset();
+      cached_boxmin.reset();
+      cached_boxmax.reset();
 }
 
 void gp::set_sig_cap(double nn){
