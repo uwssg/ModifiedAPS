@@ -2780,7 +2780,7 @@ void aps::assess_node(int dex){
         }
         
         //make the same test on old centers of nodes
-        for(iGhost=0;iGhost<nodes(i)->get_n_oldCenters();iGhost++){
+        for(iGhost=0;iGhost<nodes(i)->get_n_oldCenters() && use_it==1;iGhost++){
             use_ghost=0;
             for(wgt=0.25;wgt<0.8 && use_ghost==0;wgt+=0.25){
             
