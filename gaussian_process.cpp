@@ -831,17 +831,20 @@ const{
                
                if(betterFit>=0){
                    flag[0]=-1;    
-                   /*printf("WARNING box search failure -- did search: %d\n",dosrch);
+                   printf("WARNING box search failure -- did search: %d\n",dosrch);
                    for(jbf=0;jbf<kptr->get_dim();jbf++){
-                       printf("%e -- %e %e -- %e %e\n",
-                       pt.get_data(jbf),
-                       bptr->get_box_min(cached_ibox,jbf),bptr->get_box_max(cached_ibox,jbf),
-                       bptr->get_box_min(betterFit,jbf),bptr->get_box_max(betterFit,jbf));
-                   }*/
+                       if(pt.get_data(jbf)<bptr->get_box_min(cached_ibox,jbf) || pt.get_data(jbf)>bptr->get_box_max(cached_ibox,jbf)){
+                           printf("%e -- %e %e -- %e %e -- %e %e\n",
+                           pt.get_data(jbf),
+                           bptr->get_box_min(cached_ibox,jbf),bptr->get_box_max(cached_ibox,jbf),
+                           bptr->get_box_min(betterFit,jbf),bptr->get_box_max(betterFit,jbf),
+                           cached_boxmin.get_data(jbf),cached_boxmax.get_data(jbf));
+                       }
+                   }
                    
                    //not going to exit
                    //I think this behavior is not dangerous
-                   //exit(1);
+                   exit(1);
                }
                    
            }

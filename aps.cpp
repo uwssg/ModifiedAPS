@@ -1569,6 +1569,8 @@ double aps::simplex_strad(array_1d<double> &min_bound, array_1d<double> &max_bou
        printf("\nJUST DID APS WIDE WITH %d SEARCHES %d\n\n",ggWrap.get_ct_search()-searches_before,
        simplex_calls);
    }
+   
+   ggWrap.reset_cache();
    return sig;
 }
 
