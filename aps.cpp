@@ -1562,7 +1562,9 @@ double aps::simplex_strad(array_1d<double> &min_bound, array_1d<double> &max_bou
        sig=sqrt(sig);
    }
    
-   printf("\nJUST DID APS WIDE WITH %d SEARCHES\n\n",ggWrap.get_ct_search()-searches_before);
+   if(ggWrap.get_ct_search()>searches_before+1){
+       printf("\nJUST DID APS WIDE WITH %d SEARCHES\n\n",ggWrap.get_ct_search()-searches_before);
+   }
    return sig;
 }
 
