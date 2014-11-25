@@ -1975,6 +1975,16 @@ int node::get_center(){
     return center_dex;
 }
 
+double node::get_geographic_center(int dex){
+    if(dex<0 || dex>=geographicCenter.get_dim()){
+        printf("WARNING asked for geographic center %d but %d\n",
+        dex,geographicCenter.get_dim());
+        exit(1);
+    }
+    
+    return geographicCenter.get_data(dex);
+}
+
 void node::set_farthest_associate(double xx){
     farthest_associate=xx;
 }

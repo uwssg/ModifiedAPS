@@ -32,6 +32,7 @@ class node{
         Ran* get_Ran();
         gpWrapper* get_gpWrapper();
         int get_center();
+        double get_geographic_center(int);
         
         void copy(const node&);
         
