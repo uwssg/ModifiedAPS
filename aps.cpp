@@ -1411,6 +1411,7 @@ double aps::simplex_strad(array_1d<double> &min_bound, array_1d<double> &max_bou
    simplex_strad_best=-2.0*chisq_exception;
    simplex_ct=0;
    simplex_calls=0;
+   ggWrap.reset_cache();
 
    
    /*
