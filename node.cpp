@@ -1759,8 +1759,15 @@ int node::search(){
                 the Coulomb point to the bisection point as the initial ricochet
                 direction
                 */
-                for(i=0;i<gg->get_dim();i++){
-                    dir.set(i,gg->get_pt(iBisection,i)-gg->get_pt(iCoulomb,i));
+                if(iBisection>=0){
+                    for(i=0;i<gg->get_dim();i++){
+                        dir.set(i,gg->get_pt(iBisection,i)-gg->get_pt(iCoulomb,i));
+                    }
+                }
+                else{
+                    for(i=0;i<gg->get_dim();i++){
+                        dir.set(i,gg->get_pt(iCoulomb,i)-gg->get_pt(center_dex,i));
+                    }
                 }
             }
             else{
