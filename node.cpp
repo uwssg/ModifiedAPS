@@ -1657,7 +1657,7 @@ int node::search(){
         printf("WARNING cannot call node search; center_dex is %d\n",center_dex);
         exit(1);
     }
-    
+
     double before=double(time(NULL));
     int ibefore=gg->get_called();
     double vstart=volume();
@@ -1706,7 +1706,7 @@ int node::search(){
     }
     
     int iBisection;
-    int triedBasesOrRicochet=0;
+    int triedBases=0,triedRicochet=0;
     
     iBisection=bisectionAssociate(iLow,iHigh);
     
@@ -1723,7 +1723,7 @@ int node::search(){
       (associates.get_dim()>last_nAssociates+20 || last_nAssociates==0) && 
       associates.get_dim()>20){
         try{
-            triedBasesOrRicochet=1;
+            triedBases=1;
             find_bases();
         }
         catch(int iex){}
@@ -1738,7 +1738,7 @@ int node::search(){
     if(effective_time_ricochet<0.33*effective_time_search &&
        effective_time_coulomb>0.33*effective_time_search && 
        associates.get_dim()>100){
-        triedBasesOrRicochet=1;
+        triedRicochet=1;
         if(iBisection<0 || fabs(gg->get_fn(iCoulomb)-gg->get_target())<fabs(gg->get_fn(iBisection)-gg->get_target())){
             iStart=iCoulomb;
         }
@@ -1813,12 +1813,12 @@ int node::search(){
     
     double vend=volume();
     
-    if(triedBasesOrRicochet==1){
+    if(triedRicochet==1){
         if(vend>vstart*(1.00001)){
             last_expanded=ct_search;
         }
         else{
-            find_bases();
+            if(triedBases==0)find_bases();
             vend=volume();
 
             if(!(vend>vstart*1.00001) && ct_ricochet>0){
