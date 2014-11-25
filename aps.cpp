@@ -1358,6 +1358,7 @@ double aps::simplex_metric(array_1d<double> &pt, array_1d<double> &min_bound, ar
     stradval=strad(mu,sig);
     
     simplex_ct++;
+    simplex_calls++;
     
     /*
     If a new local maximum is found for S, store that and reset simplex_ct to zero
@@ -1409,6 +1410,7 @@ double aps::simplex_strad(array_1d<double> &min_bound, array_1d<double> &max_bou
    
    simplex_strad_best=-2.0*chisq_exception;
    simplex_ct=0;
+   simplex_calls=0;
 
    
    /*
@@ -1563,7 +1565,8 @@ double aps::simplex_strad(array_1d<double> &min_bound, array_1d<double> &max_bou
    }
    
    if(ggWrap.get_ct_search()>searches_before+1){
-       printf("\nJUST DID APS WIDE WITH %d SEARCHES\n\n",ggWrap.get_ct_search()-searches_before);
+       printf("\nJUST DID APS WIDE WITH %d SEARCHES %d\n\n",ggWrap.get_ct_search()-searches_before,
+       simplex_calls);
    }
    return sig;
 }

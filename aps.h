@@ -479,7 +479,7 @@ private:
     */
     double simplex_strad_best,simplex_mu_best,simplex_sig_best;
     array_1d<double> simplex_best;
-    int simplex_ct;
+    int simplex_ct,simplex_calls;
     
     /*
     These are all variables used to keep track of how much time or how many calls
