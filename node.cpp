@@ -1263,7 +1263,7 @@ array_1d<double> &trial_model){
 
 }
 
-double node::basis_error(array_2d<double> &trial_bases, 
+double node::basis_error_simplex(array_2d<double> &trial_bases, 
 array_1d<int> &basis_associates, array_1d<double> &trial_model){    
     /*
     trial_bases is now made up of a bunch of orthonormal vectors which resulted from
@@ -1436,6 +1436,11 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
     }
     
     return ff.get_data(il);
+}
+
+double node::basis_error(array_2d<double> &trial_bases, 
+array_1d<int> &basis_associates, array_1d<double> &trial_model){ 
+
 }
 
 void node::find_bases(){
