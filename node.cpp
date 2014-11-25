@@ -1603,6 +1603,7 @@ void node::find_bases(){
     
     if(changed_bases==1){
         compass_search(min_dex);
+        printf("compass searching an additional %d points\n",compass_centers.get_dim());
         for(i=0;i<compass_centers.get_dim();i++){
             compass_search(compass_centers.get_data(i));
         }
