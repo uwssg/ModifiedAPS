@@ -387,7 +387,7 @@ private:
     
     This is the point at which aps_wide() evaluates chisquared
     */
-    double simplex_strad(array_1d<double>&, array_1d<double>&);
+    double simplex_strad(int);
     double simplex_metric(array_1d<double>&,array_1d<double>&, array_1d<double>&);
        
     /*
