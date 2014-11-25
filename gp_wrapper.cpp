@@ -387,6 +387,10 @@ void gpWrapper::unfreeze_boxes(){
     gg->unfreeze_boxes();
 }
 
+int gpWrapper::get_ct_search(){
+    return gg->get_ct_search();
+}
+
 void gpWrapper::get_box_quartiles(array_1d<int> &qq){
     if(gg==NULL){
         printf("WARNING cannot get box quartiles; gg is null\n");
