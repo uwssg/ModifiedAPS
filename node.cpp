@@ -1753,22 +1753,16 @@ int node::search(){
             }
         }
         else{
-            if(iBisection<0 || gg->get_fn(iCoulomb)<gg->get_target()){
+            if(gg->get_fn(iCoulomb)<gg->get_target()){
                 /*
                 if the Coulomb point was inside the limit, use the direction from
                 the Coulomb point to the bisection point as the initial ricochet
                 direction
                 */
-                if(iBisection>=0){
-                    for(i=0;i<gg->get_dim();i++){
-                        dir.set(i,gg->get_pt(iBisection,i)-gg->get_pt(iCoulomb,i));
-                    }
+                for(i=0;i<gg->get_dim();i++){
+                    dir.set(i,gg->get_pt(iBisection,i)-gg->get_pt(iCoulomb,i));
                 }
-                else{
-                    for(i=0;i<gg->get_dim();i++){
-                        dir.set(i,gg->get_pt(iCoulomb,i)-gg->get_pt(center_dex,i));
-                    }
-                }
+
             }
             else{
                 /*
