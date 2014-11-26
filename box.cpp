@@ -497,7 +497,8 @@ int box::add_pt(){
     
     for(i=0;i<data->get_cols();i++){
         if(pt.get_data(i)<box_min.get_data(i_box,i)){
-            nn=pt.get_data(i)-0.01*(box_max.get_data(i_box,i)-box_min.get_data(i_box,i));
+            //nn=pt.get_data(i)-0.01*(box_max.get_data(i_box,i)-box_min.get_data(i_box,i));
+            nn=pt.get_data(i);
             box_min.set(i_box,i,nn);
             
             if(nn<mins.get_data(i)){
@@ -506,7 +507,8 @@ int box::add_pt(){
         }
         
         if(pt.get_data(i)>box_max.get_data(i_box,i)){
-            nn=pt.get_data(i)+0.01*(box_max.get_data(i_box,i)-box_min.get_data(i_box,i));
+            //nn=pt.get_data(i)+0.01*(box_max.get_data(i_box,i)-box_min.get_data(i_box,i));
+            nn=pt.get_data(i);
             box_max.set(i_box,i,nn);
             
             if(nn>maxs.get_data(i)){
