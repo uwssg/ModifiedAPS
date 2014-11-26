@@ -162,7 +162,6 @@ void box::organize(array_1d<int> &use_in, int use_start, int ct, int parent, int
 array_1d<double> &box_min_local,array_1d<double> &box_max_local)
 {
     int idim,i,j,i_med;
-    double tol=1.0e-10;
     
     array_1d<int> use;
    
@@ -185,12 +184,15 @@ array_1d<double> &box_min_local,array_1d<double> &box_max_local)
     //////////need to calculate idim, i_med, and the splitting value
     double val,min,max,valbest;
     double span,spanbest;
+    double norm_span,tol;
     
     int ii,split,splitbest,iup,idown;
     
-    idim=0;
+    tol=1.0e-7;
+    idim=-1;
 
     for(ii=0;ii<data->get_cols();ii++){
+        norm_span=norm_max.get_data(ii)-norm_min.get_data(ii);
 
         val=split_error(use,ii,&iup,&idown);
 	if(iup<idown){
@@ -201,27 +203,40 @@ array_1d<double> &box_min_local,array_1d<double> &box_max_local)
 	}
 	
 	span=box_max_local.get_data(ii)-box_min_local.get_data(ii);
-	span=span/(norm_max.get_data(ii)-norm_min.get_data(ii));
+	span=span/norm_span;
 	
 	/*if(ii==21){
 	    printf("split %d best %d span %e best %e\n",
 	    split,splitbest,span,spanbest);
 	}*/
 	
-	
-	if(ii==0 || 
-	   split<splitbest || 
-	   (split<=splitbest && span>spanbest) ||
-	   (split<=splitbest && span>=spanbest && tree_ct.get_data(ii)<tree_ct.get_data(idim))){
+	if((val-box_min_local.get_data(ii))/norm_span>tol && (box_max_local.get_data(ii)-val)/norm_span>tol){
+	    if(idim<0 || 
+	       split<splitbest || 
+	       (split<=splitbest && span>spanbest) ||
+	       (split<=splitbest && span>=spanbest && tree_ct.get_data(ii)<tree_ct.get_data(idim))){
 	   
-	    idim=ii;
-	    valbest=val;
-	    splitbest=split;
-	    spanbest=span;
-	}
+	        idim=ii;
+	        valbest=val;
+	        splitbest=split;
+	        spanbest=span;
+	    }
+        }
     
     }
     
+    if(idim<0){
+        //printf("AAGH! degeneracy\n");
+	box_contents.add_row(use);
+	box_min.add_row(box_min_local);
+	box_max.add_row(box_max_local);
+	
+	tree.set(parent,dir+3,box_contents.get_rows()-1);
+	use.reset();
+	
+	return;
+	
+    }
     
     tree_ct.add_val(idim,1);
     
@@ -715,10 +730,13 @@ int box::split_box(int i_box, int i_tree, int dir){
     int idim,best_min,iup,idown,iup_best,idown_best;
     int split,split_best;
     double best_val,val,span,span_best;
+    double norm_span,tol=1.0e-8;
     
-    idim=0;
+    idim=-1;
+    split_best=2*box_contents.get_cols(i_box);
+    span_best=-2.0*chisq_exception;
     for(i=0;i<data->get_cols();i++){
-    
+        norm_span=norm_max.get_data(i)-norm_min.get_data(i);
         val=split_error((*box_contents(i_box)),i,&iup,&idown);
 	
 	if(iup<idown){
@@ -729,29 +747,35 @@ int box::split_box(int i_box, int i_tree, int dir){
 	}
 	
 	span=box_max.get_data(i_box,i)-box_min.get_data(i_box,i);
-	span=span/(norm_max.get_data(i)-norm_min.get_data(i));
+	span=span/norm_span;
 	
-        if(i==0 || 
-	   split<split_best || 
-	   (split<=split_best && span>span_best) ||
-	   (split<=split_best && span>=span_best && tree_ct.get_data(i)<tree_ct.get_data(idim))){
+        if((val-box_min.get_data(i_box,i))/norm_span>tol && (box_max.get_data(i_box,i)-val)/norm_span>tol){
+            if(split<split_best || 
+	       (split<=split_best && span>span_best) ||
+	       (split<=split_best && span>=span_best && tree_ct.get_data(i)<tree_ct.get_data(idim))){
 	    
-	    span_best=span;
+	        span_best=span;
 	
-            best_val=val;
-	    idim=i;
-	    iup_best=iup;
-	    idown_best=idown;
+                best_val=val;
+	        idim=i;
+	        iup_best=iup;
+	        idown_best=idown;
 	    
-	    split_best=split;
+	        split_best=split;
 	    
-	    if(iup<idown)best_min=iup;
-	    else best_min=idown;
+	        if(iup<idown)best_min=iup;
+	        else best_min=idown;
 	    
-	}
+	    }
+        }
     }
     
-    if(best_min<min_pts_per_box){
+    norm_span=norm_max.get_data(idim)-norm_min.get_data(idim);
+    
+    if(idim<0 ||
+      best_min<min_pts_per_box || 
+      (best_val-box_min.get_data(i_box,idim))/norm_span<tol ||
+      (box_max.get_data(i_box,idim)-best_val)/norm_span<tol){
         //printf("bestmin %d returning\n",best_min);
         return 0;
     }
