@@ -1385,6 +1385,8 @@ double aps::simplex_strad(int ibox){
    
    int searches_before=ggWrap.get_ct_search();
 
+   //printf("\nSTARTING APS\n");
+
    array_1d<double> min_bound,max_bound;
    min_bound.set_name("aps_simplex_strad_min_bound");
    max_bound.set_name("aps_simplex_strad_max_bound");
@@ -1556,14 +1558,14 @@ double aps::simplex_strad(int ibox){
    if(ggWrap.get_ct_search()>searches_before+1){
        printf("\nJUST DID APS WIDE WITH %d SEARCHES %d -- %d\n\n",ggWrap.get_ct_search()-searches_before,
        simplex_calls,ibox);
-       if(ggWrap.get_ct_search()>searches_before+5){
+       //if(ggWrap.get_ct_search()>searches_before+5){
            for(i=0;i<ggWrap.get_dim();i++){
                printf("%d -- %e %e -- %e %e\n",
                i,min_bound.get_data(i),max_bound.get_data(i),
                ggWrap.get_box_min(ibox,i),ggWrap.get_box_max(ibox,i));
            }
            exit(1);
-       }
+       //}
    }
    
    ggWrap.reset_cache();
