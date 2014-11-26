@@ -433,11 +433,13 @@ void gp::refactor(){
   
     double before,after;
     
-    array_1d<double> max,min;
+    array_1d<double> max,min,bmin,bmax;
     array_2d<double> buffer;
     
     max.set_name("gp_refactor_max");
     min.set_name("gp_refactor_min");
+    bmin.set_name("gp_refactor_bmin");
+    bmax.set_name("gp_refactor_bmax");
     buffer.set_name("gp_refactor_buffer");
     
     before=double(time(NULL));
@@ -457,6 +459,8 @@ void gp::refactor(){
     for(i=0;i<dim;i++){
         max.set(i,kptr->get_max(i));
         min.set(i,kptr->get_min(i));
+        bmax.set(i,bptr->get_max(i));
+        bmin.set(i,bptr->get_min(i));
     }
     
     int j;
@@ -474,13 +478,10 @@ void gp::refactor(){
     kptr->set_search_ct_solo(sct0);
     kptr->set_search_time_solo(st0);
     
-    for(i=0;i<dim;i++){
-        min.set(i,bptr->get_min(i));
-        max.set(i,bptr->get_max(i));
-    }
+
     
     delete bptr;
-    bptr=new box(&kptr->data,kk,min,max);
+    bptr=new box(&kptr->data,kk,bmin,bmax);
     kptr->check_tree(-1);
 
     if(kptr->get_diagnostic()!=1){
