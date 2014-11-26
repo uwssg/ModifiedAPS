@@ -701,18 +701,18 @@ const{
             if(pt.get_data(i)<cached_boxmin.get_data(i))dosrch=1;
             if(pt.get_data(i)>cached_boxmax.get_data(i))dosrch=1;
             
-            if(dosrch==1){
+            /*if(dosrch==1){
                 printf("doing search because (%d):\n",cached_ibox);
                 printf("%d %e is not between %e %e\n",
                 i,pt.get_data(i),cached_boxmin.get_data(i),cached_boxmax.get_data(i));
-            }
+            }*/
             
         }
-        if(dosrch==1){
+        /*if(dosrch==1){
             for(j=0;j<pt.get_dim();j++){
                 printf("    %d %e -- %e %e\n",j,pt.get_data(j),cached_boxmin.get_data(j),cached_boxmax.get_data(j));
             }
-        }
+        }*/
     }
     
     

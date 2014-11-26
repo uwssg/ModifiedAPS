@@ -1553,20 +1553,25 @@ double aps::simplex_strad(int ibox){
        }
        sig=sig/double(gg.get_dim()+1);
        sig=sqrt(sig);
-   }
-   
-   if(ggWrap.get_ct_search()>searches_before+1){
-       printf("\nJUST DID APS WIDE WITH %d SEARCHES %d -- %d\n\n",ggWrap.get_ct_search()-searches_before,
-       simplex_calls,ibox);
-       //if(ggWrap.get_ct_search()>searches_before+5){
+       
+       if(ggWrap.get_ct_search()>searches_before+1){
+           printf("\nJUST DID APS WIDE WITH %d SEARCHES %d -- %d\n\n",ggWrap.get_ct_search()-searches_before,
+           simplex_calls,ibox);
+           printf("%d %d\n",ggWrap.get_box_contents(305),ggWrap.get_box_contents(306));
            for(i=0;i<ggWrap.get_dim();i++){
-               printf("%d -- %e %e -- %e %e\n",
+               printf("%d -- %e %e -- %e -- %e %e -- %e %e\n",
                i,min_bound.get_data(i),max_bound.get_data(i),
-               ggWrap.get_box_min(ibox,i),ggWrap.get_box_max(ibox,i));
+               max_bound.get_data(i)-min_bound.get_data(i),
+               ggWrap.get_box_min(ibox,i),ggWrap.get_box_max(ibox,i),
+               ggWrap.get_box_min(306,i),ggWrap.get_box_max(306,i));
            }
            exit(1);
-       //}
+
+       }
+       
    }
+   
+
    
    ggWrap.reset_cache();
    return sig;
@@ -2603,10 +2608,20 @@ void aps::write_pts(){
     The hope is that this will make the nearest neighbor search more efficient.
     */
     if(gg.get_pts()>gg.get_last_refactored()+i && gg.get_pts()<20000){
-        //printf("refactoring\n");
+        printf("refactoring\n");
     
         nn=double(time(NULL));
         gg.refactor();
+        
+        if(ggWrap.get_nboxes()>305){
+            printf("%e %e\n",ggWrap.get_box_min(305,3),ggWrap.get_box_max(305,3));
+            if(ggWrap.get_box_max(305,3)-ggWrap.get_box_min(305,3)<1.0e-3){
+               
+                exit(1);
+            }
+        }
+        
+        
         _aps_wide_contents_buffer.reset();
         _aps_wide_ss_buffer.reset();
         time_refactoring+=double(time(NULL))-nn;

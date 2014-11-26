@@ -698,6 +698,12 @@ int box::split_box(int i_box, int i_tree, int dir){
     array_1d<int> use;
     use.set_name("box_split_use");
     
+    double min0=-2.0*chisq_exception,max0=-2.0*chisq_exception;
+    if(box_contents.get_rows()>305){
+        max0=box_max.get_data(305,3);
+        min0=box_min.get_data(305,3);
+    }
+    
     int i,j;
     for(i=0;i<box_contents.get_cols(i_box);i++){
         use.add(box_contents.get_data(i_box,i));
@@ -780,6 +786,16 @@ int box::split_box(int i_box, int i_tree, int dir){
         return 0;
     }
     
+    if(i_box==305){
+        printf("\n");
+        printf("bestval %e min %e max %e\n",
+        best_val,box_min.get_data(i_box,idim),box_max.get_data(i_box,idim));
+        printf("norm %e\n",norm_max.get_data(idim)-norm_min.get_data(idim));
+        printf("idim %d i_box %d\n",idim,i_box);
+        printf("%e %e\n",box_min.get_data(i_box,3),box_max.get_data(i_box,3));
+        printf("\n");
+    }
+    
     tree_ct.add_val(idim,1);
     
     tree_values.add(best_val);
@@ -822,70 +838,12 @@ int box::split_box(int i_box, int i_tree, int dir){
     box_contents.replace_row(i_box,use_below);
     
     box_max.set(i_box,idim,best_val+1.0e-9*(maxs.get_data(idim)-mins.get_data(idim)));
-  
-    
-    /*if(box_max.get_data(i_box,idim)-box_min.get_data(i_box,idim)<0.0){
-        printf("WARNING on parent box max %e min %e\n",box_max.get_data(i_box,idim),
-        box_min.get_data(i_box,idim));
-        
-        exit(1);
-    }*/
     
     box_min_local.set(idim,best_val-1.0e-9*(maxs.get_data(idim)-mins.get_data(idim)));
 
     box_contents.add_row(use_above);
     box_max.add_row(box_max_local);
     box_min.add_row(box_min_local);
-    
-    /*if(box_max.get_data(box_max.get_rows()-1,idim)-box_min.get_data(box_max.get_rows()-1,idim)<0.0){
-        printf("WARNING on daughter box max %e min %e\n",
-        box_max.get_data(box_max.get_rows()-1,idim),
-        box_min.get_data(box_max.get_rows()-1,idim));
-        
-        exit(1);
-    }*/
-    
-    
-    /*if(use_above.get_dim()<5 || use_below.get_dim()<5){
-       printf("failed %d %d %d %d\n",
-       use_above.get_dim(),
-       use_below.get_dim(),
-       iup,idown);
-    }*/
-    
-    /*array_1d<int> restored;
-    for(i=0;i<use.get_dim();i++)restored.set(i,0);
-    
-    for(i=0;i<box_contents.get_cols(i_box);i++){
-        
-	for(j=0;j<use.get_dim();j++){
-	    if(box_contents.get_data(i_box,i)==use.get_data(j)){
-	        restored.add_val(j,1);
-	    }
-	}
-	
-    }
-    
-    int k=box_contents.get_rows()-1;
-    for(i=0;i<box_contents.get_cols(k);i++){
-        
-	for(j=0;j<use.get_dim();j++){
-	    if(box_contents.get_data(k,i)==use.get_data(j)){
-	        restored.add_val(j,1);
-	    }
-	}
-	
-    }
-    
-    for(i=0;i<use.get_dim();i++){
-        if(restored.get_data(i)!=1){
-	    printf("WARNING in split %d restored %d %d\n",
-	    i_box,i,restored.get_data(i));
-	    
-	    exit(1);
-	}
-    }*/
-    
     
     if(tree_values.get_dim()!=tree.get_rows()){
     
@@ -895,6 +853,14 @@ int box::split_box(int i_box, int i_tree, int dir){
         exit(1);
     }
     
+    if(box_contents.get_rows()>305){
+        if(box_max.get_data(305,3)-box_min.get_data(305,3)<1.0e-5){
+            printf("splitting %d %d\n",i_box,box_contents.get_rows());
+            printf("%e %e\n",box_max.get_data(305,3),box_min.get_data(305,3));
+            printf("was %e %e\n",min0,max0);
+            exit(1);
+        }
+    }
     
     return 1;
 }
