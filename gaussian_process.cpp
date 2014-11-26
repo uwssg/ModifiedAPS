@@ -708,6 +708,11 @@ const{
             }
             
         }
+        if(dosrch==1){
+            for(j=0;j<pt.get_dim();j++){
+                printf("    %d %e -- %e %e\n",j,pt.get_data(j),cached_boxmin.get_data(j),cached_boxmax.get_data(j));
+            }
+        }
     }
     
     
