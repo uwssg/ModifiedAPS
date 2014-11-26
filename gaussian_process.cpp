@@ -474,6 +474,11 @@ void gp::refactor(){
     kptr->set_search_ct_solo(sct0);
     kptr->set_search_time_solo(st0);
     
+    for(i=0;i<dim;i++){
+        min.set(i,bptr->get_min(i));
+        max.set(i,bptr->get_max(i));
+    }
+    
     delete bptr;
     bptr=new box(&kptr->data,kk,min,max);
     kptr->check_tree(-1);
