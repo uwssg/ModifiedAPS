@@ -1488,6 +1488,16 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
         return 2.0*chisq_exception;
     }
     
+    double minCoeff,maxCoeff;
+    for(i=0;i<trial_model.get_dim();i++){
+        if(i==0 || trial_model.get_data(i)>maxCoeff)maxCoeff=trial_model.get_data(i);
+        if(i==0 || trial_model.get_data(i)<minCoeff)minCoeff=trial_model.get_data(i);
+    }
+    
+    if(minCoeff<0.0){
+        if(-1.0*minCoeff>maxCoeff) return 2.0*chisq_exception;
+    }
+    
     error=0.0;
     for(i=0;i<basis_associates.get_dim();i++){
         chiModel=chi0;
