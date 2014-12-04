@@ -160,6 +160,7 @@ class gpWrapper : public function_wrapper{
         void freeze_boxes();
         void unfreeze_boxes();
         void get_box_quartiles(array_1d<int>&);
+        int get_ct_search();
         
             
         /*

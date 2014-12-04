@@ -1138,11 +1138,7 @@ int aps::aps_wide(){
     array_1d<int> acceptableBoxes;
     acceptableBoxes.set_name("aps_wide_acceptableBoxes");
     get_interesting_boxes(acceptableBoxes);
-    
-    array_1d<double> searchMin,searchMax;
-    searchMin.set_name("aps_wide_searchMin");
-    searchMax.set_name("aps_wide_searchMax");
-    
+
     int i,j,chosenBox,ii,ibox;
     array_1d<double> midpt;
     midpt.set_name("aps_wide_midpt");
@@ -1150,10 +1146,7 @@ int aps::aps_wide(){
     double mu,sig,ss,ssbest;
     
     if(acceptableBoxes.get_dim()==0){
-        for(i=0;i<ggWrap.get_dim();i++){
-            searchMin.set(i,range_min.get_data(i));
-            searchMax.set(i,range_max.get_data(i));
-        }
+        chosenBox=dice->int32()%ggWrap.get_nboxes();
     }
     else{
         for(ii=0;ii<acceptableBoxes.get_dim();ii++){
@@ -1199,12 +1192,6 @@ int aps::aps_wide(){
             if(ii==0 || ss>ssbest){
                 chosenBox=ibox;
                 ssbest=ss;
-                
-                for(i=0;i<ggWrap.get_dim();i++){
-                    searchMin.set(i,ggWrap.get_box_min(ibox,i));
-                    searchMax.set(i,ggWrap.get_box_max(ibox,i));
-                }
-                
             }
             
         }
@@ -1212,7 +1199,14 @@ int aps::aps_wide(){
         
     }
     
-    sig=simplex_strad(searchMin,searchMax);
+    /*printf("ABOUT TO CALL simplex_strad %d\n",chosenBox);
+    for(i=0;i<ggWrap.get_dim();i++){
+        printf("%d -- %e %e -- %e %e\n",
+        i,searchMin.get_data(i),searchMax.get_data(i),
+        ggWrap.get_box_min(chosenBox,i),ggWrap.get_box_max(chosenBox,i));
+    }*/
+    
+    sig=simplex_strad(chosenBox);
     
     double chitrue;
     int actually_added,ic,use_it;
@@ -1358,6 +1352,7 @@ double aps::simplex_metric(array_1d<double> &pt, array_1d<double> &min_bound, ar
     stradval=strad(mu,sig);
     
     simplex_ct++;
+    simplex_calls++;
     
     /*
     If a new local maximum is found for S, store that and reset simplex_ct to zero
@@ -1383,30 +1378,30 @@ double aps::simplex_metric(array_1d<double> &pt, array_1d<double> &min_bound, ar
     
 }
 
-double aps::simplex_strad(array_1d<double> &min_bound, array_1d<double> &max_bound){
+double aps::simplex_strad(int ibox){
     
    int i,j;
    double nn;
    
-   if(min_bound.get_dim()!=gg.get_dim() || max_bound.get_dim()!=gg.get_dim()){
-       printf("WARNING in simplex_strad gg.get_dim() %d min %d max %d\n",
-       gg.get_dim(),min_bound.get_dim(),max_bound.get_dim());
-       
-       throw -1;
-   }
+   int searches_before=ggWrap.get_ct_search();
+
+   //printf("\nSTARTING APS\n");
+
+   array_1d<double> min_bound,max_bound;
+   min_bound.set_name("aps_simplex_strad_min_bound");
+   max_bound.set_name("aps_simplex_strad_max_bound");
    
    for(i=0;i<gg.get_dim();i++){
-       if(max_bound.get_data(i)<min_bound.get_data(i)){
-           nn=max_bound.get_data(i);
-           max_bound.set(i,min_bound.get_data(i));
-           min_bound.set(i,nn);
-       }
+       min_bound.set(i,ggWrap.get_box_min(ibox,i));
+       max_bound.set(i,ggWrap.get_box_max(ibox,i));
    }
    
    simplex_best.reset();
    
    simplex_strad_best=-2.0*chisq_exception;
    simplex_ct=0;
+   simplex_calls=0;
+   ggWrap.reset_cache();
 
    
    /*
@@ -1558,8 +1553,27 @@ double aps::simplex_strad(array_1d<double> &min_bound, array_1d<double> &max_bou
        }
        sig=sig/double(gg.get_dim()+1);
        sig=sqrt(sig);
+       
+       if(ggWrap.get_ct_search()>searches_before+1){
+           printf("\nJUST DID APS WIDE WITH %d SEARCHES %d -- %d\n\n",ggWrap.get_ct_search()-searches_before,
+           simplex_calls,ibox);
+           printf("%d %d\n",ggWrap.get_box_contents(305),ggWrap.get_box_contents(306));
+           for(i=0;i<ggWrap.get_dim();i++){
+               printf("%d -- %e %e -- %e -- %e %e -- %e %e\n",
+               i,min_bound.get_data(i),max_bound.get_data(i),
+               max_bound.get_data(i)-min_bound.get_data(i),
+               ggWrap.get_box_min(ibox,i),ggWrap.get_box_max(ibox,i),
+               ggWrap.get_box_min(306,i),ggWrap.get_box_max(306,i));
+           }
+           exit(1);
+
+       }
+       
    }
    
+
+   
+   ggWrap.reset_cache();
    return sig;
 }
 
@@ -2594,10 +2608,20 @@ void aps::write_pts(){
     The hope is that this will make the nearest neighbor search more efficient.
     */
     if(gg.get_pts()>gg.get_last_refactored()+i && gg.get_pts()<20000){
-        //printf("refactoring\n");
+        printf("refactoring\n");
     
         nn=double(time(NULL));
         gg.refactor();
+        
+        if(ggWrap.get_nboxes()>305){
+            printf("%e %e\n",ggWrap.get_box_min(305,3),ggWrap.get_box_max(305,3));
+            if(ggWrap.get_box_max(305,3)-ggWrap.get_box_min(305,3)<1.0e-3){
+               
+                exit(1);
+            }
+        }
+        
+        
         _aps_wide_contents_buffer.reset();
         _aps_wide_ss_buffer.reset();
         time_refactoring+=double(time(NULL))-nn;

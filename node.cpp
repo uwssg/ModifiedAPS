@@ -1263,7 +1263,7 @@ array_1d<double> &trial_model){
 
 }
 
-double node::basis_error(array_2d<double> &trial_bases, 
+double node::basis_error_simplex(array_2d<double> &trial_bases, 
 array_1d<int> &basis_associates, array_1d<double> &trial_model){    
     /*
     trial_bases is now made up of a bunch of orthonormal vectors which resulted from
@@ -1436,6 +1436,71 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
     }
     
     return ff.get_data(il);
+}
+
+double node::basis_error(array_2d<double> &trial_bases, 
+array_1d<int> &basis_associates, array_1d<double> &trial_model){ 
+
+    trial_model.reset();
+    array_1d<double> aa,bb,vv;
+    array_2d<double> ddsq;
+    aa.set_name("basis_error_AA");
+    bb.set_name("basis_error_bb");
+    ddsq.set_name("basis_error_ddsq");
+    vv.set_name("basis_error_vv");
+    
+    int i,j;
+    
+    ddsq.set_cols(gg->get_dim());
+    for(i=0;i<basis_associates.get_dim();i++){
+        project_distance(basis_associates.get_data(i),min_dex,trial_bases,vv);
+        for(j=0;j<gg->get_dim();j++){
+            ddsq.set(i,j,vv.get_data(j)*vv.get_data(j));
+        }
+    }
+    
+    double chi0=gg->get_fn(min_dex);
+    for(i=0;i<gg->get_dim();i++){
+        bb.set(i,0.0);
+        for(j=0;j<basis_associates.get_dim();j++){
+            bb.add_val(i,ddsq.get_data(j,i)*(gg->get_fn(basis_associates.get_data(j))-chi0));
+        }
+    }
+    
+    int k,ix;
+    for(i=0;i<gg->get_dim();i++){
+        for(j=i;j<gg->get_dim();j++){
+            ix=i*gg->get_dim()+j;
+            aa.set(ix,0.0);
+            for(k=0;k<basis_associates.get_dim();k++){
+                aa.add_val(ix,ddsq.get_data(k,i)*ddsq.get_data(k,j));
+            }
+            if(j!=i){
+                aa.set(j*gg->get_dim()+i,aa.get_data(ix));
+            }
+        }
+    }
+    
+    double error,chiModel;
+    try{
+        naive_gaussian_solver(aa,bb,trial_model,gg->get_dim());
+    }
+    catch(int iex){
+        printf("basis_error was no good\n");
+        return 2.0*chisq_exception;
+    }
+    
+    error=0.0;
+    for(i=0;i<basis_associates.get_dim();i++){
+        chiModel=chi0;
+        for(j=0;j<gg->get_dim();j++){
+            chiModel+=trial_model.get_data(j)*ddsq.get_data(i,j);
+        }
+        error+=power(gg->get_fn(basis_associates.get_data(i))-chiModel,2);
+    }
+    return error;
+    
+    
 }
 
 void node::find_bases(){

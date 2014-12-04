@@ -32,6 +32,8 @@ gp::gp(){
   cached_pmin.set_name("gp_cached_pmin");
   cached_pmax.set_name("gp_cached_pmax");
   cached_neigh.set_name("gp_cached_neigh");
+  cached_boxmin.set_name("gp_cached_boxmin");
+  cached_boxmax.set_name("gp_cached_boxmax");
   cached_ibox=-1;
   
 }
@@ -431,11 +433,13 @@ void gp::refactor(){
   
     double before,after;
     
-    array_1d<double> max,min;
+    array_1d<double> max,min,bmin,bmax;
     array_2d<double> buffer;
     
     max.set_name("gp_refactor_max");
     min.set_name("gp_refactor_min");
+    bmin.set_name("gp_refactor_bmin");
+    bmax.set_name("gp_refactor_bmax");
     buffer.set_name("gp_refactor_buffer");
     
     before=double(time(NULL));
@@ -455,6 +459,8 @@ void gp::refactor(){
     for(i=0;i<dim;i++){
         max.set(i,kptr->get_max(i));
         min.set(i,kptr->get_min(i));
+        bmax.set(i,bptr->get_max(i));
+        bmin.set(i,bptr->get_min(i));
     }
     
     int j;
@@ -472,8 +478,10 @@ void gp::refactor(){
     kptr->set_search_ct_solo(sct0);
     kptr->set_search_time_solo(st0);
     
+
+    
     delete bptr;
-    bptr=new box(&kptr->data,kk,min,max);
+    bptr=new box(&kptr->data,kk,bmin,bmax);
     kptr->check_tree(-1);
 
     if(kptr->get_diagnostic()!=1){
@@ -683,7 +691,7 @@ const{
     First we must determine whether we need to do a new nearest neighbor search,
     or whether the results from the last nearest neighbor search will suffice
     */
-    int dosrch=0,ibox;
+    int dosrch=0;
     array_1d<int> tree_stats;
     tree_stats.set_name("gp_predict_tree_stats");
     
@@ -695,20 +703,22 @@ const{
         dosrch=1;
     }
     else{
-        ibox=bptr->find_box(pt);
-        
-        if(ibox!=cached_ibox){
-           // printf("searching because ibox %d cached %d\n",
-           // ibox,cached_ibox);
+        for(i=0;i<pt.get_dim() && dosrch==0;i++){
+            if(pt.get_data(i)<cached_boxmin.get_data(i))dosrch=1;
+            if(pt.get_data(i)>cached_boxmax.get_data(i))dosrch=1;
             
-            dosrch=1;
+            /*if(dosrch==1){
+                printf("doing search because (%d):\n",cached_ibox);
+                printf("%d %e is not between %e %e\n",
+                i,pt.get_data(i),cached_boxmin.get_data(i),cached_boxmax.get_data(i));
+            }*/
+            
         }
-        
-        if(bptr->get_contents(ibox)!=cached_kk){
-            //printf("searching because contents %d cached %d\n",
-            //bptr->get_contents(ibox),cached_kk);
-            dosrch=1;
-        }
+        /*if(dosrch==1){
+            for(j=0;j<pt.get_dim();j++){
+                printf("    %d %e -- %e %e\n",j,pt.get_data(j),cached_boxmin.get_data(j),cached_boxmax.get_data(j));
+            }
+        }*/
     }
     
     
@@ -728,6 +738,10 @@ const{
         
         cached_ibox=tree_stats.get_data(0);
         cached_kk=bptr->get_contents(cached_ibox);
+        for(i=0;i<pt.get_dim();i++){
+            cached_boxmin.set(i,bptr->get_box_min(cached_ibox,i));
+            cached_boxmax.set(i,bptr->get_box_max(cached_ibox,i));
+        }
 
         
         
@@ -835,17 +849,20 @@ const{
                
                if(betterFit>=0){
                    flag[0]=-1;    
-                   /*printf("WARNING box search failure -- did search: %d\n",dosrch);
+                   printf("WARNING box search failure -- did search: %d\n",dosrch);
                    for(jbf=0;jbf<kptr->get_dim();jbf++){
-                       printf("%e -- %e %e -- %e %e\n",
-                       pt.get_data(jbf),
-                       bptr->get_box_min(cached_ibox,jbf),bptr->get_box_max(cached_ibox,jbf),
-                       bptr->get_box_min(betterFit,jbf),bptr->get_box_max(betterFit,jbf));
-                   }*/
+                       if(pt.get_data(jbf)<bptr->get_box_min(cached_ibox,jbf) || pt.get_data(jbf)>bptr->get_box_max(cached_ibox,jbf)){
+                           printf("%e -- %e %e -- %e %e -- %e %e\n",
+                           pt.get_data(jbf),
+                           bptr->get_box_min(cached_ibox,jbf),bptr->get_box_max(cached_ibox,jbf),
+                           bptr->get_box_min(betterFit,jbf),bptr->get_box_max(betterFit,jbf),
+                           cached_boxmin.get_data(jbf),cached_boxmax.get_data(jbf));
+                       }
+                   }
                    
                    //not going to exit
                    //I think this behavior is not dangerous
-                   //exit(1);
+                   exit(1);
                }
                    
            }
@@ -1826,6 +1843,8 @@ void gp::reset_cache() const{
       cached_neigh.reset();
       cached_pmin.reset();
       cached_pmax.reset();
+      cached_boxmin.reset();
+      cached_boxmax.reset();
 }
 
 void gp::set_sig_cap(double nn){
