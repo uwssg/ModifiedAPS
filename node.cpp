@@ -1574,7 +1574,6 @@ void node::find_bases(){
     }
     
     Ebest0=basis_error(bases_best,basis_associates,basisModel);
-    if(Ebest0>chisq_exception)Ebest0=-1.0;
     Ebest=Ebest0;
     lastEbest=Ebest0;
     
@@ -1591,7 +1590,7 @@ void node::find_bases(){
     
     int go_on=1;
     
-    while(aborted<max_abort && stdev>stdevlim && Ebest>0.01*Ebest0 && go_on==1){
+    while(aborted<max_abort && stdev>stdevlim && (Ebest>0.01*Ebest0 || Ebest0>chisq_exception) && go_on==1){
 
         ix=-1;
         while(ix>=gg->get_dim() || ix<0){
@@ -1623,6 +1622,11 @@ void node::find_bases(){
                 }
             }
             Ebest=Etrial;
+            if(Ebest0>chisq_exception && Ebest<chisq_exception){
+                Ebest0=Ebest;
+                lastEbest=Ebest;
+                total_ct=0;
+            }
         }
         else{
             aborted++;
@@ -1634,7 +1638,7 @@ void node::find_bases(){
             else if(total_aborted>(3*total_ct)/4)stdev=stdev*0.5;
         }
         
-        if(total_ct%1000==0){
+        if(total_ct%1000==0 && total_ct>0){
             /*
             If Ebest has not changed by more than 10% in the last 1000 calls,
             just stop trying
