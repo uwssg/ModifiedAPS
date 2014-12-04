@@ -1574,6 +1574,7 @@ void node::find_bases(){
     }
     
     Ebest0=basis_error(bases_best,basis_associates,basisModel);
+    if(Ebest0>chisq_exception)Ebest0=0.1;
     Ebest=Ebest0;
     lastEbest=Ebest0;
     
