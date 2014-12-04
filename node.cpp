@@ -1052,16 +1052,12 @@ void node::compass_search(int istart){
 }
 
 int node::perturb_bases(array_2d<double> &bi, int ix, array_1d<double> &dd, array_2d<double> &bo){
-    array_1d<int> active;
-    int i;
-    for(i=0;i<bi.get_rows();i++){
-        active.set(i,1);
-    }
-    return perturb_bases(bi,ix,dd,bo,active);
+    array_1d<int> frozen;
+    return perturb_bases(bi,ix,dd,bo,frozen);
 }
 
 int node::perturb_bases(array_2d<double> &bases_in, int ix, array_1d<double> &dx, array_2d<double> &bases_out,
-array_1d<int> &active){
+array_1d<int> &frozen){
     /*
     This will perturb the ixth basisVector by the small vector dx,
     reconstruct the rest of the basisVectors to be perpendicular to
