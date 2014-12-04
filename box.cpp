@@ -786,16 +786,6 @@ int box::split_box(int i_box, int i_tree, int dir){
         return 0;
     }
     
-    if(i_box==305){
-        printf("\n");
-        printf("bestval %e min %e max %e\n",
-        best_val,box_min.get_data(i_box,idim),box_max.get_data(i_box,idim));
-        printf("norm %e\n",norm_max.get_data(idim)-norm_min.get_data(idim));
-        printf("idim %d i_box %d\n",idim,i_box);
-        printf("%e %e\n",box_min.get_data(i_box,3),box_max.get_data(i_box,3));
-        printf("\n");
-    }
-    
     tree_ct.add_val(idim,1);
     
     tree_values.add(best_val);
