@@ -106,6 +106,7 @@ class node{
         int perturb_bases(array_2d<double>&,int,array_1d<double>&,array_2d<double>&,array_1d<int>&);
         int perturb_bases(array_2d<double>&,int,array_1d<double>&,array_2d<double>&);
         double basis_error(array_2d<double>&,array_1d<int>&,array_1d<double>&);
+        double basis_error(array_2d<double>&,array_1d<int>&,array_1d<double>&,array_1d<int>&);
         
         double basis_error_simplex(array_2d<double>&,array_1d<int>&,array_1d<double>&);
         double basis_error_fn(array_2d<double>&, array_1d<int>&, array_1d<double>&);

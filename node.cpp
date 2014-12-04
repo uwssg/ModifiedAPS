@@ -1071,14 +1071,64 @@ array_1d<int> &frozen){
         exit(1);
     }
     
-    double nn,tol=1.0e-12;
+    double nn,tol=1.0e-12,orthtol=1.0e-6;
     int i,j,jx,kx;
+    
+    array_1d<int> active;
+    active.set_name("node_perturb_bases_active");
+    for(i=0;i<gg->get_dim();i++){
+        kx=0;
+        for(j=0;j<frozen.get_dim() && kx==0;j++){
+            if(frozen.get_data(j)==i)kx=1;
+        }
+        
+        if(kx==1)active.set(i,0);
+        else active.set(i,1);
+    }
     
     bases_out.set_dim(gg->get_dim(),gg->get_dim());
     
     for(i=0;i<gg->get_dim();i++){
         for(j=0;j<gg->get_dim();j++){
             bases_out.set(i,j,bases_in.get_data(i,j));
+        }
+    }
+    
+    double dxNorm=-1.0;
+    
+    /*make sure that dx is perpendicular to the frozen bases*/
+    while(dxNorm<tol){
+        for(i=0;i<gg->get_dim();i++){
+            if(active.get_data(i)==0){
+                nn=0.0;
+                for(j=0;j<gg->get_dim();j++){
+                    nn+=dx.get_data(j)*bases_out.get_data(i,j);
+                }
+                for(j=0;j<gg->get_dim();j++){
+                    dx.subtract_val(j,nn*bases_out.get_data(i,j));
+                }
+            }
+       }
+    
+        for(i=0;i<gg->get_dim();i++){
+            if(active.get_data(i)==0){
+                nn=0.0;
+                for(j=0;j<gg->get_dim();j++){
+                    nn+=dx.get_data(j)*bases_out.get_data(i,j);
+                }
+                if(fabs(nn)>orthtol){
+                    printf("WARNING dx against a frozen basis is %e\n",nn);
+                    printf("(this is in perturb_bases)\n");
+                    exit(1);
+                }
+            }
+        }
+        
+        dxNorm=dx.get_square_norm();
+        if(dxNorm<tol){
+            for(i=0;i<gg->get_dim();i++){
+                dx.set(i,normal_deviate(dice,0.0,0.01));
+            }
         }
     }
     
@@ -1094,31 +1144,45 @@ array_1d<int> &frozen){
     for(jx=ix+1;jx!=ix;){
         if(jx==gg->get_dim())jx=0;
         
-        for(kx=ix;kx!=jx;){
-            /*make sure that the jxth basis vector is orthogonal to all of the vectors that
-            have already been orthogonalized*/
-            nn=0.0;
-            for(i=0;i<gg->get_dim();i++)nn+=bases_out.get_data(kx,i)*bases_out.get_data(jx,i);
-            for(i=0;i<gg->get_dim();i++)bases_out.subtract_val(jx,i,nn*bases_out.get_data(kx,i));
+        if(active.get_data(jx)==1){
+            for(kx=ix;kx!=jx;){
+                /*make sure that the jxth basis vector is orthogonal to all of the vectors that
+                have already been orthogonalized*/
+                nn=0.0;
+                for(i=0;i<gg->get_dim();i++)nn+=bases_out.get_data(kx,i)*bases_out.get_data(jx,i);
+                for(i=0;i<gg->get_dim();i++)bases_out.subtract_val(jx,i,nn*bases_out.get_data(kx,i));
             
-            if(kx<gg->get_dim()-1)kx++;
-            else kx=0;
-        }
+                if(kx<gg->get_dim()-1)kx++;
+                else kx=0;
+            }
+            
+            for(kx=0;kx<gg->get_dim();kx++){
+                /*
+                make sure that the jxth basis vector is orthogonal to the frozen vectors
+                */
+                if(active.get_data(kx)==0){
+                    nn=0.0;
+                    for(i=0;i<gg->get_dim();i++)nn+=bases_out.get_data(kx,i)*bases_out.get_data(jx,i);
+                    for(i=0;i<gg->get_dim();i++)bases_out.subtract_val(jx,i,nn*bases_out.get_data(kx,i));
+                }
+            
+            }
         
-        nn=0.0;
-        for(i=0;i<gg->get_dim();i++){
-            nn+=bases_out.get_data(jx,i)*bases_out.get_data(jx,i);
-        }
+            nn=0.0;
+            for(i=0;i<gg->get_dim();i++){
+                nn+=bases_out.get_data(jx,i)*bases_out.get_data(jx,i);
+            }
         
-        if(nn<1.0e-20){
-            printf("WARNING had to abort perturb_bases because of zero-magnitude vector\n");
-            return -1;
-        }
+            if(nn<1.0e-20){
+                printf("WARNING had to abort perturb_bases because of zero-magnitude vector\n");
+                return -1;
+            }
         
         
-        nn=sqrt(nn);
-        for(i=0;i<gg->get_dim();i++){
-            bases_out.divide_val(jx,i,nn);
+            nn=sqrt(nn);
+            for(i=0;i<gg->get_dim();i++){
+                bases_out.divide_val(jx,i,nn);
+            }
         }
         
         if(jx<gg->get_dim()-1)jx++;
@@ -1148,7 +1212,7 @@ array_1d<int> &frozen){
         }
     }
     
-    if(normerr>tol || ortherr>1.0e-6){
+    if(normerr>tol || ortherr>orthtol){
         printf("WARNING in basis_err normerr %e ortherr %e\n",normerr,ortherr);
         exit(1);
     }
@@ -1442,8 +1506,18 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
     return ff.get_data(il);
 }
 
+double node::basis_error(array_2d<double> &tb, array_1d<int> &ba, array_1d<double> &tm){
+    array_1d<int> active;
+    active.set_name("node_basis_error_active");
+    int i;
+    for(i=0;i<tm.get_dim();i++){
+        active.set(i,1);
+    }
+    return basis_error(tb,ba,tm,active);
+}
+
 double node::basis_error(array_2d<double> &trial_bases, 
-array_1d<int> &basis_associates, array_1d<double> &trial_model){ 
+array_1d<int> &basis_associates, array_1d<double> &trial_model, array_1d<int> &active){ 
 
     trial_model.reset();
     array_1d<double> aa,bb,vv;
@@ -1494,14 +1568,20 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
         return 2.0*chisq_exception;
     }
     
-    double minCoeff,maxCoeff;
+    double minCoeff=2.0*chisq_exception,maxCoeff=-2.0*chisq_exception;
     for(i=0;i<trial_model.get_dim();i++){
-        if(i==0 || trial_model.get_data(i)>maxCoeff)maxCoeff=trial_model.get_data(i);
-        if(i==0 || trial_model.get_data(i)<minCoeff)minCoeff=trial_model.get_data(i);
+        if(active.get_data(i)==1 && trial_model.get_data(i)>maxCoeff)maxCoeff=trial_model.get_data(i);
+        if(active.get_data(i)==1 && trial_model.get_data(i)<minCoeff)minCoeff=trial_model.get_data(i);
     }
     
     if(minCoeff<0.0){
         if(-1.0*minCoeff>maxCoeff) return 2.0*chisq_exception;
+    }
+    
+    for(i=0;i<trial_model.get_dim();i++){
+        if(active.get_data(i)==0 && trial_model.get_data(i)<0.0){
+            return 2.0*chisq_exception;
+        }
     }
     
     error=0.0;
@@ -1566,6 +1646,9 @@ void node::find_bases(){
     double before=double(time(NULL));
     int ibefore=gg->get_called();
     
+    array_1d<int> frozen;
+    frozen.set_name("node_find_bases_frozen");
+    
     array_2d<double> bases_best,bases_trial;
     bases_best.set_name("node_find_bases_bases_best");
     bases_trial.set_name("node_find_bases_bases_trial");
@@ -1596,63 +1679,109 @@ void node::find_bases(){
     
     int go_on=1;
     
-    while(aborted<max_abort && stdev>stdevlim && (Ebest>0.01*Ebest0 || Ebest0>chisq_exception) && go_on==1){
-
-        ix=-1;
-        while(ix>=gg->get_dim() || ix<0){
-            ix=dice->int32()%gg->get_dim();
+    array_1d<int> active;
+    active.set_name("node_find_bases_active");
+    double localEbest0,nn;
+    int local_total;
+    
+    for(i=0;i<gg->get_dim();i++)active.set(i,1);
+    
+    while(frozen.get_dim()<gg->get_dim()-1){
+        
+        
+        for(i=0;i<frozen.get_dim();i++){
+            active.set(frozen.get_data(i),0);
         }
         
-        for(i=0;i<gg->get_dim();i++)dx.set(i,normal_deviate(dice,0.0,stdev));
+        local_total=0;
+        localEbest0=Ebest;
+        lastEbest=Ebest;
+        aborted=0;
+        total_aborted=0;
+        stdev=0.1/sqrt(double(gg->get_dim()));
+        go_on=1;
+        while(aborted<max_abort && stdev>stdevlim && (Ebest>0.01*localEbest0 || localEbest0>chisq_exception) && go_on==1){
+
+            ix=-1;
+            while(ix>=gg->get_dim() || ix<0){
+                ix=dice->int32()%gg->get_dim();
+                if(active.get_data(ix)==0)ix=-1;
+            }
         
-        total_ct++;
+            for(i=0;i<gg->get_dim();i++)dx.set(i,normal_deviate(dice,0.0,stdev));
         
-        perturb_bases(bases_best,ix,dx,bases_trial);
-        Etrial=basis_error(bases_trial,basis_associates,trial_model);
+            total_ct++;
         
-        if(Etrial<Ebest){
-            //printf("    improved %e < %e -- %d\n",Etrial,Ebest,aborted);
-            if(Ebest-Etrial>1.0e-5*Etrial){
-                aborted=0;
+            perturb_bases(bases_best,ix,dx,bases_trial,frozen);
+            Etrial=basis_error(bases_trial,basis_associates,trial_model,active);
+        
+            if(Etrial<Ebest){
+                //printf("    improved %e < %e -- %d\n",Etrial,Ebest,aborted);
+                if(Ebest-Etrial>1.0e-5*Etrial){
+                    aborted=0;
+                }
+                else{
+                    aborted++;
+                    total_aborted++;
+                }
+                changed_bases=1;
+                for(i=0;i<gg->get_dim();i++){
+                    best_model.set(i,trial_model.get_data(i));
+                    basisModel.set(i,trial_model.get_data(i));
+                    for(j=0;j<gg->get_dim();j++){
+                        bases_best.set(i,j,bases_trial.get_data(i,j));
+                    }
+                }
+                Ebest=Etrial;
+                if(localEbest0>chisq_exception && Ebest<chisq_exception){
+                    localEbest0=Ebest;
+                    Ebest0=Ebest;
+                    lastEbest=Ebest;
+                    local_total=0;
+                }
             }
             else{
                 aborted++;
                 total_aborted++;
             }
-            changed_bases=1;
-            for(i=0;i<gg->get_dim();i++){
-                best_model.set(i,trial_model.get_data(i));
-                basisModel.set(i,trial_model.get_data(i));
-                for(j=0;j<gg->get_dim();j++){
-                    bases_best.set(i,j,bases_trial.get_data(i,j));
-                }
+        
+            if(total_ct%(max_abort/2)==0){
+                if(total_aborted<(3*total_ct)/4)stdev=1.5*stdev;
+                else if(total_aborted>(3*total_ct)/4)stdev=stdev*0.5;
             }
-            Ebest=Etrial;
-            if(Ebest0>chisq_exception && Ebest<chisq_exception){
-                Ebest0=Ebest;
+        
+            if(local_total%1000==0 && local_total>0){
+                /*
+                If Ebest has not changed by more than 10% in the last 1000 calls,
+                just stop trying
+                */
+                if((lastEbest-Ebest)/lastEbest<0.1)go_on=0;
+            
                 lastEbest=Ebest;
-                total_ct=0;
             }
+        
+        }
+        
+        nn=-2.0*chisq_exception;
+        j=-1;
+        for(i=0;i<best_model.get_dim();i++){
+            if(active.get_data(i)==1 && best_model.get_data(i)>nn){
+                nn=best_model.get_data(i);
+                j=i;
+            }
+        }
+        if(j<0){
+            j=-1;
+            while(j<0 || active.get_data(j)==0){
+                j=dice->int32()%gg->get_dim();
+            }
+            printf("freezing %d randomly %d\n",j);
         }
         else{
-            aborted++;
-            total_aborted++;
+            printf("freezing %d with %e -- %e\n",j,nn,Ebest);
         }
+        frozen.add(j);
         
-        if(total_ct%(max_abort/2)==0){
-            if(total_aborted<(3*total_ct)/4)stdev=1.5*stdev;
-            else if(total_aborted>(3*total_ct)/4)stdev=stdev*0.5;
-        }
-        
-        if(total_ct%1000==0 && total_ct>0){
-            /*
-            If Ebest has not changed by more than 10% in the last 1000 calls,
-            just stop trying
-            */
-            if((lastEbest-Ebest)/lastEbest<0.1)go_on=0;
-            
-            lastEbest=Ebest;
-        }
         
     }
     
@@ -1693,6 +1822,11 @@ void node::find_bases(){
         }
     }
     
+    for(i=0;i<gg->get_dim();i++){
+        printf("%d %e\n",i,basisModel.get_data(i));
+    }
+    
+    exit(1);
     time_bases+=double(time(NULL))-before;
     ct_bases+=gg->get_called()-ibefore;
 }
