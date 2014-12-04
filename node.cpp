@@ -1051,8 +1051,6 @@ void node::compass_search(int istart){
     
 }
 
-//double node::basis_error(int ix, array_1d<double> &dx, array_1d<int> &basis_associates){
-
 int node::perturb_bases(array_2d<double> &bases_in, int ix, array_1d<double> &dx, array_2d<double> &bases_out){
     /*
     This will perturb the ixth basisVector by the small vector dx,
