@@ -103,6 +103,7 @@ class node{
         int ricochet_driver(int,array_1d<double>&,array_1d<double>&);
         void compass_search(int);
         void find_bases();
+        int perturb_bases(array_2d<double>&,int,array_1d<double>&,array_2d<double>&,array_1d<int>&);
         int perturb_bases(array_2d<double>&,int,array_1d<double>&,array_2d<double>&);
         double basis_error(array_2d<double>&,array_1d<int>&,array_1d<double>&);
         
