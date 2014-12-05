@@ -61,7 +61,7 @@ for(i=0;i<dim;i++){
 }
 
 int hdex;
-double nn,chival;
+double nn,chival,chicontrol,diffmax=-1.0;
 array_1d<int> *hptr;
 
 data.set_name("main_data");
@@ -99,6 +99,12 @@ while(fscanf(input,"%le",&nn)>0){
     sig.add(nn);
     fscanf(input,"%d",&j);
     ling.add(j);
+    
+    chicontrol=chifn(vv);
+    if(fabs(chival-chicontrol)>diffmax){
+        printf("chi %e control %e %e\n",chicontrol,chicontrol, chival-chicontrol);
+        diffmax=fabs(chival-chicontrol);
+    }
     
     hdex=get_dex(lnchi_hist,log(chival));
     //printf("log %e hdex %d\n",log(chival),hdex);

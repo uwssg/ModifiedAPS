@@ -1568,7 +1568,7 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model, array_1d<int> &a
         return 2.0*chisq_exception;
     }
     
-    double minCoeff=2.0*chisq_exception,maxCoeff=-2.0*chisq_exception;
+    /*double minCoeff=2.0*chisq_exception,maxCoeff=-2.0*chisq_exception;
     for(i=0;i<trial_model.get_dim();i++){
         if(active.get_data(i)==1 && trial_model.get_data(i)>maxCoeff)maxCoeff=trial_model.get_data(i);
         if(active.get_data(i)==1 && trial_model.get_data(i)<minCoeff)minCoeff=trial_model.get_data(i);
@@ -1576,13 +1576,14 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model, array_1d<int> &a
     
     if(minCoeff<0.0){
         if(-1.0*minCoeff>maxCoeff) return 2.0*chisq_exception;
-    }
+    }*/
     
+    /*
     for(i=0;i<trial_model.get_dim();i++){
         if(active.get_data(i)==0 && trial_model.get_data(i)<0.0){
             return 2.0*chisq_exception;
         }
-    }
+    }*/
     
     error=0.0;
     for(i=0;i<basis_associates.get_dim();i++){
@@ -1684,6 +1685,12 @@ void node::find_bases(){
     double localEbest0,nn;
     int local_total;
     
+    array_1d<double> modelToSort,modelSorted;
+    array_1d<int> modelDex;
+    modelToSort.set_name("node_find_bases_modelToSort");
+    modelSorted.set_name("node_find_bases_modelSorted");
+    modelDex.set_name("node_find_bases_modelDex");
+    
     for(i=0;i<gg->get_dim();i++)active.set(i,1);
     
     while(frozen.get_dim()<gg->get_dim()-1){
@@ -1762,26 +1769,28 @@ void node::find_bases(){
         
         }
         
-        nn=-2.0*chisq_exception;
-        j=-1;
+        modelToSort.reset();
+        modelSorted.reset();
+        modelDex.reset();
         for(i=0;i<best_model.get_dim();i++){
-            if(active.get_data(i)==1 && best_model.get_data(i)>nn){
-                nn=best_model.get_data(i);
-                j=i;
+            if(active.get_data(i)==1){
+                modelToSort.add(best_model.get_data(i));
+                modelDex.add(i);
             }
         }
-        if(j<0){
-            j=-1;
-            while(j<0 || active.get_data(j)==0){
-                j=dice->int32()%gg->get_dim();
-            }
-            printf("freezing %d randomly %d\n",j);
-        }
-        else{
-            printf("freezing %d with %e -- %e\n",j,nn,Ebest);
-        }
-        frozen.add(j);
         
+        if(modelToSort.get_dim()>0){
+            sort_and_check(modelToSort,modelSorted,modelDex);
+            j=modelToSort.get_dim()/2;
+            nn=modelSorted.get_data(j);
+            while(nn<0.0 && j<modelToSort.get_dim()-1){
+                j++;
+                nn=modelSorted.get_data(j);
+            }    
+        }
+        frozen.add(modelDex.get_data(j));
+        printf("freezing %d with %e -- %e %d\n",
+        modelDex.get_data(j),modelSorted.get_data(j),Ebest,total_ct);
         
     }
     
@@ -1826,7 +1835,7 @@ void node::find_bases(){
         printf("%d %e\n",i,basisModel.get_data(i));
     }
     
-    exit(1);
+
     time_bases+=double(time(NULL))-before;
     ct_bases+=gg->get_called()-ibefore;
 }
@@ -1940,7 +1949,7 @@ int node::search(){
     if(effective_time_bases<0.33*effective_time_search && 
        effective_time_coulomb>0.33*effective_time_search &&
       (associates.get_dim()>last_nAssociates+20 || last_nAssociates==0) && 
-      associates.get_dim()>20){
+      associates.get_dim()>2*gg->get_dim()){
         try{
             triedBases=1;
             find_bases();
