@@ -234,6 +234,10 @@ void node::evaluate(array_1d<double> &pt, double *chiout, int *dexout, int doAss
         }
     }
     
+    if(dexout[0]>=0 && chiout[0]<0.9*gg->get_target()+0.1*gg->get_chimin()){
+        add_as_boundary(dexout[0]);
+    }
+    
     if(dexout[0]>=0){
         if(min_dex<0 || gg->get_fn(dexout[0])<gg->get_fn(min_dex)){
             min_dex=dexout[0];
@@ -433,7 +437,7 @@ array_1d<double> &highball_in, double fhigh_in, int asAssociates){
         dd*=0.5;
     }
 
-    if(iout>=0)add_as_boundary(iout);
+    //if(iout>=0)add_as_boundary(iout);
     
     return iout;
 }
@@ -831,7 +835,7 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
         
     }
     
-    if(iout>=0)add_as_boundary(iout);
+    //if(iout>=0)add_as_boundary(iout);
     
     for(i=0;i<gg->get_dim();i++){
         vout.set(i,velocity.get_data(i));
