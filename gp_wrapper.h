@@ -209,6 +209,7 @@ class gpWrapper : public function_wrapper{
         int is_unitSpheres_null();
         int get_unitSpheres_pts();
         double get_pt(int,int);
+        array_1d<double>* get_pt(int);
         double get_fn(int);
         double get_min(int);
         double get_max(int);

@@ -234,6 +234,10 @@ double gpWrapper::get_pt(int dex, int i){
     return gg->get_pt(dex,i);
 }
 
+array_1d<double>* gpWrapper::get_pt(int dex){
+    return gg->get_pt(dex);
+}
+
 double gpWrapper::get_fn(int dex){
     return gg->get_fn(dex);
 }
