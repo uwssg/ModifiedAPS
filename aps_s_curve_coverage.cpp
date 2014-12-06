@@ -162,6 +162,7 @@ aps_test.set_outname(outname);
 
 //initialize aps with 1000 random samples
 printf("time to initialize\n");
+chisq.reset_timer();
 aps_test.initialize(1000,min,max);
 
 double chival,chivaltest,err;
@@ -171,6 +172,7 @@ i=-1;
 //search parameter space until the
 //chisquared function has been called
 //10000 times
+
 while(aps_test.get_called()<nsamples){
     aps_test.search();    
 }

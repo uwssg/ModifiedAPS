@@ -470,6 +470,9 @@ int node::coulomb_search(){
     (probably)
     */
     
+    double before=double(time(NULL));
+    int ibefore=gg->get_called();
+    
     array_1d<double> dir,norm;
     array_2d<double> unitSphere;
     unitSphere.set_name("node_coulomb_unitSphere");
@@ -489,11 +492,12 @@ int node::coulomb_search(){
         unitSphere.add_row(dir);
     }
     
-    array_1d<double> walker,velocity,force,totalForce;
+    array_1d<double> walker,velocity,force,totalForce,walker0;
     walker.set_name("node_coulomb_walker");
     velocity.set_name("node_coulomb_velocity");
     force.set_name("node_coulomb_force");
     totalForce.set_name("node_coulomb_totalForce");
+    walker0.set_name("node_coulomb_walker0");
     
     int step,max_step=10000;
     double rr,dtv,dtx,dt=1.0,dx=2.0*chisq_exception,min_dx=1.0e-5;
@@ -508,6 +512,7 @@ int node::coulomb_search(){
     velocity.normalize();
     for(i=0;i<gg->get_dim();i++){
         velocity.multiply_val(i,0.01);
+        walker0.set(i,walker.get_data(i));
     }
     
     totalForce.set_dim(gg->get_dim());
@@ -547,8 +552,8 @@ int node::coulomb_search(){
         aa=totalForce.normalize();
         vv=sqrt(velocity.get_square_norm());
         
-        dtx=0.1/vv;
-        dtv=0.1*vv/aa;
+        dtx=0.5/vv;
+        dtv=vv/aa;
         if(isnan(dtv))dt=dtx;
         else if(isnan(dtv))dt=dtx;
         else if(dtv<dtx)dt=dtv;
@@ -567,8 +572,12 @@ int node::coulomb_search(){
         
     }
     
-    printf("left coulomb after %d steps\n",step);
-    
+    walker.normalize();
+    double dd=0.0;
+    for(i=0;i<gg->get_dim();i++){
+        dd+=walker.get_data(i)*walker0.get_data(i);
+    }
+
     double fhigh,flow;
     array_1d<double> lowball,highball;
     lowball.set_name("node_coulomb_lowball");
@@ -592,7 +601,13 @@ int node::coulomb_search(){
         aa*=2.0;
     }
     
-    return bisectionAssociate(lowball,flow,highball,fhigh);
+    int iout=bisectionAssociate(lowball,flow,highball,fhigh);
+    /*printf("left coulomb after %d steps -- %e -- %d %e -- %e\n",
+    step,dd,gg->get_called()-ibefore,double(time(NULL))-before,
+    gg->get_fn(iout));*/
+    
+    return iout;
+    
 
 }
 

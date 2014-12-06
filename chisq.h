@@ -88,6 +88,8 @@ public:
     */
     int get_called();
     
+    void reset_timer();
+    
     /*
     Return the total amount of clock time spent in the chisquared::operator()
     function

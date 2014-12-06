@@ -525,6 +525,11 @@ void chisquared::get_basis(int ix, array_1d<double> &v){
     }
 }
 
+void chisquared::reset_timer(){
+    time_spent=0.0;
+    called=0;
+}
+
 double chisquared::project_to_basis(int ix, array_1d<double> &vv) const{
     int i;
     double nn=1.0e30;
