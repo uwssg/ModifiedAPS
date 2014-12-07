@@ -14,6 +14,8 @@ void node::set_names(){
     compass_centers.set_name("node_compass_centers");
     basis_min.set_name("node_basis_min");
     basis_max.set_name("node_basis_max");
+    walkers.set_name("node_walkers");
+    fwalkers.set_name("node_fwalkers");
 }
 
 node::node(){
@@ -60,6 +62,8 @@ void node::copy(const node &in){
     basis_min.reset();
     basis_max.reset();
     candidates.reset();
+    walkers.reset();
+    fwalkers.reset();
     
     center_dex=in.center_dex;
     min_dex=in.min_dex;
@@ -134,6 +138,17 @@ void node::copy(const node &in){
     
     for(i=0;i<in.basisModel.get_dim();i++){
         basisModel.set(i,in.basisModel.get_data(i));
+    }
+    
+    for(i=0;i<in.fwalkers.get_dim();i++){
+        fwalkers.set(i,in.fwalkers.get_data(i));
+    }
+    
+    walkers.set_cols(in.walkers.get_cols());
+    for(i=0;i<in.walkers.get_rows();i++){
+        for(j=0;j<in.walkers.get_cols();j++){
+            walkers.set(i,j,in.walkers.get_data(i,j));
+        }
     }
     
     if(gg!=NULL){
@@ -476,223 +491,70 @@ int node::coulomb_search(){
     double before=double(time(NULL));
     int ibefore=gg->get_called();
     
-    double eps=1.0e-6,tol=0.01*(gg->get_target()-gg->get_chimin());
+    double tol=1.0e-10;
     
-    gg->reset_cache(); //so that results of previous GP interpolation are not carried over
-    array_1d<double> av_dir,dir;
-    av_dir.set_name("node_coulomb_search_av_dir");
-    dir.set_name("node_coulomb_searc_dir");
-    
+    array_1d<double> sig;
+    sig.set_name("node_coulomb_sig");
     int i,j;
-    for(i=0;i<gg->get_dim();i++)av_dir.set(i,0.0);
-    
-    /*calculate the negative of the average direction from the node's center to its associates*/
-    for(i=0;i<associates.get_dim();i++){
-        for(j=0;j<gg->get_dim();j++){
-            dir.set(j,gg->get_pt(associates.get_data(i),j)-gg->get_pt(center_dex,j));
-        }
-        dir.normalize();
-        
-        for(j=0;j<gg->get_dim();j++){
-            av_dir.subtract_val(j,dir.get_data(j));
-        }
-    }
-    
-    double nn=av_dir.get_square_norm();
-    
-    if(associates.get_dim()==0 || nn<eps){
-        for(j=0;j<gg->get_dim();j++){
-            av_dir.set(j,dice->doub());
-        }
-    }
-    
-    av_dir.normalize();
-    
-    double mu;
-    array_1d<double> walker;
-    walker.set_name("node_coulomb_search_walker");
-    
-    if(farthest_associate>0.0){
-        nn=20.0*farthest_associate;
-    }
-    else{
-        nn=20.0;
-    }
-    
-    int ct_abort=0,abort_max=30;
-    
-    /*
-    First try to start the search at a point that is much farther away than
-    the farthest associate.
-    
-    Note that we want to start at a point for which the GP predict chisq<chisq_lim
-    */
-    mu=2.0*chisq_exception;
-    while(mu>gg->get_target() && ct_abort<abort_max){
-        gg->reset_cache();
-        nn*=0.5;
-        for(j=0;j<gg->get_dim();j++){
-            walker.set(j,gg->get_pt(center_dex,j)+nn*av_dir.get_data(j));
-        }
-        mu=gg->user_predict(walker);
-        ct_abort++;
-    }
-    
-    if(ct_abort==abort_max){
-        /*
-        If we have failed to find a point for which the GP predicts chisq<chisq_lim,
-        try to initialize the search from a random point that is very near to the
-        center
-        */
-        ct_abort=0;
-        mu=2.0*chisq_exception;
-        while(mu>gg->get_target() && ct_abort<1000){
-            ct_abort++;
-            for(i=0;i<gg->get_dim();i++)av_dir.set(i,dice->doub());
-            av_dir.normalize();
-            for(i=0;i<gg->get_dim();i++){
-                walker.set(i,gg->get_pt(center_dex,i)+eps*av_dir.get_data(i)*(gg->get_max(i)-gg->get_min(i)));
-            }
-            gg->reset_cache();
-            mu=gg->user_predict(walker);
-        }
-        
-        if(ct_abort==1000){
-            /*
-            If we still have not been able to find a point for which the GP predict
-            chisq<chisq_lim, pick a random point, evaluate chisq at that point and
-            abort the searc
-            */
-        
-            for(i=0;i<gg->get_dim();i++){
-                walker.set(i,gg->get_pt(center_dex,i)+0.001*av_dir.get_data(i)*(gg->get_max(i)-gg->get_min(i)));
-            }
-            
-            evaluateNoAssociate(walker,&nn,&iout);
-            time_coulomb+=double(time(NULL))-before;
-            ct_coulomb+=gg->get_called()-ibefore;
-            return iout;
-            
-        }
-        
-    }
-    
-    array_1d<double> velocity,acceleration,newpt;
-    velocity.set_name("node_coulomb_velocity");
-    acceleration.set_name("node_coulomb_acceleration");
-    newpt.set_name("node_coulomb_newpt");
-    
-    double speed,aa,delta=0.1;
-    
-    /*initialize with a random velocity pointing (mostly) away from the node's center*/
     for(i=0;i<gg->get_dim();i++){
-        velocity.set(i,walker.get_data(i)-gg->get_pt(center_dex,i));
-        velocity.add_val(i,1.0e-5*(dice->doub()-0.5));
-    }
-    speed=velocity.normalize();
-    
-    while(speed<1.0e-10){
-        /*in case the vector between the walker and the center is too small*/
-        for(i=0;i<gg->get_dim();i++)velocity.set(i,dice->doub());
-        speed=velocity.normalize();
-    }
-    
-    speed=0.001;
-    for(i=0;i<gg->get_dim();i++){
-        velocity.multiply_val(i,speed);
-    }
-    
-    int istep=0,step_max=100,walker_in_bounds=1;
-    double dtv,dta,dt,newmu,dx,distance_to_center;
- 
-    delta=0.1;
-    dx=1.0;
-    while(dx>1.0e-6 && delta>1.0e-6 && walker_in_bounds==1 && (gg->get_target()-mu>tol || istep<step_max)){
-        istep++;
-        
-        for(i=0;i<gg->get_dim();i++){
-            acceleration.set(i,0.0);
+        if(i>=basis_max.get_dim() || basis_max.get_data(i)-basis_min.get_data(i)<tol){
+            sig.set(i,0.01);
         }
-        
-        for(i=0;i<associates.get_dim()+1;i++){
-            /*loop over points and center, adding repulsive force to acceleration vector*/
-            if(i<associates.get_dim()){
-                for(j=0;j<gg->get_dim();j++){
-                    dir.set(j,gg->get_pt(associates.get_data(i),j)-walker.get_data(j));
-                }
-            }
-            else{
-                for(j=0;j<gg->get_dim();j++){
-                    dir.set(j,gg->get_pt(center_dex,j)-walker.get_data(j));
-                }
-            }
-            
-            nn=dir.normalize();
-            if(i>=associates.get_dim()){
-                distance_to_center=nn;
-            }
-            
+        else{
+            sig.set(i,0.5*(basis_max.get_data(i)-basis_min.get_data(i)));
+        }
+    }
+    
+    array_1d<double> trial,ddUnitSphere,vv,dd;
+    trial.set_name("node_coulomb_trial");
+    ddUnitSphere.set_name("node_coulomb_ddUnitSphere");
+    vv.set_name("node_coulomb_vv");
+    dd.set_name("node_coulomb_dd");
+    array_1d<int> dexes,neigh;
+    dexes.set_name("node_coulomb_dexes");
+    neigh.set_name("node_coulomb_neigh");
+    
+    double roll,ff;
+    int dex;
+    
+    for(i=0;i<gg->get_dim();i++){
+        if(i>=walkers.get_rows()){
             for(j=0;j<gg->get_dim();j++){
-                acceleration.subtract_val(j,dir.get_data(j)/(nn*nn+eps));
+                trial.set(j,gg->get_pt(center_dex,j)+normal_deviate(dice,0.0,sig.get_data(j)));
             }
-        }//loop over points repelling the walker
-        
-        aa=sqrt(acceleration.get_square_norm());//this does not actually renormalize the acceleration vector
-        speed=sqrt(velocity.get_square_norm());//this does not actually renormalize the velocity vector
-        
-        dtv=delta*distance_to_center/speed;
-        dta=delta*speed/aa;
-        
-        /*dtv is the time step if we want the walker's motion to be small;
-        dta is the time step if we want the walker's acceleration to be small*/
-        
-        if(isnan(dta) && isnan(dtv)){
-            printf("WARNING both coulomb steps are nans\n");
-            exit(1);
-        }
-        else if(isnan(dtv) && !(isnan(dta)))dt=dta;
-        else if(isnan(dta) && !(isnan(dtv)))dt=dtv;
-        else if(dtv<dta) dt=dtv;
-        else if(dta<dtv) dt=dta;
-        else{
-            dt=eps;
-        }
-
-        for(i=0;i<gg->get_dim();i++){
-            newpt.set(i,walker.get_data(i)+dt*velocity.get_data(i));
-        }
-
-        dx=gg->distance(walker,newpt);
-        newmu=gg->user_predict(newpt);
-        
-        /*
-        We do not want the coulomb search to carry us outside of the region
-        where the GP predicts chisq<chisq_lim
-        */
-        
-        if(newmu<gg->get_target()){
-            mu=newmu;
-            for(i=0;i<gg->get_dim();i++){
-                walker.add_val(i,dt*velocity.get_data(i));
-                velocity.add_val(i,dt*acceleration.get_data(i));
+            evaluate(trial,&ff,&dex);
+            for(j=0;j<gg->get_dim();j++){
+                walkers.set_row(i,trial);
             }
-            
-            for(i=0;i<gg->get_dim() && walker_in_bounds==1;i++){
-                if(walker.get_data(i)>gg->get_max(i) || walker.get_data(i)<gg->get_min(i)){
-                    walker_in_bounds=0;
-                }
-            }
-            
-            
+            fwalkers.set(i,ff);
         }
         else{
-            delta*=0.5;
+            for(j=0;j<gg->get_dim();j++){
+                trial.set(j,walkers.get_data(i,j)+normal_deviate(dice,0.0,sig.get_data(j)));
+            }
+            evaluate(trial,&ff,&dex);
+            roll=dice->doub();
+            if(ff<fwalkers.get_data(i) || exp(-0.5*(ff-fwalkers.get_data(i)))>roll){
+                walkers.set_row(i,trial);
+                fwalkers.set(i,ff);
+            }
         }
-        
-        
-    }//loop over number of coulomb steps
+        dexes.set(i,dex);
+        if(dex>=0 && gg->is_unitSpheres_null()==0){
+            project_to_unit_sphere(trial,vv);
+            gg->unitSpheres_nn_srch(vv,1,neigh,dd);
+            ddUnitSphere.set(i,dd.get_data(0));
+        }
+        else{
+            ddUnitSphere.set(i,-1.0);
+        }
+
+    }
     
-    evaluate(walker,&nn,&iout);
+    array_1d<double> ddSorted;
+    ddSorted.set_name("node_coulomb_ddSorted");
+    sort_and_check(ddUnitSphere,ddSorted,dexes);
+    iout=dexes.get_data(ddSorted.get_dim()-1);
     
     time_coulomb+=double(time(NULL))-before;
     ct_coulomb+=gg->get_called()-ibefore;
@@ -1672,6 +1534,9 @@ void node::find_bases(){
     array_1d<double> vv;
     array_2d<double> ddsq;
     
+    vv.set_name("node_find_bases_vv");
+    ddsq.set_name("node_find_bases_ddsq");
+    
     if(changed_bases==1){
         for(i=0;i<gg->get_dim();i++){
             basisModel.set(i,best_model.get_data(i));
@@ -1694,6 +1559,7 @@ void node::find_bases(){
         
     }
     
+    vv.reset();
     ddsq.set_cols(gg->get_dim());
     for(i=0;i<basis_associates.get_dim();i++){
         project_distance(min_dex,basis_associates.get_data(i),basisVectors,vv);

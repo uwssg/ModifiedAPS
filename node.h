@@ -73,6 +73,9 @@ class node{
         
     private:
         
+        array_2d<double> walkers;
+        array_1d<double> fwalkers;
+        
         array_1d<int> associates,boundaryPoints;
         array_2d<double> basisVectors;
         array_1d<double> basisModel;
