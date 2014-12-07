@@ -502,6 +502,11 @@ int chisquared::get_called(){
     return called;
 }
 
+void chisquared::reset_timer(){
+    called=0;
+    time_spent=0.0;
+}
+
 void chisquared::decrement_called(){
     called--;
 }
