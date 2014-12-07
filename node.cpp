@@ -12,6 +12,8 @@ void node::set_names(){
     centerCandidates.set_name("node_centerCandidates");
     oldCenters.set_name("node_oldCenters");
     compass_centers.set_name("node_compass_centers");
+    basis_min.set_name("node_basis_min");
+    basis_max.set_name("node_basis_max");
 }
 
 node::node(){
@@ -55,6 +57,8 @@ void node::copy(const node &in){
     basisModel.reset();
     range_min.reset();
     range_max.reset();
+    basis_min.reset();
+    basis_max.reset();
     candidates.reset();
     
     center_dex=in.center_dex;
@@ -105,6 +109,14 @@ void node::copy(const node &in){
     
     for(i=0;i<in.range_min.get_dim();i++){
         range_min.set(i,in.range_min.get_data(i));
+    }
+    
+    for(i=0;i<in.basis_min.get_dim();i++){
+        basis_min.set(i,in.basis_min.get_data(i));
+    }
+    
+    for(i=0;i<in.basis_max.get_dim();i++){
+        basis_max.set(i,in.basis_max.get_data(i));
     }
     
     for(i=0;i<in.associates.get_dim();i++){
@@ -296,12 +308,27 @@ void node::project_to_unit_sphere(array_1d<double> &in, array_1d<double> &out){
 void node::add_as_boundary(int dex){
 
     array_1d<double> vv,vv_norm;
+    
+    vv.set_name("node_add_as_boundary_vv");
+    vv_norm.set_name("node_add_as_boundary_vv_norm");
+    
     int i;
     for(i=0;i<gg->get_dim();i++)vv.set(i,gg->get_pt(dex,i));
     project_to_unit_sphere(vv,vv_norm);
     
     gg->add_to_unitSpheres(vv_norm);
     boundaryPoints.add(dex);    
+    
+    vv.reset();
+    project_distance(dex,center_dex,basisVectors,vv);
+    for(i=0;i<gg->get_dim();i++){
+        if(i>=basis_min.get_dim() || vv.get_data(i)<basis_min.get_data(i)){
+            basis_min.set(i,vv.get_data(i));
+        }
+        if(i>=basis_max.get_dim() || vv.get_data(i)>basis_max.get_data(i)){
+            basis_max.set(i,vv.get_data(i));
+        }
+    }
 }
 
 int node::bisection(int low, int high){
@@ -1642,6 +1669,9 @@ void node::find_bases(){
     printf("changed bases %d time %e\n",changed_bases,double(time(NULL))-before);
     printf("Ebest %e\n",Ebest);
     
+    array_1d<double> vv;
+    array_2d<double> ddsq;
+    
     if(changed_bases==1){
         for(i=0;i<gg->get_dim();i++){
             basisModel.set(i,best_model.get_data(i));
@@ -1650,10 +1680,20 @@ void node::find_bases(){
             }
         }
         
+        for(i=0;i<boundaryPoints.get_dim();i++){
+            project_distance(boundaryPoints.get_data(i),center_dex,basisVectors,vv);
+            for(j=0;j<gg->get_dim();j++){
+                if(i==0 || vv.get_data(i)<basis_min.get_data(i)){
+                    basis_min.set(i,vv.get_data(i));
+                }
+                if(i==0 || vv.get_data(i)>basis_max.get_data(i)){
+                    basis_max.set(i,vv.get_data(i));
+                }
+            }
+        }
+        
     }
     
-    array_1d<double> vv;
-    array_2d<double> ddsq;
     ddsq.set_cols(gg->get_dim());
     for(i=0;i<basis_associates.get_dim();i++){
         project_distance(min_dex,basis_associates.get_data(i),basisVectors,vv);

@@ -77,6 +77,7 @@ class node{
         array_2d<double> basisVectors;
         array_1d<double> basisModel;
         array_1d<double> range_max,range_min,geographicCenter;
+        array_1d<double> basis_max, basis_min;
         
         array_1d<int> candidates,centerCandidates,oldCenters;
         array_1d<int> compass_centers;
