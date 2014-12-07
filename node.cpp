@@ -32,6 +32,9 @@ node::node(){
     last_expanded=0;
     activity=1;
     
+    walk_attempt=0;
+    walk_accept=0;
+    
     ct_search=0;
     ct_ricochet=0;
     ct_coulomb=0;
@@ -85,6 +88,9 @@ void node::copy(const node &in){
     activity=in.activity;
     
     int i,j;
+    
+    walk_attempt=in.walk_attempt;
+    walk_accept=in.walk_accept;
     
     farthest_associate=in.farthest_associate;
     
@@ -518,6 +524,7 @@ int node::coulomb_search(){
     int dex;
     
     for(i=0;i<gg->get_dim();i++){
+        walk_attempt++;
         if(i>=walkers.get_rows()){
             for(j=0;j<gg->get_dim();j++){
                 trial.set(j,gg->get_pt(center_dex,j)+normal_deviate(dice,0.0,sig.get_data(j)));
@@ -527,6 +534,7 @@ int node::coulomb_search(){
                 walkers.set_row(i,trial);
             }
             fwalkers.set(i,ff);
+            walk_accept++;
         }
         else{
             for(j=0;j<gg->get_dim();j++){
@@ -537,6 +545,7 @@ int node::coulomb_search(){
             if(ff<fwalkers.get_data(i) || exp(-0.5*(ff-fwalkers.get_data(i)))>roll){
                 walkers.set_row(i,trial);
                 fwalkers.set(i,ff);
+                walk_accept++;
             }
         }
         dexes.set(i,dex);
@@ -560,6 +569,14 @@ int node::coulomb_search(){
     ct_coulomb+=gg->get_called()-ibefore;
     
     return iout;
+}
+
+int node::get_walk_attempt(){
+    return walk_attempt;
+}
+
+int node::get_walk_accept(){
+    return walk_accept;
 }
 
 int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double> &vout){

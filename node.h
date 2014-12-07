@@ -71,6 +71,9 @@ class node{
         int get_n_oldCenters();
         int get_oldCenter(int);
         
+        int get_walk_attempt();
+        int get_walk_accept();
+        
     private:
         
         array_2d<double> walkers;
@@ -87,6 +90,7 @@ class node{
         
         int ct_search,ct_coulomb,ct_bases,ct_ricochet;
         int calls_to_bases;
+        int walk_attempt,walk_accept;
         int last_expanded,activity;
         int center_dex,min_dex,last_nBasisAssociates,last_nAssociates;
         double time_ricochet,time_coulomb,time_search,time_bases;
