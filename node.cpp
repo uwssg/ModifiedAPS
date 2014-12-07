@@ -511,23 +511,35 @@ int node::coulomb_search(){
         }
     }
     
-    array_1d<double> trial,ddUnitSphere,vv,dd;
+    array_1d<double> trial,ddUnitSphere,vv,dd,step;
     trial.set_name("node_coulomb_trial");
     ddUnitSphere.set_name("node_coulomb_ddUnitSphere");
     vv.set_name("node_coulomb_vv");
     dd.set_name("node_coulomb_dd");
+    step.set_name("node_coulomb_step");
     array_1d<int> dexes,neigh;
     dexes.set_name("node_coulomb_dexes");
     neigh.set_name("node_coulomb_neigh");
     
-    double roll,ff;
-    int dex;
+    double roll,ff,delta;
+    int k,dex;
     
+    step.set_dim(gg->get_dim());
     for(i=0;i<gg->get_dim();i++){
         walk_attempt++;
+        
+        step.zero();
+        for(j=0;j<gg->get_dim();j++){
+            delta=normal_deviate(dice,0.0,sig.get_data(j));
+            for(k=0;i<gg->get_dim();k++){
+                step.add_val(k,delta*basisVectors.get_data(j,k));
+            }
+        }
+        
+        
         if(i>=walkers.get_rows()){
             for(j=0;j<gg->get_dim();j++){
-                trial.set(j,gg->get_pt(center_dex,j)+normal_deviate(dice,0.0,sig.get_data(j)));
+                trial.set(j,gg->get_pt(center_dex,j)+step.get_data(j));
             }
             evaluate(trial,&ff,&dex);
             for(j=0;j<gg->get_dim();j++){
@@ -538,7 +550,7 @@ int node::coulomb_search(){
         }
         else{
             for(j=0;j<gg->get_dim();j++){
-                trial.set(j,walkers.get_data(i,j)+normal_deviate(dice,0.0,sig.get_data(j)));
+                trial.set(j,walkers.get_data(i,j)+step.get_data(j));
             }
             evaluate(trial,&ff,&dex);
             roll=dice->doub();
