@@ -1548,7 +1548,7 @@ void node::find_bases(){
         for(i=0;i<boundaryPoints.get_dim();i++){
             project_distance(boundaryPoints.get_data(i),center_dex,basisVectors,vv);
             for(j=0;j<gg->get_dim();j++){
-                if(i==0 || vv.get_data(i)<basis_min.get_data(i)){
+                if(i==0 || vv.get_data(j)<basis_min.get_data(j)){
                     basis_min.set(j,vv.get_data(j));
                 }
                 if(i==0 || vv.get_data(j)>basis_max.get_data(j)){
