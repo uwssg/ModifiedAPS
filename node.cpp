@@ -531,7 +531,7 @@ int node::coulomb_search(){
         step.zero();
         for(j=0;j<gg->get_dim();j++){
             delta=normal_deviate(dice,0.0,sig.get_data(j));
-            for(k=0;i<gg->get_dim();k++){
+            for(k=0;k<gg->get_dim();k++){
                 step.add_val(k,delta*basisVectors.get_data(j,k));
             }
         }
