@@ -497,7 +497,9 @@ int node::coulomb_search(){
     double before=double(time(NULL));
     int ibefore=gg->get_called();
     
-    double tol=1.0e-10;
+    double tol=1.0e-10,sigFactor;
+    
+    sigFactor=0.1/sqrt(double(gg->get_dim()));
     
     array_1d<double> sig;
     sig.set_name("node_coulomb_sig");
@@ -507,7 +509,7 @@ int node::coulomb_search(){
             sig.set(i,0.01);
         }
         else{
-            sig.set(i,0.5*(basis_max.get_data(i)-basis_min.get_data(i)));
+            sig.set(i,sigFactor*0.5*(basis_max.get_data(i)-basis_min.get_data(i)));
         }
     }
     
