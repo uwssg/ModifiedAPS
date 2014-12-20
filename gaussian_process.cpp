@@ -582,31 +582,31 @@ void gp::get_pt(int dex, array_1d<double> &output){
 }
 
 double gp::user_predict(array_1d<double> &pt, double *sigout,
-int verbose, int *flag) const{
+int verbose, int *flag, int shldbe) const{
     array_1d<double> ff;
-    return predict(pt,sigout,verbose,1,ff,flag);
+    return predict(pt,sigout,verbose,1,ff,flag,shldbe);
 }
 
-double gp::user_predict(array_1d<double> &pt, int verbose, int *flag) const{
+double gp::user_predict(array_1d<double> &pt, int verbose, int *flag, int shldbe) const{
     double nn;
     array_1d<double> ff;
-    return predict(pt,&nn,verbose,0,ff,flag);
+    return predict(pt,&nn,verbose,0,ff,flag,shldbe);
 }
 
 double gp::user_predict(array_1d<double> &pt, int verbose,
-array_1d<double> &ffout, int *flag) const{
+array_1d<double> &ffout, int *flag, int shldbe) const{
 
     double nn;
-    return predict(pt,&nn,verbose,0,ffout,flag);
+    return predict(pt,&nn,verbose,0,ffout,flag,shldbe);
 }
 
 double gp::user_predict(array_1d<double> &pt, double *sig, 
-int verbose, array_1d<double> &ffout, int *flag) const{
-    return predict(pt,sig,verbose,1,ffout,flag);
+int verbose, array_1d<double> &ffout, int *flag, int shldbe) const{
+    return predict(pt,sig,verbose,1,ffout,flag,shldbe);
 }
 
 double gp::predict(array_1d<double> &pt,double *sigout,int verbose, int get_sig,
-    array_1d<double> &ffout, int *flag)
+    array_1d<double> &ffout, int *flag, int shldbe)
 const{
     /*
     This is the function that does the calculation for all variations of user_predict()
@@ -829,6 +829,20 @@ const{
         ct_search++;
         time_search+=double(time(NULL))-nn;
     }
+    
+    if(shldbe>=0){
+        if(shldbe!=cached_ibox){
+            printf("WARNING box shldbe %d is %d\n",shldbe,cached_ibox);
+            for(i=0;i<dim;i++){
+                printf("%e -- %e %e -- %e %e\n",
+                pt.get_data(i),
+                bptr->get_box_min(shldbe,i),bptr->get_box_max(shldbe,i),
+                bptr->get_box_min(cached_ibox,i),bptr->get_box_max(cached_ibox,i));
+            }
+            exit(1);
+        }
+    }
+    
     
     //sfd -- this is specialized to the s_curve test case
     int betterFit;

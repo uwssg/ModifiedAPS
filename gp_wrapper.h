@@ -220,6 +220,7 @@ class gpWrapper : public function_wrapper{
         double distance(array_1d<double>&,int);
         
         void reset_cache();
+        double user_predict(array_1d<double>&,double*,int)const;
         double user_predict(array_1d<double>&,double*)const;
         double user_predict(array_1d<double>&)const;
         

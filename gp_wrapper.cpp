@@ -636,10 +636,14 @@ void gpWrapper::reset_cache(){
     gg->reset_cache();
 }
 
-double gpWrapper::user_predict(array_1d<double> &x, double *s) const{
+double gpWrapper::user_predict(array_1d<double> &x, double *s)const{
+    return gpWrapper::user_predict(x,s,-1);
+}
+
+double gpWrapper::user_predict(array_1d<double> &x, double *s, int shldbe) const{
     int flag;
     double mu;
-    mu=gg->user_predict(x,s,0,&flag);
+    mu=gg->user_predict(x,s,0,&flag, shldbe);
     if(flag==-1){
         printf("Box failure %d\n",iWhere);
     }
@@ -649,7 +653,7 @@ double gpWrapper::user_predict(array_1d<double> &x, double *s) const{
 double gpWrapper::user_predict(array_1d<double> &x) const{
     int flag;
     double mu;
-    mu=gg->user_predict(x,0,&flag);
+    mu=gg->user_predict(x,0,&flag,-1);
     if(flag==-1){
         printf("Box failure %d\n",iWhere);
     }

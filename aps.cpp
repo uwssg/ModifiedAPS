@@ -1321,7 +1321,7 @@ void aps::aps_wide_post_process(int actually_added, double mu, double sig){
    
 }
 
-double aps::simplex_metric(array_1d<double> &pt, array_1d<double> &min_bound, array_1d<double> &max_bound){
+double aps::simplex_metric(array_1d<double> &pt, array_1d<double> &min_bound, array_1d<double> &max_bound, int ibox){
     
     
     if(max_bound.get_dim()!=gg.get_dim() || min_bound.get_dim()!=gg.get_dim()){
@@ -1347,7 +1347,7 @@ double aps::simplex_metric(array_1d<double> &pt, array_1d<double> &min_bound, ar
     
    
     double mu,sig,stradval;
-    mu=ggWrap.user_predict(pt,&sig);
+    mu=ggWrap.user_predict(pt,&sig,ibox);
     
     stradval=strad(mu,sig);
     
@@ -1434,7 +1434,7 @@ double aps::simplex_strad(int ibox){
            for(j=0;j<gg.get_dim();j++){
                pts.set(i,j,min_bound.get_data(j)+dice->doub()*(max_bound.get_data(j)-min_bound.get_data(j)));
            }
-           nn=simplex_metric(*pts(i),min_bound,max_bound);
+           nn=simplex_metric(*pts(i),min_bound,max_bound,ibox);
        }
        
        ff.set(i,nn);
@@ -1469,7 +1469,7 @@ double aps::simplex_strad(int ibox){
        for(i=0;i<gg.get_dim();i++){
            pstar.set(i,(1.0+alpha)*pbar.get_data(i)-alpha*pts.get_data(ih,i));
        }
-       fstar=simplex_metric(pstar,min_bound,max_bound);
+       fstar=simplex_metric(pstar,min_bound,max_bound,ibox);
        
        if(fstar<ff.get_data(ih) && fstar>ff.get_data(il)){
            ff.set(ih,fstar);
@@ -1481,7 +1481,7 @@ double aps::simplex_strad(int ibox){
            for(i=0;i<gg.get_dim();i++){
                pstarstar.set(i,gamma*pstar.get_data(i)+(1.0-gamma)*pbar.get_data(i));
            }
-           fstarstar=simplex_metric(pstarstar,min_bound,max_bound);
+           fstarstar=simplex_metric(pstarstar,min_bound,max_bound,ibox);
            
            if(fstarstar<ff.get_data(il)){
                for(i=0;i<gg.get_dim();i++)pts.set(ih,i,pstarstar.get_data(i));
@@ -1505,7 +1505,7 @@ double aps::simplex_strad(int ibox){
                pstarstar.set(i,beta*pts.get_data(ih,i)+(1.0-beta)*pbar.get_data(i));
                
            }
-           fstarstar=simplex_metric(pstarstar,min_bound,max_bound);
+           fstarstar=simplex_metric(pstarstar,min_bound,max_bound,ibox);
            
            if(fstarstar<ff.get_data(ih)){
                for(i=0;i<gg.get_dim();i++){
@@ -1525,7 +1525,7 @@ double aps::simplex_strad(int ibox){
                            mu=0.5*(pts.get_data(i,j)+pts.get_data(il,j));
                            pts.set(i,j,mu);
                        }
-                       ff.set(i,simplex_metric(*pts(i),min_bound,max_bound));
+                       ff.set(i,simplex_metric(*pts(i),min_bound,max_bound,ibox));
                    }
                }
            }
@@ -1557,7 +1557,6 @@ double aps::simplex_strad(int ibox){
        if(ggWrap.get_ct_search()>searches_before+1){
            printf("\nJUST DID APS WIDE WITH %d SEARCHES %d -- %d\n\n",ggWrap.get_ct_search()-searches_before,
            simplex_calls,ibox);
-           printf("%d %d\n",ggWrap.get_box_contents(305),ggWrap.get_box_contents(306));
            for(i=0;i<ggWrap.get_dim();i++){
                printf("%d -- %e %e -- %e -- %e %e -- %e %e\n",
                i,min_bound.get_data(i),max_bound.get_data(i),

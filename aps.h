@@ -388,7 +388,7 @@ private:
     This is the point at which aps_wide() evaluates chisquared
     */
     double simplex_strad(int);
-    double simplex_metric(array_1d<double>&,array_1d<double>&, array_1d<double>&);
+    double simplex_metric(array_1d<double>&,array_1d<double>&, array_1d<double>&, int);
        
     /*
     Find the parameter space distance between the two points specified by the int dexes
