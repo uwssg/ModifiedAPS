@@ -34,6 +34,9 @@ node::node(){
     
     walk_attempt=0;
     walk_accept=0;
+    factor_attempt=0;
+    factor_accept=0;
+    sigFactor=1.0;
     
     ct_search=0;
     ct_ricochet=0;
@@ -91,6 +94,9 @@ void node::copy(const node &in){
     
     walk_attempt=in.walk_attempt;
     walk_accept=in.walk_accept;
+    sigFactor=in.sigFactor;
+    factor_attempt=in.factor_attempt;
+    factor_accept=in.factor_accept;
     
     farthest_associate=in.farthest_associate;
     
@@ -486,6 +492,10 @@ array_1d<double> &highball_in, double fhigh_in, int asAssociates){
     return iout;
 }
 
+double node::get_sigFactor(){
+    return sigFactor;
+}
+
 int node::coulomb_search(){
     /*
     will return the index of the best point it found
@@ -497,9 +507,7 @@ int node::coulomb_search(){
     double before=double(time(NULL));
     int ibefore=gg->get_called();
     
-    double tol=1.0e-10,sigFactor;
-    
-    sigFactor=0.1/sqrt(double(gg->get_dim()));
+    double tol=1.0e-10;
     
     array_1d<double> sig;
     sig.set_name("node_coulomb_sig");
@@ -509,7 +517,7 @@ int node::coulomb_search(){
             sig.set(i,0.01);
         }
         else{
-            sig.set(i,sigFactor*0.5*(basis_max.get_data(i)-basis_min.get_data(i)));
+            sig.set(i,sigFactor*0.5*(basis_max.get_data(i)-basis_min.get_data(i))/sqrt(gg->get_dim()));
         }
     }
     
@@ -529,6 +537,7 @@ int node::coulomb_search(){
     step.set_dim(gg->get_dim());
     for(i=0;i<gg->get_dim();i++){
         walk_attempt++;
+        factor_attempt++;
         
         step.zero();
         for(j=0;j<gg->get_dim();j++){
@@ -549,6 +558,7 @@ int node::coulomb_search(){
             }
             fwalkers.set(i,ff);
             walk_accept++;
+            factor_accept++;
         }
         else{
             for(j=0;j<gg->get_dim();j++){
@@ -560,6 +570,7 @@ int node::coulomb_search(){
                 walkers.set_row(i,trial);
                 fwalkers.set(i,ff);
                 walk_accept++;
+                factor_accept++;
             }
         }
         dexes.set(i,dex);
@@ -578,6 +589,18 @@ int node::coulomb_search(){
     ddSorted.set_name("node_coulomb_ddSorted");
     sort_and_check(ddUnitSphere,ddSorted,dexes);
     iout=dexes.get_data(ddSorted.get_dim()-1);
+    
+    if(factor_attempt>100){
+        if(factor_accept<factor_attempt/4){
+            sigFactor*=0.9;
+        }
+        if(factor_accept>factor_attempt/4){
+            sigFactor*=1.05;
+        }
+        factor_attempt=0;
+        factor_accept=0;
+    }
+    
     
     time_coulomb+=double(time(NULL))-before;
     ct_coulomb+=gg->get_called()-ibefore;
@@ -1569,6 +1592,8 @@ void node::find_bases(){
     ddsq.set_name("node_find_bases_ddsq");
     
     if(changed_bases==1){
+        factor_attempt=0;
+        factor_accept=0;
         for(i=0;i<gg->get_dim();i++){
             basisModel.set(i,best_model.get_data(i));
             for(j=0;j<gg->get_dim();j++){

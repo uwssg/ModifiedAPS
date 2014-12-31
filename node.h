@@ -74,6 +74,8 @@ class node{
         int get_walk_attempt();
         int get_walk_accept();
         
+        double get_sigFactor();
+        
     private:
         
         array_2d<double> walkers;
@@ -91,10 +93,12 @@ class node{
         int ct_search,ct_coulomb,ct_bases,ct_ricochet;
         int calls_to_bases;
         int walk_attempt,walk_accept;
+        int factor_attempt,factor_accept;
         int last_expanded,activity;
         int center_dex,min_dex,last_nBasisAssociates,last_nAssociates;
         double time_ricochet,time_coulomb,time_search,time_bases;
         double farthest_associate,time_penalty;
+        double sigFactor;
         
         gpWrapper *gg;
         Ran *dice;
