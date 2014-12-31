@@ -776,7 +776,12 @@ int box::split_box(int i_box, int i_tree, int dir){
         }
     }
     
-    norm_span=norm_max.get_data(idim)-norm_min.get_data(idim);
+    if(idim>=0){
+        norm_span=norm_max.get_data(idim)-norm_min.get_data(idim);
+    }
+    else{
+        norm_span=1.0;
+    }
     
     if(idim<0 ||
       best_min<min_pts_per_box || 
