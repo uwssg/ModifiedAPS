@@ -1143,7 +1143,7 @@ int aps::aps_wide(){
     array_1d<double> midpt;
     midpt.set_name("aps_wide_midpt");
     
-    double mu,sig,ss,ssbest;
+    double mu,sig,ss,ssbest,logBoxVolume;
     
     if(acceptableBoxes.get_dim()==0){
         chosenBox=dice->int32()%ggWrap.get_nboxes();
@@ -1188,6 +1188,12 @@ int aps::aps_wide(){
                 _aps_wide_ss_buffer.set(ibox,ss);
                 
             }
+            
+            logBoxVolume=0.0;
+            for(i=0;i<ggWrap.get_dim();i++){
+                logBoxVolume+=log(ggWrap.get_box_min(ibox,i)-ggWrap.get_box_max(ibox,i));
+            }
+            ss+=logBoxVolume;
             
             if(ii==0 || ss>ssbest){
                 chosenBox=ibox;
