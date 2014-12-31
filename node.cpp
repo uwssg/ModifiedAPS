@@ -1010,7 +1010,7 @@ void node::compass_search(int istart){
     }
     
     int logBasisAssociates=0;
-    if(istart = min_dex){
+    if(istart == min_dex){
         logBasisAssociates=1;
     }
     
@@ -1577,7 +1577,7 @@ void node::find_bases(){
         return;
     }*/
     
-    printf("finding bases %d\n",basis_associates.get_dim());
+    printf("finding bases %d of %d\n",basis_associates.get_dim(), globalBasisAssociates.get_dim());
     calls_to_bases++;
     last_nBasisAssociates=basis_associates.get_dim();
 
