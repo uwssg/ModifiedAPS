@@ -12,6 +12,7 @@ void node::set_names(){
     centerCandidates.set_name("node_centerCandidates");
     oldCenters.set_name("node_oldCenters");
     compass_centers.set_name("node_compass_centers");
+    globalBasisAssociates.set_name("node_global_basis_associates");
 }
 
 node::node(){
@@ -79,6 +80,11 @@ void node::copy(const node &in){
     int i,j;
     
     farthest_associate=in.farthest_associate;
+    
+    globalBasisAssociates.reset();
+    for(i=0;i<in.globalBasisAssociates.get_dim();i++){
+        globalBasisAssociates.set(i,in.globalBasisAssociates.get_data(i));
+    }
     
     centerCandidates.reset();
     for(i=0;i<in.centerCandidates.get_dim();i++){
@@ -1003,7 +1009,12 @@ void node::compass_search(int istart){
         gg->set_iWhere(iCompass);
     }
     
-    int idim,i,iHigh;
+    int logBasisAssociates=0;
+    if(istart = min_dex){
+        logBasisAssociates=1;
+    }
+    
+    int idim,i,iHigh,iFound;
     double ftrial,sgn,scale,flow;
     array_1d<double> trial,lowball;
     
@@ -1030,7 +1041,20 @@ void node::compass_search(int istart){
                 evaluateNoAssociate(trial,&ftrial,&iHigh);
             }
             
-            bisection(lowball,flow,trial,ftrial);
+            iFound=bisection(lowball,flow,trial,ftrial);
+            
+            if(logBasisAssociates==1){
+                if(iFound>=0){
+                    globalBasisAssociates.add(iFound);
+                    for(i=0;i<gg->get_dim();i++){
+                        trial.set(i,0.5*(gg->get_pt(istart,i)+gg->get_pt(iFound,i)));
+                    }
+                    gg->evaluate(trial,&ftrial,&iFound);
+                    if(iFound>=0){
+                        globalBasisAssociates.add(iFound);
+                    }
+                }
+            }
             
         }//loop over sign (direction along basisVector)
     }//loop over dimension (which basisVector we are bisecting along)
@@ -1525,17 +1549,25 @@ void node::find_bases(){
     last_nAssociates=associates.get_dim();
     
     int i,j;
+    double before=double(time(NULL));
+    int ibefore=gg->get_called();
     
     array_1d<int> basis_associates;
     basis_associates.set_name("node_basis_associates");
     
+    if(globalBasisAssociates.get_dim()==0){
+        compass_search(min_dex);
+    }
+    
     for(i=0;i<associates.get_dim();i++){
-        if(gg->get_fn(associates.get_data(i))-gg->get_fn(min_dex)>1.0e-10){
-            basis_associates.add(associates.get_data(i));
+        if(gg->get_fn(globalBasisAssociates.get_data(i))-gg->get_fn(min_dex)>1.0e-10){
+            basis_associates.add(globalBasisAssociates.get_data(i));
         }
     }
     
     if(basis_associates.get_dim()<10){
+        time_bases+=double(time(NULL))-before;
+        ct_bases+=gg->get_called()-ibefore;
         return;
     }
     
@@ -1548,10 +1580,7 @@ void node::find_bases(){
     printf("finding bases %d\n",basis_associates.get_dim());
     calls_to_bases++;
     last_nBasisAssociates=basis_associates.get_dim();
-    
-    double before=double(time(NULL));
-    int ibefore=gg->get_called();
-    
+
     array_2d<double> bases_best,bases_trial;
     bases_best.set_name("node_find_bases_bases_best");
     bases_trial.set_name("node_find_bases_bases_trial");
