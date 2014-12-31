@@ -1611,7 +1611,7 @@ void node::find_bases(){
     
     int go_on=1;
     
-    while(aborted<max_abort && stdev>stdevlim && Ebest>0.01*Ebest0 && go_on==1){
+    while(aborted<max_abort && stdev>stdevlim && go_on==1){
 
         ix=-1;
         while(ix>=gg->get_dim() || ix<0){
