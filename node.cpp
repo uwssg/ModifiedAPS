@@ -1602,7 +1602,7 @@ void node::find_bases(){
     trial_model.set_name("find_bases_trial_model");
     best_model.set_name("find_bases_best_model");
     
-    int ix,changed_bases=0,aborted=0,max_abort=10*gg->get_dim(),total_aborted=0,total_ct=0;
+    int ix,changed_bases=0,aborted=0,max_abort=100*gg->get_dim(),total_aborted=0,total_ct=0;
     double stdevlim=1.0e-5/sqrt(double(gg->get_dim()));
     double stdev=0.1/sqrt(double(gg->get_dim()));
     
