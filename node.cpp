@@ -872,8 +872,14 @@ void node::ricochet_search(int iStart, array_1d<double> &dir){
     dotproduct=1.0;
     distance_traveled.add(0.0);
     pts_visited.add(iStart);
+    
+    double volume1,volume0;
+    
+    volume0=volume();
+    volume1=volume0;
         
-    for(ii=0;ii<10*gg->get_dim() && dir.get_square_norm()>1.0e-20 && dotproduct>0.0; ii++){
+    for(ii=0;dir.get_square_norm()>1.0e-20 && (volume1>volume0 || ii==0); ii++){
+        volume0=volume1;
         try{
             iEnd=ricochet_driver(iStart,dir,vout);
             
@@ -896,10 +902,11 @@ void node::ricochet_search(int iStart, array_1d<double> &dir){
             }
             
             iStart=iEnd;
+            volume1=volume();
         }
         else{
             printf("ending Ricochet because iEnd %d\n",iEnd);
-            ii=10*gg->get_dim()+1;
+            volume1=volume0*0.5;
         }
 
     }//loop on ii
