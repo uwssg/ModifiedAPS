@@ -834,7 +834,7 @@ const{
         if(shldbe!=cached_ibox){
             printf("WARNING box shldbe %d is %d\n",shldbe,cached_ibox);
             for(i=0;i<dim;i++){
-                printf("%e -- %e %e -- %e %e\n",
+                printf("%le -- %le %le -- %le %le\n",
                 pt.get_data(i),
                 bptr->get_box_min(shldbe,i),bptr->get_box_max(shldbe,i),
                 bptr->get_box_min(cached_ibox,i),bptr->get_box_max(cached_ibox,i));
