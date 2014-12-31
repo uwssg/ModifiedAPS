@@ -1010,7 +1010,7 @@ void node::compass_search(int istart){
     }
     
     int logBasisAssociates=0;
-    if(istart == min_dex){
+    if(istart==min_dex){
         logBasisAssociates=1;
     }
     
@@ -1559,7 +1559,7 @@ void node::find_bases(){
         compass_search(min_dex);
     }
     
-    for(i=0;i<associates.get_dim();i++){
+    for(i=0;i<globalBasisAssociates.get_dim();i++){
         if(gg->get_fn(globalBasisAssociates.get_data(i))-gg->get_fn(min_dex)>1.0e-10){
             basis_associates.add(globalBasisAssociates.get_data(i));
         }
