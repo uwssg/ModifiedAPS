@@ -15,6 +15,7 @@ void node::set_names(){
     globalBasisAssociates.set_name("node_global_basis_associates");
     ricochetVelocities.set_name("node_ricochetVelocities");
     ricochetParticles.set_name("node_ricochetParticles");
+    compassPoints.set_name("node_compassPoints");
 }
 
 node::node(){
@@ -423,7 +424,8 @@ array_1d<double> &highball_in, double fhigh_in, int asAssociates){
     iout=-1;
     double target=gg->get_target();
     
-    while(ct<100 && dd>1.0e-6 && target-flow>bisection_tolerance){
+    
+    while(ct<100 && dd>1.0e-6 && (iout<0 || target-flow>bisection_tolerance)){
         
         for(i=0;i<gg->get_dim();i++){
             trial.set(i,0.5*(lowball.get_data(i)+highball.get_data(i)));
@@ -893,9 +895,10 @@ void node::initialize_ricochet(){
         evaluateNoAssociate(highball,&fhigh,&j);
         rr*=2.0;
     }
-    
     int icenter;
     icenter=bisection(lowball,flow,highball,fhigh);
+    printf("got icenter %d %e\n",icenter,gg->get_fn(icenter));
+    
     if(gg->get_fn(icenter)>gg->get_target()){
         printf("WARNING in initialize_ricochet target %e center %e\n",
         gg->get_target(),gg->get_fn(icenter));
@@ -914,7 +917,7 @@ void node::initialize_ricochet(){
     blossomDirections.set_name("node_initialize_ricochet_blossomDirections");
     
     blossomDirections.set_cols(gg->get_dim());
-    for(ii=0;ii<gg->get_dim();i++){
+    for(ii=0;ii<gg->get_dim();ii++){
         for(i=0;i<gg->get_dim();i++){
             trial.set(i,gg->get_pt(icenter,i));
         }
@@ -928,7 +931,9 @@ void node::initialize_ricochet(){
         gradient.set(ii,2.0e-4*gg->get_length(ii)/(y1-y2));
     }
     
-    gradient.normalize();
+    double gnorm;
+    gnorm=gradient.normalize();
+    printf("got gradient %e%e\n",gradient.get_square_norm(),gnorm);
     
     int jj;
     for(ii=0;ii<gg->get_dim()-1;ii++){
@@ -985,6 +990,8 @@ void node::initialize_ricochet(){
         }
     }
     
+    printf("got blossomDirections\n");
+    
     ricochetVelocities.reset();
     ricochetParticles.reset();
     for(ii=0;ii<blossomDirections.get_rows();ii++){
@@ -1006,7 +1013,9 @@ void node::initialize_ricochet(){
                 evaluateNoAssociate(highball,&fhigh,&j);
                 rr*=2.0;
             }
+            printf("bisecting %e %e %e\n",flow,fhigh,gg->get_target());
             j=bisection(lowball,flow,highball,fhigh);
+            printf("bisection yields %d\n",j);
             
             for(i=0;i<gg->get_dim();i++){
                 lowball.set(i,gg->get_pt(j,i)-gg->get_pt(icenter,i));
@@ -1023,10 +1032,12 @@ void node::initialize_ricochet(){
             
         }
     }
-    
+    printf("\nDone initializing ricochet\n");
 }
 
 void node::ricochet_search(){
+    
+    printf("\nRicochet searching %d\n",ricochetParticles.get_dim());
     
     int ibefore=gg->get_called();
     double before=double(time(NULL));
@@ -1061,6 +1072,7 @@ void node::ricochet_search(){
     
     time_ricochet+=double(time(NULL))-before;
     ct_ricochet+=gg->get_called()-ibefore;
+    printf("done with Ricochet %d %e\n",ct_ricochet,volume());
 }
 
 void node::compass_search(int istart){
@@ -1843,9 +1855,12 @@ int node::search(){
     effective_time_ricochet=time_ricochet+time_penalty*ct_ricochet;
     effective_time_coulomb=effective_time_search-effective_time_ricochet-effective_time_bases;
     
-    ricochet_search();
-    
     int i;
+    
+    for(i=0;i<30;i++){
+        ricochet_search();
+    }
+    
     double nn;
     
     evaluate(geographicCenter,&nn,&i);

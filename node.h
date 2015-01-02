@@ -74,7 +74,7 @@ class node{
     private:
         
         array_1d<int> associates,boundaryPoints,globalBasisAssociates;
-        array_1d<int> ricochetParticles;
+        array_1d<int> ricochetParticles,compassPoints;
         array_2d<double> basisVectors,ricochetVelocities;
         array_1d<double> basisModel;
         array_1d<double> range_max,range_min,geographicCenter;
