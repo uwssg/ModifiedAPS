@@ -1671,7 +1671,7 @@ void node::find_bases(){
         }
     }
     
-    Ebest0=basis_error_simplex(bases_best,basis_associates,basisModel);
+    Ebest0=basis_error(bases_best,basis_associates,basisModel);
     Ebest=Ebest0;
     lastEbest=Ebest0;
     
@@ -1700,7 +1700,7 @@ void node::find_bases(){
         total_ct++;
         
         perturb_bases(bases_best,ix,dx,bases_trial);
-        Etrial=basis_error_simplex(bases_trial,basis_associates,trial_model);
+        Etrial=basis_error(bases_trial,basis_associates,trial_model);
         
         if(Etrial<Ebest){
             //printf("    improved %e < %e -- %d\n",Etrial,Ebest,aborted);
