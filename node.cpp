@@ -812,7 +812,7 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     
     if(ct>=20){
         printf("ricochet could not find iHigh %e\n",fhigh);
-        exit(1)
+        exit(1);
     }
     
     int iout=-1,ii;
