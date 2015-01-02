@@ -906,9 +906,88 @@ void node::initialize_ricochet(){
     int ii,isgn;
     double sgn;
     
+    array_2d<double> blossomDirections;
+    array_1d<double> gradient,trial;
+    double x1,x2,y1,y2;
+    gradient.set_name("node_initialize_ricochet_gradient");
+    trial.set_name("node_initialize_ricochet_trial");
+    blossomDirections.set_name("node_initialize_ricochet_blossomDirections");
+    
+    blossomDirections.set_cols(gg->get_dim());
+    for(ii=0;ii<gg->get_dim();i++){
+        for(i=0;i<gg->get_dim();i++){
+            trial.set(i,gg->get_pt(icenter,i));
+        }
+        x1=trial.get_data(ii)+1.0e-4*gg->get_length(ii);
+        x2=trial.get_data(ii)-1.0e-4*gg->get_length(ii);
+        
+        trial.set(ii,x1);
+        evaluateNoAssociate(trial,&y1,&j);
+        trial.set(ii,x2);
+        evaluateNoAssociate(trial,&y2,&j);
+        gradient.set(ii,2.0e-4*gg->get_length(ii)/(y1-y2));
+    }
+    
+    gradient.normalize();
+    
+    int jj;
+    for(ii=0;ii<gg->get_dim()-1;ii++){
+        x1=0.0;
+        for(i=0;i<gg->get_dim();i++){
+            trial.set(i,normal_deviate(dice,0.0,1.0));
+            x1+=trial.get_data(i)*gradient.get_data(i);
+        }
+        for(i=0;i<gg->get_dim();i++){
+            trial.subtract_val(i,x1*gradient.get_data(i));
+        }
+        for(jj=0;jj<ii;jj++){
+            x1=0.0;
+            for(i=0;i<gg->get_dim();i++){
+                x1+=blossomDirections.get_data(jj,i)*trial.get_data(i);
+            }
+            for(i=0;i<gg->get_dim();i++){
+                trial.subtract_val(i,x1*blossomDirections.get_data(jj,i));
+            }  
+        }
+        trial.normalize();
+        blossomDirections.add_row(trial);
+    }
+    
+    if(blossomDirections.get_rows()!=gg->get_dim()-1){
+        printf("WARNING only found %d blossom directions\n",blossomDirections.get_rows());
+        exit(1);
+    }
+    
+    for(ii=0;ii<blossomDirections.get_rows();ii++){
+        x2=blossomDirections(2)->get_square_norm();
+        if(fabs(1.0-x2)>1.0e-4){
+            printf("WARNING square norm of blossom %e\n",x2);
+        }
+        
+        x1=0.0;
+        for(i=0;i<gg->get_dim();i++){
+            x1+=gradient.get_data(i)*blossomDirections.get_data(ii,i);
+        }
+        if(fabs(x1)>1.0e-5){
+            printf("WARNING blossom gradient component %e\n",x1);
+            exit(1);
+        }
+        
+        for(jj=0;jj<ii;jj++){
+            x1=0.0;
+            for(i=0;i<gg->get_dim();i++){
+                x1+=blossomDirections.get_data(ii,i)*blossomDirections.get_data(jj,i);
+            }
+            if(fabs(x1)>1.0e-5){
+                printf("WARNING blossom orthogonality error %e\n",x1);
+                exit(1);
+            }
+        }
+    }
+    
     ricochetVelocities.reset();
     ricochetParticles.reset();
-    for(ii=0;ii<gg->get_dim();ii++){
+    for(ii=0;ii<blossomDirections.get_rows();ii++){
         for(isgn=-1;isgn<2;isgn+=2){
             sgn=double(isgn);
             
@@ -916,7 +995,7 @@ void node::initialize_ricochet(){
             for(i=0;i<gg->get_dim();i++){
                 lowball.set(i,gg->get_pt(icenter,i));
                 highball.set(i,gg->get_pt(icenter,i));
-                radius.set(i,sgn*basisVectors.get_data(ii,i));
+                radius.set(i,sgn*blossomDirections.get_data(ii,i));
             }
             rr=radius.normalize();
             fhigh=-2.0*chisq_exception;
