@@ -74,7 +74,8 @@ class node{
     private:
         
         array_1d<int> associates,boundaryPoints,globalBasisAssociates;
-        array_2d<double> basisVectors;
+        array_1d<int> ricochetParticles;
+        array_2d<double> basisVectors,ricochetVelocities;
         array_1d<double> basisModel;
         array_1d<double> range_max,range_min,geographicCenter;
         
@@ -99,6 +100,8 @@ class node{
         int bisectionAssociate(array_1d<double>&,double,array_1d<double>&,double);
         int bisection(int,int,int);
         int coulomb_search();
+        
+        void initialize_ricochet();
         void ricochet_search(int,array_1d<double>&);
         int ricochet_driver(int,array_1d<double>&,array_1d<double>&);
         void compass_search(int);

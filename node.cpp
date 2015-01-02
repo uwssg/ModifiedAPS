@@ -13,6 +13,8 @@ void node::set_names(){
     oldCenters.set_name("node_oldCenters");
     compass_centers.set_name("node_compass_centers");
     globalBasisAssociates.set_name("node_global_basis_associates");
+    ricochetVelocities.set_name("node_ricochetVelocities");
+    ricochetParticles.set_name("node_ricochetParticles");
 }
 
 node::node(){
@@ -80,6 +82,16 @@ void node::copy(const node &in){
     int i,j;
     
     farthest_associate=in.farthest_associate;
+    
+    ricochetParticles.reset();
+    ricochetVelocities.reset();
+    ricochetVelocities.set_cols(in.ricochetVelocities.get_cols());
+    for(i=0;i<in.ricochetParticles.get_dim();i++){
+        ricochetParticles.set(i,in.ricochetParticles.get_data(i));
+        for(j=0;j<in.ricochetVelocities.get_rows();i++){
+            ricochetVelocities.set(i,j,in.ricochetVelocities.get_data(i,j));
+        }
+    }
     
     globalBasisAssociates.reset();
     for(i=0;i<in.globalBasisAssociates.get_dim();i++){
@@ -847,6 +859,93 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     return iout;
 }
 
+void node::initialize_ricochet(){
+    
+    int i,j;
+    double dd;
+    array_1d<double> radius;
+    
+    find_bases();
+    
+    radius.set_name("node_initialize_ricochet_radius");
+    for(i=0;i<gg->get_dim();i++){
+        radius.set(i,normal_deviate(dice,0.0,1.0));
+    }
+    
+    array_1d<double> lowball,highball;
+    double flow,fhigh,rr;
+    lowball.set_name("node_initialize_ricochet_lowball");
+    highball.set_name("node_initialize_ricochet_highball");
+    
+    rr=radius.normalize();
+    fhigh=-2.0*chisq_exception;
+    
+    flow=gg->get_fn(min_dex);
+    for(i=0;i<gg->get_dim();i++){
+        lowball.set(i,gg->get_pt(min_dex,i));
+        highball.set(i,gg->get_pt(min_dex,i));
+    }
+    
+    while(fhigh<=gg->get_target()){
+        for(i=0;i<gg->get_dim();i++){
+            highball.add_val(i,rr*radius.get_data(i));
+        }
+        evaluateNoAssociate(highball,&fhigh,&j);
+        rr*=2.0;
+    }
+    
+    int icenter;
+    icenter=bisection(lowball,flow,highball,fhigh);
+    if(gg->get_fn(icenter)>gg->get_target()){
+        printf("WARNING in initialize_ricochet target %e center %e\n",
+        gg->get_target(),gg->get_fn(icenter));
+        
+        exit(1);
+    }
+    
+    int ii,isgn;
+    double sgn;
+    
+    ricochetVelocities.reset();
+    ricochetParticles.reset();
+    for(ii=0;ii<gg->get_dim();ii++){
+        for(isgn=-1;isgn<2;isgn+=2){
+            sgn=double(isgn);
+            
+            flow=gg->get_fn(icenter);
+            for(i=0;i<gg->get_dim();i++){
+                lowball.set(i,gg->get_pt(icenter,i));
+                highball.set(i,gg->get_pt(icenter,i));
+                radius.set(i,sgn*basisVectors.get_data(ii,i));
+            }
+            rr=radius.normalize();
+            fhigh=-2.0*chisq_exception;
+            while(fhigh<=gg->get_target()){
+                for(i=0;i<gg->get_pt(icenter,i);i++){
+                    highball.add_val(i,rr*radius.get_data(i));
+                }
+                evaluateNoAssociate(highball,&fhigh,&j);
+                rr*=2.0;
+            }
+            j=bisection(lowball,flow,highball,fhigh);
+            
+            for(i=0;i<gg->get_dim();i++){
+                lowball.set(i,gg->get_pt(j,i)-gg->get_pt(icenter,i));
+            }
+            rr=sqrt(lowball.get_square_norm());
+            
+            if(isnan(rr) || rr<1.0e-10){
+                printf("WARNING in initialize ricochet starting with rr %e\n",rr);
+                exit(1);
+            }
+            
+            ricochetVelocities.add_row(lowball);
+            ricochetParticles.add(j);
+            
+        }
+    }
+    
+}
 
 void node::ricochet_search(int iStart, array_1d<double> &dir){
     
@@ -855,133 +954,31 @@ void node::ricochet_search(int iStart, array_1d<double> &dir){
     
     gg->set_iWhere(iRicochet);
     
-    double ftrial;
-    array_1d<double> trial;
-    trial.set_name("node_ricochet_search_trial");
-    
-    int iEnd,ii,itrial,i,j;
-    double dotproduct;
-    array_1d<double> vout;
-    vout.set_name("node_ricochet_search_vout");
-    array_1d<double> distance_traveled;
-    array_1d<int> pts_visited;
-    
-    distance_traveled.set_name("node_ricochet_search_distance_traveled");
-    /*distance_traveled is a running total of how far the ricochet has come*/
-    
-    pts_visited.set_name("node_ricochet_search_pts_visited");    
-    /*pts_visited logs the end points of the individual ricochets*/
-    
-    int iMedian;
-    double medianDistance,nn;
-    
-
-    dotproduct=1.0;
-    distance_traveled.add(0.0);
-    pts_visited.add(iStart);
-        
-    for(ii=0;ii<10*gg->get_dim() && dir.get_square_norm()>1.0e-20 && dotproduct>0.0; ii++){
-        try{
-            iEnd=ricochet_driver(iStart,dir,vout);
-            
-        }
-        catch (int iex){
-            printf("ending Ricochet because of exception\n");
-            ii=10*gg->get_dim()+1;
-        }
-        
-        if(iEnd>=0){    
-            i=distance_traveled.get_dim();
-            distance_traveled.add(distance_traveled.get_data(i-1)+gg->distance(iStart,iEnd));
-            pts_visited.add(iEnd);
-            
-            dotproduct=0.0;
-            for(i=0;i<gg->get_dim();i++){
-                /*can this ever be negative...?*/
-                dotproduct+=vout.get_data(i)*(gg->get_pt(iEnd,i)-gg->get_pt(center_dex,i));
-                dir.set(i,gg->get_pt(iEnd,i)-gg->get_pt(iStart,i));
-            }
-            
-            iStart=iEnd;
-        }
-        else{
-            printf("ending Ricochet because iEnd %d\n",iEnd);
-            ii=10*gg->get_dim()+1;
-        }
-
-    }//loop on ii
-    
-    printf("ending Ricochet %d %e %e\n",ii,dir.get_square_norm(),dotproduct);
-    printf("points visited %d -- %e\n",
-    pts_visited.get_dim(),distance_traveled.get_data(distance_traveled.get_dim()-1));
-    printf("number of points %d\n\n",gg->get_whereCt(iRicochet));
-    
-    array_1d<int> neigh;
-    array_1d<double> ddneigh;
-    
-    neigh.set_name("ricochet_neigh");
-    ddneigh.set_name("ricochet_ddneigh");
-    
-    if(pts_visited.get_dim()>1){
-        /*
-        First do a compass search in the middle of the last ricochet path
-        */
-        j=pts_visited.get_dim()-1;
-        for(i=0;i<gg->get_dim();i++){
-            trial.set(i,0.5*(gg->get_pt(pts_visited.get_data(j),i)+gg->get_pt(pts_visited.get_data(j-1),i)));
-        }
-            
-        evaluateNoAssociate(trial,&ftrial,&itrial);
-            
-        if(itrial>=0)compass_search(itrial);
-            
-        /*
-        Now do a compass search as near to the middle of the full richochet as possible
-        */
-        for(i=0;i<pts_visited.get_dim();i++){
-            nn=fabs(distance_traveled.get_data(i)-0.5*distance_traveled.get_data(distance_traveled.get_dim()-1));
-            if(i==0 || nn<medianDistance){
-                medianDistance=nn;
-                iMedian=i;
-            }
-        }
-            
-        if(iMedian!=distance_traveled.get_dim()-1){
-            if(iMedian==0){
-                for(i=0;i<gg->get_dim();i++){
-                    trial.set(i,0.5*(gg->get_pt(pts_visited.get_data(iMedian),i)+gg->get_pt(pts_visited.get_data(iMedian+1),i)));
-                }
-            }
-            else{
-                for(i=0;i<gg->get_dim();i++){
-                    trial.set(i,0.5*(gg->get_pt(pts_visited.get_data(iMedian),i)+gg->get_pt(pts_visited.get_data(iMedian-1),i)));
-                }
-            }
-                
-            evaluateNoAssociate(trial,&ftrial,&itrial);
-                
-            if(itrial>=0){
-                compass_search(itrial);
-            }
-        }
-        
-        /*now find the points nearest to the center of each leg, and save them
-        as potential nodes themselves*/
-        
-        for(i=1;i<pts_visited.get_dim();i++){
-            for(j=0;j<gg->get_dim();j++){
-                trial.set(j,0.5*(gg->get_pt(pts_visited.get_data(i),j)+gg->get_pt(pts_visited.get_data(i-1),j)));
-            }
-            
-            gg->nn_srch(trial,1,neigh,ddneigh);
-            
-            if(neigh.get_data(0)>=0){
-                candidates.add(neigh.get_data(0));
-            }
-            
-        }
-            
+    if(ricochetParticles.get_dim()==0){
+        initialize_ricochet();
     }
+    
+    array_1d<double> vv,midpt;
+    vv.set_name("node_ricochet_search_vv");
+    midpt.set_name("node_ricochet_search_midpt");
+    int ip,ib,i;
+    double ftrial;
+    for(ip=0;ip<ricochetParticles.get_dim();ip++){
+        ib=ricochet_driver(ricochetParticles.get_data(ip),ricochetVelocities(ip)[0],vv);
+        
+        for(i=0;i<gg->get_dim();i++){
+            midpt.set(i,0.5*(gg->get_pt(ib,i)+gg->get_pt(ip,i)));
+        }
+        
+        evaluateNoAssociate(midpt,&ftrial,&i);
+        candidates.add(i);
+        
+        ricochetParticles.set(ip,ib);
+        for(i=0;i<gg->get_dim();i++){
+            ricochetVelocities.set(ip,i,vv.get_data(i));
+        }
+    }
+    
     
     time_ricochet+=double(time(NULL))-before;
     ct_ricochet+=gg->get_called()-ibefore;
