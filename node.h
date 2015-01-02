@@ -89,6 +89,8 @@ class node{
         double time_ricochet,time_coulomb,time_search,time_bases;
         double farthest_associate,time_penalty;
         
+        int totalBisectionCt,callsToBisection;
+        
         gpWrapper *gg;
         Ran *dice;
         
@@ -101,6 +103,7 @@ class node{
         int bisection(int,int,int);
         int coulomb_search();
         
+        void initialize_ricochet_blossom();
         void initialize_ricochet();
         void ricochet_search();
         int ricochet_driver(int,array_1d<double>&,array_1d<double>&);

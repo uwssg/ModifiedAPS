@@ -16,6 +16,9 @@ void node::set_names(){
     ricochetVelocities.set_name("node_ricochetVelocities");
     ricochetParticles.set_name("node_ricochetParticles");
     compassPoints.set_name("node_compassPoints");
+    
+    totalBisectionCt=0;
+    callsToBisection=0;
 }
 
 node::node(){
@@ -83,6 +86,11 @@ void node::copy(const node &in){
     int i,j;
     
     farthest_associate=in.farthest_associate;
+    
+    compassPoints.reset();
+    for(i=0;i<in.compassPoints.get_dim();i++){
+        compassPoints.set(i,in.compassPoints.get_data(i));
+    }
     
     ricochetParticles.reset();
     ricochetVelocities.reset();
@@ -452,7 +460,10 @@ array_1d<double> &highball_in, double fhigh_in, int asAssociates){
         ct++;
         dd*=0.5;
     }
-
+    
+    callsToBisection++;
+    totalBisectionCt+=ct;
+    
     if(iout>=0)add_as_boundary(iout);
     
     return iout;
@@ -830,10 +841,10 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     }
     
     int iout=-1,ii;
-    //iout=bisection(lowball,flow,highball,fhigh);spock
+    iout=bisection(lowball,flow,highball,fhigh);
     
     /*implement independent bisection because need different tolerance*/
-    for(ii=0;ii<15;ii++){
+    /*for(ii=0;ii<15;ii++){
         for(i=0;i<gg->get_dim();i++){
             trial.set(i,0.5*(lowball.get_data(i)+highball.get_data(i)));
         }
@@ -850,7 +861,7 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
             
         }
         
-    }
+    }*/
     
     if(iout>=0)add_as_boundary(iout);
     
@@ -861,7 +872,7 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     return iout;
 }
 
-void node::initialize_ricochet(){
+void node::initialize_ricochet_blossom(){
     
     int i,j;
     double dd;
@@ -1035,6 +1046,67 @@ void node::initialize_ricochet(){
     printf("\nDone initializing ricochet\n");
 }
 
+void node::initialize_ricochet(){
+    find_bases();
+    printf("compass points %d\n",compassPoints.get_dim());
+    ricochetParticles.reset();
+    ricochetVelocities.reset();
+    
+    int ii,ic,i,j;
+    array_1d<double> gradient,trial,vv;
+    double x1,x2,y1,y2,gnorm;
+    
+    gradient.set_name("node_initialize_ricochet_gradient");
+    trial.set_name("node_initialize_ricochet_trial");
+    vv.set_name("node_initialize_vv");
+    
+    for(ic=0;ic<compassPoints.get_dim();ic++){
+        if(gg->get_fn(compassPoints.get_data(ic))>gg->get_target()){
+            printf("WARNING compass point has %e\n",
+            gg->get_fn(compassPoints.get_data(ic)));
+            
+            exit(1);
+        }
+        
+        for(ii=0;ii<gg->get_dim();ii++){
+            for(i=0;i<gg->get_dim();i++){
+                trial.set(i,gg->get_pt(compassPoints.get_data(ic),i));
+            }
+            x1=trial.get_data(ii)+1.0e-4*gg->get_length(ii);
+            x2=trial.get_data(ii)-1.0e-4*gg->get_length(ii);
+            trial.set(ii,x1);
+            evaluateNoAssociate(trial,&y1,&j);
+            trial.set(ii,x2);
+            evaluateNoAssociate(trial,&y2,&j);
+            gradient.set(ii,(x1-x2)/(y1-y2));
+        }
+        
+        gnorm=gradient.normalize();
+        if(isnan(gnorm) || gnorm<1.0e-10){
+            printf("WARNING when initializing ricochet gradient %e\n",gnorm);
+        }
+        
+        x1=0.0;
+        for(i=0;i<gg->get_dim();i++){
+            trial.set(i,normal_deviate(dice,0.0,1.0));
+            x1+=trial.get_data(i)*gradient.get_data(i);
+        }
+        for(i=0;i<gg->get_dim();i++){
+            trial.subtract_val(i,x1*gradient.get_data(i));
+        }
+        for(i=0;i<gg->get_dim();i++){
+            vv.set(i,trial.get_data(i)-gradient.get_data(i));
+        }
+        vv.normalize();
+        ricochetParticles.add(compassPoints.get_data(ic));
+        ricochetVelocities.add_row(vv);
+        
+    }
+    
+    totalBisectionCt=0;
+    callsToBisection=0;
+}
+
 void node::ricochet_search(){
     
     printf("\nRicochet searching %d\n",ricochetParticles.get_dim());
@@ -1056,23 +1128,38 @@ void node::ricochet_search(){
     for(ip=0;ip<ricochetParticles.get_dim();ip++){
         ib=ricochet_driver(ricochetParticles.get_data(ip),ricochetVelocities(ip)[0],vv);
         
-        for(i=0;i<gg->get_dim();i++){
-            midpt.set(i,0.5*(gg->get_pt(ib,i)+gg->get_pt(ip,i)));
+        if(ib>=0){
+            for(i=0;i<gg->get_dim();i++){
+                midpt.set(i,0.5*(gg->get_pt(ib,i)+gg->get_pt(ip,i)));
+            }
+        
+            evaluateNoAssociate(midpt,&ftrial,&i);
+            candidates.add(ib);
+        
+            ricochetParticles.set(ip,ib);
+            for(i=0;i<gg->get_dim();i++){
+                ricochetVelocities.set(ip,i,vv.get_data(i));
+            }
         }
-        
-        evaluateNoAssociate(midpt,&ftrial,&i);
-        candidates.add(i);
-        
-        ricochetParticles.set(ip,ib);
-        for(i=0;i<gg->get_dim();i++){
-            ricochetVelocities.set(ip,i,vv.get_data(i));
+        else{
+            ricochetParticles.remove(ib);
+            ricochetVelocities.remove_row(ib);
+            ip--;
         }
     }
     
+    int rate;
     
+    if(callsToBisection>0){
+        rate=totalBisectionCt/callsToBisection;
+    }
+    else{
+        rate=0;
+    }
     time_ricochet+=double(time(NULL))-before;
     ct_ricochet+=gg->get_called()-ibefore;
-    printf("done with Ricochet %d %e\n",ct_ricochet,volume());
+    printf("done with Ricochet %d %e -- %d %d %d\n",ct_ricochet,volume(),
+    totalBisectionCt,callsToBisection,rate);
 }
 
 void node::compass_search(int istart){
@@ -1101,6 +1188,7 @@ void node::compass_search(int istart){
     int logBasisAssociates=0;
     if(istart==min_dex){
         logBasisAssociates=1;
+        compassPoints.reset();
     }
     
     int idim,i,iHigh,iFound;
@@ -1134,6 +1222,7 @@ void node::compass_search(int istart){
             
             if(logBasisAssociates==1){
                 if(iFound>=0){
+                    compassPoints.add(iFound);
                     globalBasisAssociates.add(iFound);
                     for(i=0;i<gg->get_dim();i++){
                         trial.set(i,0.5*(gg->get_pt(istart,i)+gg->get_pt(iFound,i)));
