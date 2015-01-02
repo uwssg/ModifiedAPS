@@ -102,7 +102,7 @@ class node{
         int coulomb_search();
         
         void initialize_ricochet();
-        void ricochet_search(int,array_1d<double>&);
+        void ricochet_search();
         int ricochet_driver(int,array_1d<double>&,array_1d<double>&);
         void compass_search(int);
         void find_bases();

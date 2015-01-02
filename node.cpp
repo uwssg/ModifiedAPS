@@ -947,7 +947,7 @@ void node::initialize_ricochet(){
     
 }
 
-void node::ricochet_search(int iStart, array_1d<double> &dir){
+void node::ricochet_search(){
     
     int ibefore=gg->get_called();
     double before=double(time(NULL));
@@ -1755,55 +1755,7 @@ int node::search(){
     double before=double(time(NULL));
     int ibefore=gg->get_called();
     double vstart=volume();
-    
-    int iCoulomb;
-    
-    iCoulomb=coulomb_search();
-    
-    int iLow,iHigh,i,j;
-    array_1d<double> dir,trial;
-    dir.set_name("node_search_dir");
-    trial.set_name("node_search_trial");
-    double length,ftrial;
-    
-    while(iCoulomb<0){
-        for(i=0;i<gg->get_dim();i++){
-            trial.set(i,gg->get_pt(center_dex,i)+0.01*dice->doub()*(gg->get_max(i)-gg->get_min(i)));
-        }
-        evaluate(trial,&ftrial,&iCoulomb);
-    }
-    
-    if(gg->get_fn(iCoulomb)<gg->get_target()){
-        iLow=iCoulomb;
-        for(i=0;i<gg->get_dim();i++){
-            dir.set(i,gg->get_pt(iCoulomb,i)-gg->get_pt(center_dex,i));
         
-            trial.set(i,gg->get_pt(iCoulomb,i));
-        }
-        length=0.5*dir.normalize();
-        
-        ftrial=-2.0*chisq_exception;
-        while(ftrial<=gg->get_target()){
-            
-            //length*=2.0;
-            
-            for(i=0;i<gg->get_dim();i++){
-                trial.add_val(i,length*dir.get_data(i));
-            }
-            
-            evaluateNoAssociate(trial,&ftrial,&iHigh);
-        }
-    }
-    else{
-        iLow=center_dex;
-        iHigh=iCoulomb;
-    }
-    
-    int iBisection;
-    int triedBases=0,triedRicochet=0;
-    
-    iBisection=bisectionAssociate(iLow,iHigh);
-    
     double effective_time_search,effective_time_bases,effective_time_ricochet;
     double effective_time_coulomb;
     
@@ -1812,95 +1764,10 @@ int node::search(){
     effective_time_ricochet=time_ricochet+time_penalty*ct_ricochet;
     effective_time_coulomb=effective_time_search-effective_time_ricochet-effective_time_bases;
     
-    if(effective_time_bases<0.33*effective_time_search && 
-       effective_time_coulomb>0.33*effective_time_search &&
-      (associates.get_dim()>last_nAssociates+20 || last_nAssociates==0) && 
-      associates.get_dim()>20){
-        try{
-            triedBases=1;
-            find_bases();
-        }
-        catch(int iex){}
-    }
+    ricochet_search();
     
-    /*
-    Now, of the two points (the end of the Coulomb search and the end of the bisection), choose the one
-    that is closest to chisq_limit as the point where we will begin our ricochet search
-    */
-    int iStart;
+    int i;
     double nn;
-    if(effective_time_ricochet<0.33*effective_time_search &&
-       effective_time_coulomb>0.33*effective_time_search && 
-       associates.get_dim()>100){
-        triedRicochet=1;
-        if(iBisection<0 || fabs(gg->get_fn(iCoulomb)-gg->get_target())<fabs(gg->get_fn(iBisection)-gg->get_target())){
-            iStart=iCoulomb;
-        }
-        else{
-            iStart=iBisection; 
-        }
-    
-    
-        if(iStart==iCoulomb){
-            for(i=0;i<gg->get_dim();i++){
-                dir.set(i,gg->get_pt(iCoulomb,i)-gg->get_pt(center_dex,i));
-            }
-        }
-        else{
-            if(gg->get_fn(iCoulomb)<gg->get_target()){
-                /*
-                if the Coulomb point was inside the limit, use the direction from
-                the Coulomb point to the bisection point as the initial ricochet
-                direction
-                */
-                for(i=0;i<gg->get_dim();i++){
-                    dir.set(i,gg->get_pt(iBisection,i)-gg->get_pt(iCoulomb,i));
-                }
-
-            }
-            else{
-                /*
-                otherwise, use the direction from the center to the bisection point
-                as the ricochet direction
-                */
-                for(i=0;i<gg->get_dim();i++){
-                    dir.set(i,gg->get_pt(iBisection,i)-gg->get_pt(center_dex,i));
-                }
-            }
-        }
-    
-
-        if(iStart>=0){
-            ricochet_search(iStart,dir);
-            
-            //now try ricocheting in the opposite direction relative to the center of the node
-            for(i=0;i<gg->get_dim();i++){
-                dir.set(i,gg->get_pt(center_dex,i)-gg->get_pt(iStart,i));
-            }
-            iLow=center_dex;
-            iHigh=-1;
-            ftrial=-2.0*chisq_exception;
-            nn=1.0;
-            dir.normalize();
-            while(ftrial<gg->get_target()){
-                for(i=0;i<gg->get_dim();i++){
-                    trial.set(i,gg->get_pt(center_dex,i)+nn*dir.get_data(i));
-                }
-                evaluateNoAssociate(trial,&ftrial,&iHigh);
-                nn*=1.5;
-            }
-            
-            if(iHigh>=0){
-                iStart=bisection(iLow,iHigh);
-            }
-            
-            if(iStart>=0){
-                printf("    trying backwards ricochet\n");
-                ricochet_search(iStart,dir);
-            }
-            
-        }
-    }
     
     evaluate(geographicCenter,&nn,&i);
     ct_search+=gg->get_called()-ibefore;
@@ -1908,20 +1775,18 @@ int node::search(){
     
     double vend=volume();
     
-    if(triedRicochet==1){
-        if(vend>vstart*(1.00001)){
-            last_expanded=ct_search;
+    if(vend>vstart*(1.00001)){
+        last_expanded=ct_search;
+    }
+    else{
+        find_bases();
+        vend=volume();
+
+        if(!(vend>vstart*1.00001) && ct_ricochet>0){
+            activity=0;
         }
         else{
-            if(triedBases==0)find_bases();
-            vend=volume();
-
-            if(!(vend>vstart*1.00001) && ct_ricochet>0){
-                activity=0;
-            }
-            else{
-                last_expanded=ct_search;
-            }
+            last_expanded=ct_search;
         }
     }
     
