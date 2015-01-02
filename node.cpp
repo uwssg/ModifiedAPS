@@ -778,7 +778,7 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     int ct=0;
     while(flow>=gg->get_target() && ct<20){
         for(i=0;i<gg->get_dim();i++){
-            lowball.set(i,gg->get_pt(istart,i)-ss*vstart.get_data(i));
+            lowball.set(i,gg->get_pt(istart,i)+ss*vstart.get_data(i));
         }
         
         evaluateNoAssociate(lowball,&flow,&iLow);
@@ -789,8 +789,9 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     }
     
     if(ct>=20){
-        printf("could not find iLow\n");
-        return -1;
+        printf("ricochet could not find iLow\n");
+        exit(1);
+        //return -1;
     }
     
     ct=0;
@@ -810,8 +811,8 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     }
     
     if(ct>=20){
-        printf("could not find iHigh %e\n",fhigh);
-        return -1;
+        printf("ricochet could not find iHigh %e\n",fhigh);
+        exit(1)
     }
     
     int iout=-1,ii;
