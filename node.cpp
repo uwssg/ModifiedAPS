@@ -781,24 +781,6 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     }
     
     double speed=velocity.normalize(),ss,chibest=2.0*chisq_exception;
-    array_1d<double> radius;
-    double radialComponent;
-    
-    radius.set_name("ricochet_driver_radius");
-    for(i=0;i<gg->get_dim();i++){
-        radius.set(i,gg->get_pt(min_dex,i)-gg->get_pt(istart,i));
-    }
-    radius.normalize();
-    radialComponent=0.0;
-    for(i=0;i<gg->get_dim();i++){
-       radialComponent+=velocity.get_data(i)*radius.get_data(i);
-    }
-    
-    for(i=0;i<gg->get_dim();i++){
-        velocity.subtract_val(i,0.8*radialComponent*radius.get_data(i));
-    }
-    ss=velocity.normalize();
-
     double ftrial=2.0*chisq_exception,flow,fhigh;
     array_1d<double> lowball,highball;
     int iLow,iHigh;
@@ -1212,19 +1194,36 @@ void node::compass_search(int istart){
         compassPoints.reset();
     }
     
-    int idim,i,iHigh,iFound;
+    int idim,i,j,iHigh,iFound;
     double ftrial,sgn,scale,flow;
     array_1d<double> trial,lowball;
+    array_2d<double> compassDirections;
     
     trial.set_name("node_compass_trial");
     lowball.set_name("node_compass_lowball");
+    compassDirections.set_name("node_compassDirections");
+    
+    for(i=0;i<gg->get_dim();i++){
+        compassDirections.add_row(basisVectors(i)[0]);
+    }
+    
+    if(logBasisAssociates==1){
+        for(i=0;i<gg->get_dim();i++){
+            for(j=0;j<i;j++){
+                for(idim=0;idim<gg->get_dim();idim++){
+                    trial.set(idim,0.5*(basisVectors.get_data(i,idim)+basisVectors.get_data(j,idim)));
+                }
+                compassDirections.add_row(trial);
+            }
+        }
+    }
     
     for(i=0;i<gg->get_dim();i++){
         lowball.set(i,gg->get_pt(istart,i));
     }
     flow=gg->get_fn(istart);
     
-    for(idim=0;idim<gg->get_dim();idim++){
+    for(idim=0;idim<compassDirections.get_rows();idim++){
         for(sgn=-1.0;sgn<1.5;sgn+=2.0){
             for(i=0;i<gg->get_dim();i++)trial.set(i,gg->get_pt(istart,i));
             
@@ -1233,7 +1232,7 @@ void node::compass_search(int istart){
             while(ftrial<=gg->get_target()){
                 //scale*=2.0;
                 for(i=0;i<gg->get_dim();i++){
-                    trial.add_val(i,basisVectors.get_data(idim,i)*scale*sgn);
+                    trial.add_val(i,compassDirections.get_data(idim,i)*scale*sgn);
                 }
                 
                 evaluateNoAssociate(trial,&ftrial,&iHigh);
@@ -1243,7 +1242,7 @@ void node::compass_search(int istart){
             
             if(logBasisAssociates==1){
                 if(iFound>=0){
-                    compassPoints.add(iFound);
+                    if(compassPoints.get_dim()<2*gg->get_dim())compassPoints.add(iFound);
                     globalBasisAssociates.add(iFound);
                     for(i=0;i<gg->get_dim();i++){
                         trial.set(i,0.5*(gg->get_pt(istart,i)+gg->get_pt(iFound,i)));
@@ -1965,8 +1964,8 @@ int node::search(){
     effective_time_ricochet=time_ricochet+time_penalty*ct_ricochet;
     effective_time_coulomb=effective_time_search-effective_time_ricochet-effective_time_bases;
     
-    int i;
-    
+    int i,j;
+
     for(i=0;i<30;i++){
         ricochet_search();
     }
