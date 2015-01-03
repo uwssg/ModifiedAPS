@@ -781,6 +781,24 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     }
     
     double speed=velocity.normalize(),ss,chibest=2.0*chisq_exception;
+    array_1d<double> radius;
+    double radialComponent;
+    
+    radius.set_name("ricochet_driver_radius");
+    for(i=0;i<gg->get_dim();i++){
+        radius.set(i,gg->get_pt(min_dex,i)-gg->get_pt(istart,i));
+    }
+    radius.normalize();
+    radialComponent=0.0;
+    for(i=0;i<gg->get_dim();i++){
+       radialComponent+=velocity.get_data(i)*radius.get_data(i);
+    }
+    
+    for(i=0;i<gg->get_dim();i++){
+        velocity.subtract_val(i,0.8*radialComponent*radius.get_data(i));
+    }
+    ss=velocity.normalize();
+
     double ftrial=2.0*chisq_exception,flow,fhigh;
     array_1d<double> lowball,highball;
     int iLow,iHigh;
@@ -803,7 +821,7 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     int ct=0;
     while(flow>=gg->get_target() && ct<20){
         for(i=0;i<gg->get_dim();i++){
-            lowball.set(i,gg->get_pt(istart,i)+ss*vstart.get_data(i));
+            lowball.set(i,gg->get_pt(istart,i)-ss*vstart.get_data(i));
         }
         
         evaluateNoAssociate(lowball,&flow,&iLow);
@@ -841,6 +859,7 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
     }
     
     int iout=-1,ii;
+    //printf("flow %e fhigh %e\n",flow,fhigh);
     iout=bisection(lowball,flow,highball,fhigh);
     
     /*implement independent bisection because need different tolerance*/
@@ -869,6 +888,7 @@ int node::ricochet_driver(int istart, array_1d<double> &vstart, array_1d<double>
         vout.set(i,velocity.get_data(i));
     }
     
+    //printf("iout %d -- %d %d\n",iout,callsToBisection,totalBisectionCt);
     return iout;
 }
 
@@ -1116,7 +1136,7 @@ void node::ricochet_search(){
     
     gg->set_iWhere(iRicochet);
     
-    if(ricochetParticles.get_dim()==0){
+    if(ricochetParticles.get_dim()<gg->get_dim()){
         initialize_ricochet();
     }
     
@@ -1142,9 +1162,10 @@ void node::ricochet_search(){
             }
         }
         else{
-            ricochetParticles.remove(ib);
-            ricochetVelocities.remove_row(ib);
+            ricochetParticles.remove(ip);
+            ricochetVelocities.remove_row(ip);
             ip--;
+            printf("ip %d particles %d\n",ip,ricochetParticles.get_dim());
         }
     }
     
