@@ -1168,8 +1168,8 @@ void node::ricochet_search(){
 void node::compass_search(int istart){
     /*perform a compass search centered on the point designated by istart*/
     
-    spock: hack this so that it keeps some of the off-axis compass points
-    but not all
+    //spock: hack this so that it keeps some of the off-axis compass points
+    //but not all
     
     if(gg==NULL){
         printf("WARNING cannot compass search; gg is null\n");
