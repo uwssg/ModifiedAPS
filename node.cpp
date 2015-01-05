@@ -1338,6 +1338,8 @@ void node::compass_search(int istart){
     //spock: hack this so that it keeps some of the off-axis compass points
     //but not all
     
+    int ibefore=gg->get_called();
+    
     if(gg==NULL){
         printf("WARNING cannot compass search; gg is null\n");
         exit(1);
@@ -1480,8 +1482,9 @@ void node::compass_search(int istart){
     }//loop over dimension (which basisVector we are bisecting along)
     
     if(logBasisAssociates==1){
-        printf("time for off-diagonal\n");
+        printf("time for off-diagonal %d\n",gg->get_called()-ibefore);
         off_diagonal_compass_search(istart);
+        printf("done with off-diagonal %d\n",gg->get_called()-ibefore);
     }
     
     int use_it;
@@ -2036,6 +2039,7 @@ void node::find_bases(){
     
     int go_on=1;
     
+    printf("Ebest %e\n",Ebest);
     while(aborted<max_abort && stdev>stdevlim && go_on==1){
 
         ix=-1;
@@ -2194,9 +2198,7 @@ int node::search(){
     
     int i,j;
 
-    for(i=0;i<30;i++){
-        ricochet_search();
-    }
+    ricochet_search();
     
     double nn;
     
