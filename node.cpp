@@ -1386,7 +1386,7 @@ void node::compass_search(int istart){
                 for(i=0;i<gg->get_dim();i++){
                     lowball.set(i,gg->get_pt(istart,i));
                 }
-                flow-gg->get_fn(istart);
+                flow=gg->get_fn(istart);
                 fhigh=-2.0*chisq_exception;
             }
             else{
