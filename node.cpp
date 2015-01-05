@@ -1178,7 +1178,7 @@ void node::off_diagonal_compass_search(int istart){
     int iTrial,iFound;
     
     int i,j,ix,iy,ifx,ify,iw;
-    double dx,dy,dd;
+    double dx,dy,dmin,dmax;
     
     double xweight[4],yweight[4],sqrt2o2;
     
@@ -1226,47 +1226,84 @@ void node::off_diagonal_compass_search(int istart){
                 exit(1);
             }
             
-            if(dx<dy)dd=dx;
-            else dd=dy;
-            
+            if(dy<dx){
+                dmin=dy;
+                dmax=dx;
+            }
+            else{
+                dmin=dx;
+                dmax=dy;
+            }
+
             for(iw=0;iw<4;iw++){
                 
                 iFound=-1;
+                flow=2.0*chisq_exception;
+                fhigh=-2.0*chisq_exception;
                 for(i=0;i<gg->get_dim();i++){
-                    trial.set(i,gg->get_pt(istart,i)+xweight[iw]*dd*basisVectors.get_data(ix,i)+yweight[iw]*dd*basisVectors.get_data(iy,i));
+                    trial.set(i,gg->get_pt(istart,i)+dmin*(xweight[iw]*basisVectors.get_data(ix,i)+yweight[iw]*basisVectors.get_data(iy,i)));
                 }
                 evaluateNoAssociate(trial,&ftrial,&iTrial);
                 
                 if(ftrial-gg->get_target()>0.0){
+                    fhigh=ftrial;
                     for(i=0;i<gg->get_dim();i++){
                         highball.set(i,trial.get_data(i));
-                        lowball.set(i,gg->get_pt(istart,i));
                     }
-                    fhigh=ftrial;
-                    flow=gg->get_fn(istart);
                 }
                 else if(gg->get_target()-ftrial>bisection_tolerance){
+                    flow=ftrial;
                     for(i=0;i<gg->get_dim();i++){
                         lowball.set(i,trial.get_data(i));
                     }
-                    flow=ftrial;
-                    fhigh=-2.0*chisq_exception;
-                    for(i=0;i<gg->get_dim();i++){
-                        highball.set(i,lowball.get_data(i));
-                    }
-                    
-                    while(fhigh<=gg->get_target()){
-                        for(i=0;i<gg->get_dim();i++){
-                            highball.add_val(i,dd*(xweight[iw]*basisVectors.get_data(ix,i)+yweight[iw]*basisVectors.get_data(iy,i)));
-                        }
-                        evaluateNoAssociate(highball,&fhigh,&iTrial);
-                    }
                 }
-                else if(gg->get_target()-ftrial<bisection_tolerance){
+                else{
                     iFound=iTrial;
                 }
                 
+                if(iFound<0 && fhigh<=gg->get_target()){
+                    for(i=0;i<gg->get_dim();i++){
+                        trial.set(i,gg->get_pt(istart,i)+dmax*(xweight[iw]*basisVectors.get_data(ix,i)+yweight[iw]*basisVectors.get_data(iy,i)));
+                    }
+                    evaluateNoAssociate(trial,&ftrial,&iTrial);
+                    
+                    if(ftrial-gg->get_target()>0.0){
+                        fhigh=ftrial;
+                        for(i=0;i<gg->get_dim();i++){
+                            highball.set(i,trial.get_data(i));
+                        }
+                    }
+                    else if(gg->get_target()-ftrial>bisection_tolerance){
+                        flow=ftrial;
+                        for(i=0;i<gg->get_dim();i++){
+                            lowball.set(i,trial.get_data(i));
+                        }
+                    }
+                    else{
+                        iFound=iTrial;
+                    }
+                }
+                
                 if(iFound<0){
+                    if(flow>=gg->get_target()){
+                        for(i=0;i<gg->get_dim();i++){
+                            lowball.set(i,gg->get_pt(istart,i));
+                        }
+                        flow=gg->get_fn(istart);
+                    }
+                    
+                    if(fhigh<=gg->get_target()){
+                        for(i=0;i<gg->get_dim();i++){
+                            highball.set(i,lowball.get_data(i));
+                        }
+                        while(fhigh<=gg->get_target()){
+                            for(i=0;i<gg->get_dim();i++){
+                                highball.add_val(i,dmax*(xweight[iw]*basisVectors.get_data(ix,i)+yweight[iw]*basisVectors.get_data(iy,i)));
+                            }
+                            evaluateNoAssociate(highball,&fhigh,&iTrial);
+                        }
+                    }
+                    
                     iFound=bisection(lowball,flow,highball,fhigh);
                 }
                 
