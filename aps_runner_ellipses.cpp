@@ -50,7 +50,7 @@ ellipses chisq(dim,ncenters);
 //
 //the '11.0' is the \Delta\chi^2 corresponding to a 95% confidence limit
 //on a 5-dimensional parameter space
-aps aps_test(dim,20,11.0,seed);
+aps aps_test(dim,20,33.9,seed);
 
 //pass chisq to the aps object
 aps_test.assign_chisquared(&chisq);
