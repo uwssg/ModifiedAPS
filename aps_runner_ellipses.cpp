@@ -13,8 +13,8 @@ int dim,ncenters;
 int nsamples=10000;
 
 seed=atoi(argv[1]);
-dim=atoi(argv[2]);
-ncenters=atoi(argv[3]);
+ncenters=atoi(argv[2]);
+dim=atoi(argv[3]);
 
 if(iargc>4){
     nsamples=atoi(argv[4]);
