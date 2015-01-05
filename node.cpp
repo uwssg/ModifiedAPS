@@ -1318,7 +1318,7 @@ void node::off_diagonal_compass_search(int istart){
                 
                 //globalBasisAssociates.add(iFound);
                 for(i=0;i<gg->get_dim();i++){
-                    trial.set(i,0.9*gg->get_pt(istart,i)+0.1*gg->get_pt(iFound,i));
+                    trial.set(i,0.5*gg->get_pt(istart,i)+0.5*gg->get_pt(iFound,i));
                 }
                 evaluateNoAssociate(trial,&ftrial,&iTrial);
                 if(iTrial>=0){
@@ -1326,7 +1326,7 @@ void node::off_diagonal_compass_search(int istart){
                 }
                 
                 for(i=0;i<gg->get_dim();i++){
-                   trial.set(i,0.8*gg->get_pt(istart,i)+0.2*gg->get_pt(iFound,i));
+                   trial.set(i,0.75*gg->get_pt(istart,i)+0.25*gg->get_pt(iFound,i));
                 }
                 evaluateNoAssociate(trial,&ftrial,&iTrial);
                 if(iTrial>=0){
@@ -1461,8 +1461,8 @@ void node::compass_search(int istart){
                 }
             }
             
-            if(iFound<0 || gg->get_fn(iFound)>gg->get_target() ||
-                fabs(gg->get_target()-gg->get_fn(iFound))>bisection_tolerance){
+            if(iFound<0 || gg->get_fn(iFound)>gg->get_target()){
+                //|| fabs(gg->get_target()-gg->get_fn(iFound))>bisection_tolerance){
                 
                 printf("WARNING in compass iFound %d ",iFound);
                 if(iFound>=0){
@@ -1478,7 +1478,7 @@ void node::compass_search(int istart){
                     //globalBasisAssociates.add(iFound);
                     
                     for(i=0;i<gg->get_dim();i++){
-                        trial.set(i,0.9*gg->get_pt(istart,i)+0.1*gg->get_pt(iFound,i));
+                        trial.set(i,0.5*gg->get_pt(istart,i)+0.5*gg->get_pt(iFound,i));
                     }
                     evaluateNoAssociate(trial,&ftrial,&iTrial);
                     if(iTrial>=0){
@@ -1486,7 +1486,7 @@ void node::compass_search(int istart){
                     }
                     
                     for(i=0;i<gg->get_dim();i++){
-                        trial.set(i,0.8*gg->get_pt(istart,i)+0.2*gg->get_pt(iFound,i));
+                        trial.set(i,0.75*gg->get_pt(istart,i)+0.25*gg->get_pt(iFound,i));
                     }
                     evaluateNoAssociate(trial,&ftrial,&iTrial);
                     if(iTrial>=0){
