@@ -103,6 +103,13 @@ s_control: s_curve_control.cpp chisq.o
 	kd.o chisq.o \
 	$(LIBRARIES) $(INCLUDE)
 
+e_control: ellipse_control.cpp chisq.o
+	$(gg) -o e_control ellipse_control.cpp containers.o goto_tools.o \
+	kd.o chisq.o \
+	$(LIBRARIES) $(INCLUDE)
+
+
+
 ellipse: aps_runner_ellipses.cpp aps.o chisq.o
 	$(gg) -o ellipse aps_runner_ellipses.cpp \
 	goto_tools.o containers.o kd.o eigen_wrapper.o gaussian_process.o \
