@@ -2056,7 +2056,7 @@ void node::find_bases(){
         
         if(Etrial<Ebest){
             //printf("    improved %e < %e -- %d\n",Etrial,Ebest,aborted);
-            if(Ebest-Etrial>1.0e-5*Etrial){
+            if(lastEbest-Etrial>1.0e-5*Etrial){
                 aborted=0;
             }
             else{
@@ -2089,7 +2089,7 @@ void node::find_bases(){
             just stop trying
             */
             printf("total_ct %d Ebest %e\n",total_ct,Ebest);
-            if((lastEbest-Ebest)/lastEbest<0.1)go_on=0;
+            //if((lastEbest-Ebest)/lastEbest<0.1)go_on=0;
             
             lastEbest=Ebest;
         }
