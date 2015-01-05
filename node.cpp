@@ -1316,9 +1316,17 @@ void node::off_diagonal_compass_search(int istart){
                     exit(1);
                 }
                 
-                globalBasisAssociates.add(iFound);
+                //globalBasisAssociates.add(iFound);
                 for(i=0;i<gg->get_dim();i++){
-                    trial.set(i,0.5*(gg->get_pt(istart,i)+gg->get_pt(iFound,i)));
+                    trial.set(i,0.9*gg->get_pt(istart,i)+0.1*gg->get_pt(iFound,i));
+                }
+                evaluateNoAssociate(trial,&ftrial,&iTrial);
+                if(iTrial>=0){
+                    globalBasisAssociates.add(iTrial);
+                }
+                
+                for(i=0;i<gg->get_dim();i++){
+                   trial.set(i,0.8*gg->get_pt(istart,i)+0.2*gg->get_pt(iFound,i));
                 }
                 evaluateNoAssociate(trial,&ftrial,&iTrial);
                 if(iTrial>=0){
@@ -1467,14 +1475,25 @@ void node::compass_search(int istart){
             if(logBasisAssociates==1){
                 if(iFound>=0){
                     compassPoints.add(iFound);
-                    globalBasisAssociates.add(iFound);
+                    //globalBasisAssociates.add(iFound);
+                    
                     for(i=0;i<gg->get_dim();i++){
-                        trial.set(i,0.5*(gg->get_pt(istart,i)+gg->get_pt(iFound,i)));
+                        trial.set(i,0.9*gg->get_pt(istart,i)+0.1*gg->get_pt(iFound,i));
                     }
-                    gg->evaluate(trial,&ftrial,&iFound);
-                    if(iFound>=0){
-                        globalBasisAssociates.add(iFound);
+                    evaluateNoAssociate(trial,&ftrial,&iTrial);
+                    if(iTrial>=0){
+                        globalBasisAssociates.add(iTrial);
                     }
+                    
+                    for(i=0;i<gg->get_dim();i++){
+                        trial.set(i,0.8*gg->get_pt(istart,i)+0.2*gg->get_pt(iFound,i));
+                    }
+                    evaluateNoAssociate(trial,&ftrial,&iTrial);
+                    if(iTrial>=0){
+                        globalBasisAssociates.add(iTrial);
+                    }
+                    
+                    
                 }
             }
             
