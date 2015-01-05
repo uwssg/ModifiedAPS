@@ -43,6 +43,7 @@ node::node(){
     
     farthest_associate=0.0;
     time_penalty=0.5;
+    bisection_tolerance=0.01;
     
     gg=NULL;
     dice=NULL;
@@ -418,8 +419,9 @@ array_1d<double> &highball_in, double fhigh_in, int asAssociates){
         gg->set_iWhere(iNodeBisect);
     }
     
+    bisection_tolerance=0.01*(gg->get_target()-gg->get_chimin());
+    
     int iout;
-    double bisection_tolerance=0.01;//*(gg->get_target()-gg->get_chimin());
     
     array_1d<double> trial;
     double ftrial;
@@ -1165,6 +1167,134 @@ void node::ricochet_search(){
     totalBisectionCt,callsToBisection,rate);
 }
 
+void node::off_diagonal_compass_search(int istart){
+
+    array_1d<double> trial,lowball,highball;
+    lowball.set_name("node_off_diag_lowball");
+    highball.set_name("node_off_diag_highball");
+    trial.set_name("node_off_diag_trial");
+    
+    double ftrial,flow,fhigh;
+    int iTrial,iFound;
+    
+    int i,j,ix,iy,ifx,ify,iw;
+    double dx,dy,dd;
+    
+    double xweight[4],yweight[4],sqrt2o2;
+    
+    sqrt2o2=sqrt(2.0)*0.5;
+    xweight[0]=sqrt2o2;
+    xweight[1]=sqrt2o2;
+    xweight[2]=-1.0*sqrt2o2;
+    xweight[3]=-1.0*sqrt2o2;
+    
+    yweight[0]=sqrt2o2;
+    yweight[1]=-1.0*sqrt2o2;
+    yweight[2]=sqrt2o2;
+    yweight[3]=-1.0*sqrt2o2;
+    
+    
+    for(ix=0;ix<gg->get_dim();ix++){
+        dx=0.0;
+        ifx=compassPoints.get_data(2*ix);
+        for(i=0;i<gg->get_dim();i++){
+            dx+=(gg->get_pt(istart,i)-gg->get_pt(ifx,i))*basisVectors.get_data(ix,i);
+        }
+        ifx=compassPoints.get_data(2*ix+1);
+        for(i=0;i<gg->get_dim();i++){
+            dx+=(gg->get_pt(ifx,i)-gg->get_pt(istart,i))*basisVectors.get_data(ix,i);
+        }
+        dx*=0.5;
+        if(dx<0.0){
+            printf("WARNING off_diagonal_compass_search dx %e\n",dx);
+            exit(1);
+        }
+        
+        for(iy=ix+1;iy<gg->get_dim();iy++){
+            dy=0.0;
+            ify=compassPoints.get_data(2*iy);
+            for(i=0;i<gg->get_dim();i++){
+                dy+=(gg->get_pt(istart,i)-gg->get_pt(ify,i))*basisVectors.get_data(iy,i);
+            }
+            ify=compassPoints.get_data(2*iy+1);
+            for(i=0;i<gg->get_dim();i++){
+                dy+=(gg->get_pt(ify,i)-gg->get_pt(istart,i))*basisVectors.get_data(iy,i);
+            }
+            dy*=0.5;
+            if(dy<0.0){
+                printf("WARNING off_diagonal_compass_search dy %e\n",dy);
+                exit(1);
+            }
+            
+            if(dx<dy)dd=dx;
+            else dd=dy;
+            
+            for(iw=0;iw<4;iw++){
+                
+                iFound=-1;
+                for(i=0;i<gg->get_dim();i++){
+                    trial.set(i,gg->get_pt(istart,i)+xweight[iw]*dd*basisVectors.get_data(ix,i)+yweight[iw]*dd*basisVectors.get_data(iy,i));
+                }
+                evaluateNoAssociate(trial,&ftrial,&iTrial);
+                
+                if(ftrial-gg->get_target()>0.0){
+                    for(i=0;i<gg->get_dim();i++){
+                        highball.set(i,trial.get_data(i));
+                        lowball.set(i,gg->get_pt(istart,i));
+                    }
+                    fhigh=ftrial;
+                    flow=gg->get_fn(istart);
+                }
+                else if(gg->get_target()-ftrial>bisection_tolerance){
+                    for(i=0;i<gg->get_dim();i++){
+                        lowball.set(i,trial.get_data(i));
+                    }
+                    flow=ftrial;
+                    fhigh=-2.0*chisq_exception;
+                    for(i=0;i<gg->get_dim();i++){
+                        highball.set(i,lowball.get_data(i));
+                    }
+                    
+                    while(fhigh<=gg->get_target()){
+                        for(i=0;i<gg->get_dim();i++){
+                            highball.add_val(i,dd*(xweight[iw]*basisVectors.get_data(ix,i)+yweight[iw]*basisVectors.get_data(iy,i)));
+                        }
+                        evaluateNoAssociate(highball,&fhigh,&iTrial);
+                    }
+                }
+                else if(gg->get_target()-ftrial<bisection_tolerance){
+                    iFound=iTrial;
+                }
+                
+                if(iFound<0){
+                    iFound=bisection(lowball,flow,highball,fhigh);
+                }
+                
+                if(iFound<0 || gg->get_fn(iFound)<gg->get_target()-bisection_tolerance || gg->get_fn(iFound)>gg->get_target()){
+                    printf("WARNING off_diag_compass iFound %d ",iFound);
+                    if(iFound>=0){
+                        printf("target %e found %e tol %e",gg->get_target(),gg->get_fn(iFound),bisection_tolerance);
+                    }
+                    printf("\n");
+                    exit(1);
+                }
+                
+                globalBasisAssociates.add(iFound);
+                for(i=0;i<gg->get_dim();i++){
+                    trial.set(i,0.5*(gg->get_pt(istart,i)+gg->get_pt(iFound,i)));
+                }
+                evaluateNoAssociate(trial,&ftrial,&iTrial);
+                if(iTrial>=0){
+                    globalBasisAssociates.add(iTrial);
+                }
+                
+            }
+            
+        }
+    }
+
+}
+
 void node::compass_search(int istart){
     /*perform a compass search centered on the point designated by istart*/
     
@@ -1235,14 +1365,14 @@ void node::compass_search(int istart){
                     flow=gg->get_fn(istart);
                     fhigh=ftrial;
                 }
-                else if(gg->get_target()-ftrial>1.0e-10){
+                else if(gg->get_target()-ftrial>bisection_tolerance){
                     for(i=0;i<gg->get_dim();i++){
                         lowball.set(i,trial.get_data(i));
                     }
                     flow=ftrial;
                     fhigh=-2.0*chisq_exception;
                 }
-                else if(gg->get_target()-ftrial<1.0e-10){
+                else if(gg->get_target()-ftrial<bisection_tolerance){
                     iFound=iTrial;
                 }
                 else{
@@ -1284,10 +1414,12 @@ void node::compass_search(int istart){
                 }
             }
             
-            if(iFound<0 || gg->get_fn(iFound)>gg->get_target() || fabs(gg->get_target()-gg->get_fn(iFound))>0.1){
+            if(iFound<0 || gg->get_fn(iFound)>gg->get_target() ||
+                fabs(gg->get_target()-gg->get_fn(iFound))>bisection_tolerance){
+                
                 printf("WARNING in compass iFound %d ",iFound);
                 if(iFound>=0){
-                    printf("target %e found %e",iFound,gg->get_target(),gg->get_fn(iFound));
+                    printf("target %e found %e",gg->get_target(),gg->get_fn(iFound));
                 }
                 printf("\n");
                 exit(1);
@@ -1309,6 +1441,11 @@ void node::compass_search(int istart){
             
         }//loop over sign (direction along basisVector)
     }//loop over dimension (which basisVector we are bisecting along)
+    
+    if(logBasisAssociates==1){
+        printf("time for off-diagonal\n");
+        off_diagonal_compass_search(istart);
+    }
     
     int use_it;
     if(istart!=min_dex){

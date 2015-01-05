@@ -87,7 +87,7 @@ class node{
         int last_expanded,activity;
         int center_dex,min_dex,last_nBasisAssociates,last_nAssociates;
         double time_ricochet,time_coulomb,time_search,time_bases;
-        double farthest_associate,time_penalty;
+        double farthest_associate,time_penalty,bisection_tolerance;
         
         int totalBisectionCt,callsToBisection;
         
@@ -108,6 +108,7 @@ class node{
         void ricochet_search();
         int ricochet_driver(int,array_1d<double>&,array_1d<double>&);
         void compass_search(int);
+        void off_diagonal_compass_search(int);
         void find_bases();
         int perturb_bases(array_2d<double>&,int,array_1d<double>&,array_2d<double>&);
         double basis_error(array_2d<double>&,array_1d<int>&,array_1d<double>&);
