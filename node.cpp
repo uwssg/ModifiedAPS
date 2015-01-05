@@ -1907,6 +1907,7 @@ void node::find_bases(){
     
     time_bases+=double(time(NULL))-before;
     ct_bases+=gg->get_called()-ibefore;
+    printf("found bases with %d\n",gg->get_called()-ibefore);
 }
 
 double node::volume(){
