@@ -133,6 +133,12 @@ s_curve_analysis: s_curve_analyzer.cpp chisq.o aps_extractor.o
 	goto_tools.o containers.o kd.o aps_extractor.o \
 	chisq.o $(LIBRARIES) $(INCLUDE)
 
+ellipse_analysis: ellipse_analyzer.cpp chisq.o aps_extractor.o
+	$(gg) -o ellipse_analysis s_curve_analyzer.cpp \
+	goto_tools.o containers.o kd.o aps_extractor.o \
+	chisq.o $(LIBRARIES) $(INCLUDE)
+
+
 
 s_curve_multinest_analysis: s_curve_multinest_analyzer.cpp chisq.o aps_extractor.o
 	$(gg) -o s_curve_multinest_analysis s_curve_multinest_analyzer.cpp \
