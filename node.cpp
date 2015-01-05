@@ -419,7 +419,7 @@ array_1d<double> &highball_in, double fhigh_in, int asAssociates){
     }
     
     int iout;
-    double bisection_tolerance=0.01*(gg->get_target()-gg->get_chimin());
+    double bisection_tolerance=0.01;//*(gg->get_target()-gg->get_chimin());
     
     array_1d<double> trial;
     double ftrial;
@@ -1197,55 +1197,105 @@ void node::compass_search(int istart){
         compassPoints.reset();
     }
     
-    int idim,i,j,iHigh,iFound;
-    double ftrial,sgn,scale,flow;
-    array_1d<double> trial,lowball;
-    array_2d<double> compassDirections;
+    int idim,i,j,iHigh,iFound,iTrial;
+    double ftrial,sgn,scale,flow,dx,fhigh;
+    array_1d<double> trial,lowball,highball;
     
     trial.set_name("node_compass_trial");
     lowball.set_name("node_compass_lowball");
-    compassDirections.set_name("node_compassDirections");
-    
-    for(i=0;i<gg->get_dim();i++){
-        compassDirections.add_row(basisVectors(i)[0]);
-    }
-    
-    if(logBasisAssociates==1){
-        for(i=0;i<gg->get_dim();i++){
-            for(j=0;j<i;j++){
-                for(idim=0;idim<gg->get_dim();idim++){
-                    trial.set(idim,0.5*(basisVectors.get_data(i,idim)+basisVectors.get_data(j,idim)));
-                }
-                compassDirections.add_row(trial);
-            }
-        }
-    }
+    highball.set_name("node_compass_highball");
     
     for(i=0;i<gg->get_dim();i++){
         lowball.set(i,gg->get_pt(istart,i));
     }
     flow=gg->get_fn(istart);
     
-    for(idim=0;idim<compassDirections.get_rows();idim++){
+    for(idim=0;idim<basisVectors.get_rows();idim++){
         for(sgn=-1.0;sgn<1.5;sgn+=2.0){
-            for(i=0;i<gg->get_dim();i++)trial.set(i,gg->get_pt(istart,i));
-            
-            ftrial=-2.0*chisq_exception;
+            iFound=-1;
+            if(sgn<0.0){
+                for(i=0;i<gg->get_dim();i++){
+                    lowball.set(i,gg->get_pt(istart,i));
+                }
+                flow-gg->get_fn(istart);
+                fhigh=-2.0*chisq_exception;
+            }
+            else{
+                for(i=0;i<gg->get_dim();i++){
+                    trial.set(i,gg->get_pt(istart,i)+dx*basisVectors.get_data(idim,i));
+                    
+                }
+                evaluateNoAssociate(trial,&ftrial,&iTrial);
+                
+                if(ftrial-gg->get_target()>0.0){
+                    for(i=0;i<gg->get_dim();i++){
+                        lowball.set(i,gg->get_pt(istart,i));
+                        highball.set(i,trial.get_data(i));
+                    }
+                    flow=gg->get_fn(istart);
+                    fhigh=ftrial;
+                }
+                else if(gg->get_target()-ftrial>1.0e-10){
+                    for(i=0;i<gg->get_dim();i++){
+                        lowball.set(i,trial.get_data(i));
+                    }
+                    flow=ftrial;
+                    fhigh=-2.0*chisq_exception;
+                }
+                else if(gg->get_target()-ftrial<1.0e-10){
+                    iFound=iTrial;
+                }
+                else{
+                    for(i=0;i<gg->get_dim();i++){
+                        lowball.set(i,gg->get_pt(istart,i));
+                    }
+                    flow=gg->get_fn(istart);
+                    fhigh=-2.0*chisq_exception;
+                }
+
+            }
+        
+            if(fhigh<=gg->get_target() && iFound<0){
+                for(i=0;i<gg->get_dim();i++)highball.set(i,lowball.get_data(i));
+            }
+           
             scale=0.5;
-            while(ftrial<=gg->get_target()){
+            while(fhigh<=gg->get_target() && iFound<0){
                 //scale*=2.0;
                 for(i=0;i<gg->get_dim();i++){
-                    trial.add_val(i,compassDirections.get_data(idim,i)*scale*sgn);
+                    highball.add_val(i,basisVectors.get_data(idim,i)*scale*sgn);
                 }
                 
-                evaluateNoAssociate(trial,&ftrial,&iHigh);
+                evaluateNoAssociate(highball,&fhigh,&iHigh);
             }
             
-            iFound=bisection(lowball,flow,trial,ftrial);
+            if(iFound<0){
+                iFound=bisection(lowball,flow,highball,fhigh);
+            }
+            
+            if(sgn<0.0){
+                dx=0.0;
+                for(i=0;i<gg->get_dim();i++){
+                    dx+=(gg->get_pt(istart,i)-gg->get_pt(iFound,i))*basisVectors.get_data(idim,i);
+                }
+                if(dx<0.0){
+                    printf("WARNING in compass search dx %e\n",dx);
+                    exit(1);
+                }
+            }
+            
+            if(iFound<0 || gg->get_fn(iFound)>gg->get_target() || fabs(gg->get_target()-gg->get_fn(iFound))>0.1){
+                printf("WARNING in compass iFound %d ",iFound);
+                if(iFound>=0){
+                    printf("target %e found %e",iFound,gg->get_target(),gg->get_fn(iFound));
+                }
+                printf("\n");
+                exit(1);
+            }
             
             if(logBasisAssociates==1){
                 if(iFound>=0){
-                    if(compassPoints.get_dim()<2*gg->get_dim())compassPoints.add(iFound);
+                    compassPoints.add(iFound);
                     globalBasisAssociates.add(iFound);
                     for(i=0;i<gg->get_dim();i++){
                         trial.set(i,0.5*(gg->get_pt(istart,i)+gg->get_pt(iFound,i)));
