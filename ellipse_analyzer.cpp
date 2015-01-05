@@ -61,7 +61,7 @@ for(i=0;i<dim;i++){
 }
 
 int hdex;
-double nn,chival;
+double nn,chival,maxerr=-1.0,chitrue;
 array_1d<int> *hptr;
 
 data.set_name("main_data");
@@ -90,9 +90,16 @@ while(fscanf(input,"%le",&nn)>0){
         vv.set(i,nn);
     }
     
+    chitrue=chifn(vv);
     
     fscanf(input,"%le",&chival);
     chisq.add(chival);
+    
+    if(fabs(chitrue-chival)>maxerr){
+        maxerr=fabs(chitrue-chival);
+        printf("maxerr %e chitrue %e chival %e\n",maxerr,chitrue,chival);
+    }
+    
     fscanf(input,"%le",&nn);
     mu.add(nn);
     fscanf(input,"%le",&nn);
@@ -163,6 +170,8 @@ while(fscanf(input,"%le",&nn)>0){
         ling.get_data(ling.get_dim()-1));
 
 }
+
+printf("maxerr %e\n",maxerr);
 
 fclose(input);
 fclose(output);

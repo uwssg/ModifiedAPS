@@ -134,7 +134,7 @@ s_curve_analysis: s_curve_analyzer.cpp chisq.o aps_extractor.o
 	chisq.o $(LIBRARIES) $(INCLUDE)
 
 ellipse_analysis: ellipse_analyzer.cpp chisq.o aps_extractor.o
-	$(gg) -o ellipse_analysis s_curve_analyzer.cpp \
+	$(gg) -o ellipse_analysis ellipse_analyzer.cpp \
 	goto_tools.o containers.o kd.o aps_extractor.o \
 	chisq.o $(LIBRARIES) $(INCLUDE)
 
