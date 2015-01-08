@@ -2138,7 +2138,7 @@ void aps::aps_search(){
         if(nodes(i)->is_it_active()==1)active_nodes++;
     }
     
-    if(do_focus==1 && called_focus/active_nodes<called_wide){
+    if(do_focus==1){// && called_focus/active_nodes<called_wide){
         aps_focus();
         called_focus+=ggWrap.get_called()-ibefore;
     }
