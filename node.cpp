@@ -1917,29 +1917,39 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
     double before=double(time(NULL));
     double beforeGauss;
     
-    trial_model.reset();
-    array_1d<double> aa,bb,vv;
-    array_2d<double> ddsq;
-    aa.set_name("basis_error_AA");
-    bb.set_name("basis_error_bb");
-    ddsq.set_name("basis_error_ddsq");
-    vv.set_name("basis_error_vv");
+    trial_model.zero();
+    _aa.set_name("basis_error_AA");
+    _bb.set_name("basis_error_bb");
+    _ddsq.set_name("basis_error_ddsq");
+    _vv.set_name("basis_error_vv");
+    
+    if(_ddsq.get_rows()>basis_associates.get_dim()){
+        _ddsq.reset();
+    }
+    
+    if(_ddsq.get_cols()!=gg->get_dim()){
+        _ddsq.set_cols(gg->get_dim());
+    }
+    
+    _aa.zero();
+    _bb.zero();
+    _vv.zero();
+    _ddsq.zero();
     
     int i,j;
     
-    ddsq.set_cols(gg->get_dim());
     for(i=0;i<basis_associates.get_dim();i++){
-        project_distance(basis_associates.get_data(i),min_dex,trial_bases,vv);
+        project_distance(basis_associates.get_data(i),min_dex,trial_bases,_vv);
         for(j=0;j<gg->get_dim();j++){
-            ddsq.set(i,j,vv.get_data(j)*vv.get_data(j));
+            _ddsq.set(i,j,_vv.get_data(j)*_vv.get_data(j));
         }
     }
     
     double chi0=gg->get_fn(min_dex);
     for(i=0;i<gg->get_dim();i++){
-        bb.set(i,0.0);
+        _bb.set(i,0.0);
         for(j=0;j<basis_associates.get_dim();j++){
-            bb.add_val(i,ddsq.get_data(j,i)*(gg->get_fn(basis_associates.get_data(j))-chi0));
+            _bb.add_val(i,_ddsq.get_data(j,i)*(gg->get_fn(basis_associates.get_data(j))-chi0));
         }
     }
     
@@ -1947,12 +1957,11 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
     for(i=0;i<gg->get_dim();i++){
         for(j=i;j<gg->get_dim();j++){
             ix=i*gg->get_dim()+j;
-            aa.set(ix,0.0);
             for(k=0;k<basis_associates.get_dim();k++){
-                aa.add_val(ix,ddsq.get_data(k,i)*ddsq.get_data(k,j));
+                _aa.add_val(ix,_ddsq.get_data(k,i)*_ddsq.get_data(k,j));
             }
             if(j!=i){
-                aa.set(j*gg->get_dim()+i,aa.get_data(ix));
+                _aa.set(j*gg->get_dim()+i,_aa.get_data(ix));
             }
         }
     }
@@ -1960,7 +1969,7 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
     double error,chiModel;
     try{
         beforeGauss=double(time(NULL));
-        naive_gaussian_solver(aa,bb,trial_model,gg->get_dim());
+        naive_gaussian_solver(_aa,_bb,trial_model,gg->get_dim());
         timeInGauss+=double(time(NULL))-beforeGauss;
     }
     catch(int iex){
@@ -1972,7 +1981,7 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
     for(i=0;i<basis_associates.get_dim();i++){
         chiModel=chi0;
         for(j=0;j<gg->get_dim();j++){
-            chiModel+=trial_model.get_data(j)*ddsq.get_data(i,j);
+            chiModel+=trial_model.get_data(j)*_ddsq.get_data(i,j);
         }
         error+=power(gg->get_fn(basis_associates.get_data(i))-chiModel,2);
     }
