@@ -88,6 +88,7 @@ class node{
         int center_dex,min_dex,last_nBasisAssociates,last_nAssociates;
         double time_ricochet,time_coulomb,time_search,time_bases;
         double farthest_associate,time_penalty,bisection_tolerance;
+        double timeInGauss,timeInError;
         
         int totalBisectionCt,callsToBisection;
         

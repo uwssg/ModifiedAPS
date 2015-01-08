@@ -34,6 +34,8 @@ node::node(){
     min_dex=-1;
     last_expanded=0;
     activity=1;
+    timeInGauss=0.0;
+    timeInError=0.0;
     
     ct_search=0;
     ct_ricochet=0;
@@ -1911,7 +1913,10 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
 
 double node::basis_error(array_2d<double> &trial_bases, 
 array_1d<int> &basis_associates, array_1d<double> &trial_model){ 
-
+    
+    double before=double(time(NULL));
+    double beforeGauss;
+    
     trial_model.reset();
     array_1d<double> aa,bb,vv;
     array_2d<double> ddsq;
@@ -1954,7 +1959,9 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
     
     double error,chiModel;
     try{
+        beforeGauss=double(time(NULL));
         naive_gaussian_solver(aa,bb,trial_model,gg->get_dim());
+        timeInGauss+=double(time(NULL))-beforeGauss;
     }
     catch(int iex){
         printf("basis_error was no good\n");
@@ -1969,6 +1976,7 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
         }
         error+=power(gg->get_fn(basis_associates.get_data(i))-chiModel,2);
     }
+    timeInError+=double(time(NULL))-before;
     return error;
     
     
@@ -2107,7 +2115,7 @@ void node::find_bases(){
             If Ebest has not changed by more than 10% in the last 1000 calls,
             just stop trying
             */
-            printf("total_ct %d Ebest %e\n",total_ct,Ebest);
+            printf("total_ct %d Ebest %e tErr %e tG %e\n",total_ct,Ebest,timeInError,timeInGauss);
             //if((lastEbest-Ebest)/lastEbest<0.1)go_on=0;
             
             lastEbest=Ebest;
