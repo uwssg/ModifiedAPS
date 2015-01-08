@@ -1675,10 +1675,13 @@ array_1d<double> &dd){
         exit(1);
     }
     
-    dd.reset();
+    if(dd.get_dim()!=_bases.get_rows()){
+        dd.set_dim(_bases.get_rows());
+    }
+    dd.zero();
+    
     int i,ix;
     for(ix=0;ix<_bases.get_rows();ix++){
-        dd.set(ix,0.0);
         for(i=0;i<gg->get_dim();i++){
             dd.add_val(ix,(p1.get_data(i)-p2.get_data(i))*_bases.get_data(ix,i));
         }
