@@ -1931,6 +1931,18 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
         _ddsq.set_cols(gg->get_dim());
     }
     
+    if(_aa.get_dim()!=gg->get_dim()*gg->get_dim()){
+        _aa.set_dim(gg->get_dim()*gg->get_dim());
+    }
+    
+    if(_bb.get_dim()!=gg->get_dim()){
+        _bb.set_dim(gg->get_dim());
+    }
+    
+    if(_vv.get_dim()!=gg->get_dim()){
+        _vv.set_dim(gg->get_dim());
+    }
+    
     _aa.zero();
     _bb.zero();
     _vv.zero();
@@ -1947,7 +1959,6 @@ array_1d<int> &basis_associates, array_1d<double> &trial_model){
     
     double chi0=gg->get_fn(min_dex);
     for(i=0;i<gg->get_dim();i++){
-        _bb.set(i,0.0);
         for(j=0;j<basis_associates.get_dim();j++){
             _bb.add_val(i,_ddsq.get_data(j,i)*(gg->get_fn(basis_associates.get_data(j))-chi0));
         }
@@ -2124,7 +2135,8 @@ void node::find_bases(){
             If Ebest has not changed by more than 10% in the last 1000 calls,
             just stop trying
             */
-            printf("total_ct %d Ebest %e tErr %e tG %e\n",total_ct,Ebest,timeInError,timeInGauss);
+            printf("total_ct %d Ebest %e tErr %e tG %e tot %e\n",
+            total_ct,Ebest,timeInError,timeInGauss,double(time(NULL))-before);
             //if((lastEbest-Ebest)/lastEbest<0.1)go_on=0;
             
             lastEbest=Ebest;
