@@ -1327,14 +1327,6 @@ void node::off_diagonal_compass_search(int istart){
                     globalBasisAssociates.add(iTrial);
                 }
                 
-                for(i=0;i<gg->get_dim();i++){
-                   trial.set(i,0.75*gg->get_pt(istart,i)+0.25*gg->get_pt(iFound,i));
-                }
-                evaluateNoAssociate(trial,&ftrial,&iTrial);
-                if(iTrial>=0){
-                    globalBasisAssociates.add(iTrial);
-                }
-                
             }
             
         }
