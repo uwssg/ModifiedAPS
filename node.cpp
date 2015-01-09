@@ -1120,11 +1120,11 @@ void node::ricochet_search(){
     int ibefore=gg->get_called();
     double before=double(time(NULL));
     
-    gg->set_iWhere(iRicochet);
-    
     if(ricochetParticles.get_dim()<gg->get_dim()){
         initialize_ricochet();
     }
+    
+    gg->set_iWhere(iRicochet);
     
     array_1d<double> vv,midpt;
     vv.set_name("node_ricochet_search_vv");
