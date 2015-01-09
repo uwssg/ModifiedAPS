@@ -361,6 +361,13 @@ void gpWrapper::evaluate(array_1d<double> &pt, double *chiout, int *dex, int val
             
         }
     }
+    
+    if(get_pts()%5000==0){
+        printf("    cts: aps %d simplex %d ricochet %d compass %d\n",
+        whereCt.get_data(iAPS),whereCt.get_data(iSimplex),
+        whereCt.get_data(iRicochet),whereCt.get_data(iCompass));
+    }
+    
 }
 
 double gpWrapper::diagnostic_evaluate(array_1d<double> &pt){
